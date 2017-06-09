@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/">
+   <file>images/stylesheet-branch-closed.png</file>
+   <file>images/stylesheet-branch-end.png</file>
+   <file>images/stylesheet-branch-more.png</file>
+   <file>images/stylesheet-branch-open.png</file>
+   <file>images/stylesheet-vline.png</file>
+   <file>qss/qjsontreeview.qss</file>
+</qresource>
+</RCC>
