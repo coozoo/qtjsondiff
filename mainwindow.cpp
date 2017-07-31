@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QJsonDocument data11=QJsonDocument::fromJson("{\"empty\":\"empty\"}");
     differ->loadJsonRight(data11);
     differ->expandIt();
-    differ->setBrowseVisible(false);
+    differ->setBrowseVisible(true);
 
 }
 
