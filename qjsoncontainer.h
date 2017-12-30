@@ -24,6 +24,7 @@
 #include <QNetworkRequest>
 #include <QNetworkProxy>
 #include <QNetworkReply>
+#include <QSslConfiguration>
 #include <QSsl>
 #include <zlib.h>
 
