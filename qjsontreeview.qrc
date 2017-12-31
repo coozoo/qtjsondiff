@@ -6,6 +6,7 @@
    <file>images/stylesheet-branch-open.png</file>
    <file>images/stylesheet-vline.png</file>
    <file>images/diff.png</file>
+   <file>images/casesensitivity.png</file>
    <file>qss/qjsontreeview.qss</file>
 </qresource>
 </RCC>

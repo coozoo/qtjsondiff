@@ -60,6 +60,7 @@ public:
     QPushButton *showjson_pushbutton;
     QToolButton *findNext_toolbutton;
     QToolButton *findPrevious_toolbutton;
+    QToolButton *findCaseSensitivity_toolbutton;
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
@@ -92,6 +93,7 @@ private slots:
     void on_sortObj_toolButton_clicked();
     void on_findNext_toolbutton_clicked();
     void on_findPrevious_toolbutton_clicked();
+    void on_findCaseSensitivity_toolbutton_clicked();
     void openJsonFile();
     void serviceGetDataRequestFinished(QNetworkReply* reply);
     void on_find_lineEdit_textChanged(QString text);

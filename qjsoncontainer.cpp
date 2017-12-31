@@ -77,12 +77,18 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     findPrevious_toolbutton=new QToolButton(toolbar);
     findPrevious_toolbutton->setText("<<");
     findPrevious_toolbutton->setToolTip("Find Previous");
+    findCaseSensitivity_toolbutton=new QToolButton(toolbar);
+    findCaseSensitivity_toolbutton->setCheckable(true);
+    findCaseSensitivity_toolbutton->setIcon(QIcon(QPixmap(":/images/casesensitivity.png")));
+    findCaseSensitivity_toolbutton->setToolTip("Check to make case sensetive");
+    //findCaseSensitivity_toolbutton->setChecked(true);
     //tools_layout->addWidget(expandAll_Checkbox,0,Qt::AlignLeft);
     toolbar->addWidget(expandAll_Checkbox);
     toolbar->addSeparator();
     toolbar->addWidget(find_lineEdit);
     toolbar->addWidget(findPrevious_toolbutton);
     toolbar->addWidget(findNext_toolbutton);
+    toolbar->addWidget(findCaseSensitivity_toolbutton);
     toolbar->addSeparator();
 
     spacer = new QWidget();
@@ -160,6 +166,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     connect(find_lineEdit,SIGNAL(textChanged(QString)),this,SLOT(on_find_lineEdit_textChanged(QString)));
     connect(findNext_toolbutton,SIGNAL(clicked()),this,SLOT(on_findNext_toolbutton_clicked()));
     connect(findPrevious_toolbutton,SIGNAL(clicked()),this,SLOT(on_findPrevious_toolbutton_clicked()));
+    connect(findCaseSensitivity_toolbutton,SIGNAL(clicked()),this,SLOT(on_findCaseSensitivity_toolbutton_clicked()));
     connect(model,SIGNAL(dataUpdated()),this,SLOT(on_model_dataUpdated()));
 
 }
@@ -182,7 +189,15 @@ void QJsonContainer::findText()
     //viewjson_plaintext->moveCursor(QTextCursor::Start);
     if(viewjson_plaintext->isVisible())
         {
-            viewjson_plaintext->find(find_lineEdit->text());
+        //ignore search case if button not pressed
+            if(!findCaseSensitivity_toolbutton->isChecked())
+            {
+                viewjson_plaintext->find(find_lineEdit->text());
+            }
+            else
+            {
+                viewjson_plaintext->find(find_lineEdit->text(),QTextDocument::FindCaseSensitively);
+            }
         }
     else
         {
@@ -199,12 +214,35 @@ void QJsonContainer::findText()
 
 void QJsonContainer::on_findNext_toolbutton_clicked()
 {
-    findTextJsonIndexHandler(true);
+    findText();
 }
 
 void QJsonContainer::on_findPrevious_toolbutton_clicked()
 {
-    findTextJsonIndexHandler(false);
+    if(viewjson_plaintext->isVisible())
+        {
+
+            if(!findCaseSensitivity_toolbutton->isChecked())
+            {
+                viewjson_plaintext->find(find_lineEdit->text(),QTextDocument::FindBackward);
+            }
+            else
+            {
+                viewjson_plaintext->find(find_lineEdit->text(),QTextDocument::FindBackward | QTextDocument::FindCaseSensitively);
+            }
+        }
+    else
+        {
+            findTextJsonIndexHandler(false);
+        }
+}
+
+void QJsonContainer::on_findCaseSensitivity_toolbutton_clicked()
+{
+    currentFindIndexesList.clear();
+    currentFindText=find_lineEdit->text();
+    currentFindIndexesList=findModelText(model, QModelIndex());
+    currentFindIndexId=-1;
 }
 
 /* Move trough json items that contain text
@@ -212,6 +250,8 @@ void QJsonContainer::on_findPrevious_toolbutton_clicked()
  * input bool value:
  *      true - forward;
  *      false - backward;
+ *
+ *  TODO: make search cursor moving start from selection
  */
 void QJsonContainer::findTextJsonIndexHandler(bool direction)
 {
@@ -634,6 +674,12 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
 {
     QList<QModelIndex> retindex;
 
+    QString stringToSearch=find_lineEdit->text();
+    if(!findCaseSensitivity_toolbutton->isChecked())
+    {
+        stringToSearch=stringToSearch.toLower();
+    }
+
 
     int rowCount = model->rowCount(parent);
 
@@ -651,7 +697,12 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
                     //retval << idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString();
                     qDebug()<<idx0.data(Qt::DisplayRole).toString();
                     //retval << extractStringsFromModel(model, idx0);
-                    if(QString(idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString()).contains(find_lineEdit->text()))
+                    QString itemText=QString(idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString());
+                    if(!findCaseSensitivity_toolbutton->isChecked())
+                    {
+                        itemText=itemText.toLower();
+                    }
+                    if(itemText.contains(stringToSearch))
                         {
                             retindex<<idx0;
 
