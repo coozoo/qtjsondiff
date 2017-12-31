@@ -15,6 +15,11 @@ int main(int argc, char *argv[])
     #endif
     a.setProperty("appversion","0.1b" + platform);
     a.setProperty("appname","QT JSON Diff");
+
+#ifdef Q_OS_LINUX
+    a.setWindowIcon(QIcon(":/images/diff.png"));
+#endif
+
     MainWindow w;
     w.show();
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
