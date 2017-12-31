@@ -13,6 +13,8 @@ Some features:
 
 <img src="https://user-images.githubusercontent.com/25594311/34464595-f1261198-ee8e-11e7-819c-326080495141.png" width="60%"></img> 
 
+Current comparison behaviour very slow it's searching for elements, first occurance with the same parent whenever it exists. Later I'm planning to implement comparison by exact path...
+
 A lot of to do...
 
 Special thanks to this projects:
