@@ -24,13 +24,11 @@ QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)
 
     mParent = parent;
 
-
 }
 
 QJsonTreeItem::~QJsonTreeItem()
 {
     qDeleteAll(mChilds);
-
 }
 
 void QJsonTreeItem::appendChild(QJsonTreeItem *item)

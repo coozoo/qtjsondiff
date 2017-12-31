@@ -384,9 +384,17 @@ void QJsonContainer::reInitModel()
 //sort arrays inside of objects
 QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
 {
-    QJsonObject jsonObj=data.object();
     QJsonDocument resultData=data;
-    resultData=QJsonDocument::fromVariant(sortObjectArraysGrabObject(jsonObj).toVariantMap());
+    if(data.isObject())
+    {
+        QJsonObject jsonObj=data.object();
+        resultData=QJsonDocument::fromVariant(sortObjectArraysGrabObject(jsonObj).toVariantMap());
+    }
+    else
+    {
+        QJsonArray jsonArr=data.array();
+        resultData=QJsonDocument::fromVariant(sortObjectArraysGrabArray(jsonArr).toVariantList());
+    }
     return resultData;
 }
 //Count "weight of string" or it's rather some kind of hashcode
@@ -486,6 +494,7 @@ QJsonObject QJsonContainer::sortObjectArraysGrabObject(QJsonObject data)
 void QJsonContainer::on_sortObj_toolButton_clicked()
 {
     viewjson_plaintext->setPlainText(sortObjectArrays(QJsonDocument::fromJson((viewjson_plaintext->toPlainText().toUtf8()))).toJson());
+    reInitModel();
 }
 
 QByteArray QJsonContainer::gUncompress(const QByteArray &data)

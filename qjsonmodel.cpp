@@ -36,6 +36,11 @@ QJsonModel::QJsonModel(QObject *parent) :
 
 }
 
+QJsonModel::~QJsonModel()
+{
+    delete mRootItem;
+}
+
 /* maybe it's not really right place
  * file opening inside model
  * but for me it's normal
@@ -72,6 +77,7 @@ bool QJsonModel::loadJson(const QByteArray &json)
         if (parseError.error != QJsonParseError::NoError)
         {
             beginResetModel();
+            delete mRootItem;
             mRootItem = QJsonTreeItem::load(QJsonValue(QJsonDocument::fromJson((QString(
                                                                                      "{\"Error\":\"") + QString(parseError.errorString() +
                                                                                    "\",\"offset\":")+ QString::number(parseError.offset) +
@@ -83,6 +89,7 @@ bool QJsonModel::loadJson(const QByteArray &json)
         if(!mDocument.isNull())
         {
             beginResetModel();
+            delete mRootItem;
             if(mDocument.isObject())
             {
                 mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.object()));
