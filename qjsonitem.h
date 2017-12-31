@@ -1,3 +1,10 @@
+/*
+ * Creator Schutz Sacha
+ * Modified by Yuriy Kuzin
+ * Updated to support diff
+ *
+ */
+
 #ifndef JSONITEM_H
 #define JSONITEM_H
 #include <QtCore>

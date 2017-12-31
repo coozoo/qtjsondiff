@@ -17,6 +17,12 @@
 
 **********************************************/
 
+/*
+ * Modified by Yuriy Kuzin
+ * Updated to support diff
+ *
+ */
+
 #include "qjsonitem.h"
 
 QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)

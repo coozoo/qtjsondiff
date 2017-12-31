@@ -17,6 +17,12 @@
 
 **********************************************/
 
+/*
+ * Modified by Yuriy Kuzin
+ * Updated to support diff
+ *
+ */
+
 #include "qjsonmodel.h"
 #include <QFile>
 #include <QDebug>
