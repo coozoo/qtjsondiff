@@ -26,8 +26,6 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     qDebug()<<"$cont1=new QJsonContainer(container_groupbox)";
     left_cont=new QJsonContainer(container_left_groupbox);
 
-
-
     container_right_groupbox=new QGroupBox(parent);
     container_right_groupbox->setContentsMargins(QMargins(0,0,0,0));
     //container_right_groupbox->setStyleSheet("border:0;");

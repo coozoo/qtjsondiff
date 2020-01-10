@@ -64,6 +64,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     sortObj_toolButton=new QToolButton(toolbar);
     sortObj_toolButton->setText(tr("Sort"));
     sortObj_toolButton->setToolTip(tr("Sort objects inside array\nmaybe helpful when order does not relevant"));
+    sortObj_toolButton->setHidden(true);
 
     tools_layout=new QGridLayout(toolbar);
     tools_layout->setContentsMargins(0,0,0,0);
@@ -422,7 +423,7 @@ void QJsonContainer::reInitModel()
 }
 
 //sort arrays inside of objects
-QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
+/*QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
 {
     QJsonDocument resultData=data;
     if(data.isObject())
@@ -436,7 +437,7 @@ QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
         resultData=QJsonDocument::fromVariant(sortObjectArraysGrabArray(jsonArr).toVariantList());
     }
     return resultData;
-}
+}*/
 //Count "weight of string" or it's rather some kind of hashcode
 //from my point of view it's almost unique and possible to recognize identical string
 //"weight of string"="sum charachters code numbers" * "string length"
@@ -470,7 +471,7 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1,const QJsonValue &v2)
 }
 //sort array
 //need to apply patch to qt https://codereview.qt-project.org/#/c/108352/
-QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
+/*QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 {
     int arrayId=0;
     QJsonArray resultData=data;
@@ -536,7 +537,7 @@ void QJsonContainer::on_sortObj_toolButton_clicked()
     viewjson_plaintext->setPlainText(sortObjectArrays(QJsonDocument::fromJson((viewjson_plaintext->toPlainText().toUtf8()))).toJson());
     reInitModel();
 }
-
+*/
 QByteArray QJsonContainer::gUncompress(const QByteArray &data)
 {
     qDebug()<<"Uncompressing...";
@@ -646,10 +647,7 @@ void QJsonContainer::serviceGetDataRequestFinished(QNetworkReply* reply)
 QStringList QJsonContainer::extractStringsFromModel(QJsonModel *model, const QModelIndex &parent)
 {
     QStringList retval;
-
-
     int rowCount = model->rowCount(parent);
-
     for(int i = 0; i < rowCount; ++i)
         {
             QModelIndex idx0 = model->index(i, 0, parent);

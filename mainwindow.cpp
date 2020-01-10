@@ -10,7 +10,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     messageJsonCont=new QJsonContainer(ui->jsonview_tab);
     //messageJsonCont->setBrowseVisible(false);
-    messageJsonCont->sortObj_toolButton->setVisible(true);
     messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
     differ=new QJsonDiff(ui->compare_tab);
     QJsonDocument data22=QJsonDocument::fromJson("{\"empty\":\"empty\"}");

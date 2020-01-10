@@ -64,9 +64,9 @@ public:
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
-    QJsonDocument sortObjectArrays(QJsonDocument data);
-    QJsonArray sortObjectArraysGrabArray(QJsonArray data);
-    QJsonObject sortObjectArraysGrabObject(QJsonObject data);
+    //QJsonDocument sortObjectArrays(QJsonDocument data);
+    //QJsonArray sortObjectArraysGrabArray(QJsonArray data);
+    //QJsonObject sortObjectArraysGrabObject(QJsonObject data);
     static int countStringWeight(QString inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
@@ -90,7 +90,7 @@ private slots:
     void on_treeview_item_expanded();
     void on_browse_toolButton_clicked();
     void on_showjson_pushbutton_clicked();
-    void on_sortObj_toolButton_clicked();
+    //void on_sortObj_toolButton_clicked();
     void on_findNext_toolbutton_clicked();
     void on_findPrevious_toolbutton_clicked();
     void on_findCaseSensitivity_toolbutton_clicked();
