@@ -156,7 +156,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     qDebug()<<"parent->setLayout(obj_layout)";
     parent->setLayout(obj_layout);
     //connect right click(context menu) signal/slot
-    //connect(treeview, SIGNAL(customContextMenuRequested(const QPoint&)),this, SLOT(ShowContextMenu(const QPoint&)));
+    connect(treeview, SIGNAL(customContextMenuRequested(const QPoint&)),this, SLOT(showContextMenu(const QPoint&)));
     connect(treeview, SIGNAL(expanded(const QModelIndex& )),this, SLOT(on_treeview_item_expanded()));
     connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
     connect(browse_toolButton,SIGNAL(clicked()),this,SLOT(on_browse_toolButton_clicked()));
@@ -184,6 +184,72 @@ QJsonContainer::~QJsonContainer()
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
 }
+
+void QJsonContainer::showContextMenu(const QPoint &point)
+{
+    QModelIndex idx = treeview->indexAt(point);
+
+    //QModelIndex index = treeview->indexAt(point);
+    //if (index.isValid() && index.row() % 2 == 0) {
+    //    myMenu.exec(treeview->viewport()->mapToGlobal(point));
+    //}
+
+        //QTreeView *treeview = (QTreeView *)sender();
+        QTreeView *treeview = static_cast<QTreeView *>(sender());
+        // for most widgets
+
+        QPoint globalPos = treeview->mapToGlobal(point);
+        // for QAbstractScrollArea and derived classes you would use:
+        // QPoint globalPos = myWidget->viewport()->mapToGlobal(pos);
+
+        QMenu myMenu;
+        QAction *copyRow;
+        copyRow=myMenu.addAction(tr("Copy Row"));
+        QAction *copyRows;
+        copyRows=myMenu.addAction(tr("Copy Rows"));
+        /*QAction *copyJsonPlainText;
+        copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
+        QAction *copyJsonPrettyText;
+        copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
+        */
+
+        QTextStream cout(stdout);
+
+        QAction* selectedItem = myMenu.exec(globalPos);
+        if (selectedItem==copyRow)
+            {
+                int columnid=treeview->selectionModel()->currentIndex().column();
+                int rowid = treeview->selectionModel()->currentIndex().row();
+                //QModelIndex idx=treeview->currentIndex();
+
+                QStringList strings = extractItemTextFromModel(model, idx);
+
+                //QStringList strings = extractStringsFromModel(model, QModelIndex());
+
+                //cout<<treeview->model()->index(rowid , columnid).data().toString()<<endl;
+                cout<<"copyRow"<<endl;
+                cout<<strings.join("\n")<<endl;
+                QClipboard *clip = QApplication::clipboard();
+                clip->setText(strings.join("\n"));
+            }
+        else if(selectedItem==copyRows)
+            {
+                cout<<"copyRows"<<endl;
+                QString string =extractStringsFromModel(model, QModelIndex()).join("\n");
+                cout<<string<<endl;
+                QClipboard *clip = QApplication::clipboard();
+                clip->setText(string);
+            }
+        /*else if(selectedItem==copyJsonPlainText)
+            {
+                cout<<"copyJsonPlainText"<<endl;
+            }
+        else if(selectedItem==copyJsonPrettyText)
+            {
+                cout<<"copyJsonPrettyText"<<endl;
+            }*/
+}
+
 
 void QJsonContainer::findText()
 {
@@ -659,11 +725,31 @@ QStringList QJsonContainer::extractStringsFromModel(QJsonModel *model, const QMo
 
             if(idx0.isValid())
                 {
-                    retval << idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString();
+                    retval << idx0.data(Qt::DisplayRole).toString() +QString(" ")+idx2.data(Qt::DisplayRole).toString();
                     //qDebug()<<idx0.data(Qt::DisplayRole).toString();
                     retval << extractStringsFromModel(model, idx0);
                 }
         }
+
+    return retval;
+}
+
+QStringList QJsonContainer::extractItemTextFromModel(QJsonModel *model, const QModelIndex &parent)
+{
+    QStringList retval;
+            //QModelIndex idx0 = model->index(i, 0, parent);
+            //QModelIndex idx1 = model->index(i, 1, parent);
+            //QModelIndex idx2 = model->index(i, 2, parent);
+            //qDebug()<<idx0.data(Qt::DisplayRole).toString()<<idx1.data(Qt::DisplayRole).toString()<<idx2.data(Qt::DisplayRole).toString();
+            //qDebug()<<static_cast<QJsonTreeItem*>(idx0.internalPointer())->typeName();
+            QJsonTreeItem *item = static_cast<QJsonTreeItem*>(parent.internalPointer());
+            if(parent.isValid())
+                {
+                    //retval << idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString();
+                    //retval << extractStringsFromModel(model, idx0);
+                    //retval<<item->value();
+                    retval<<item->text();
+                }
 
     return retval;
 }

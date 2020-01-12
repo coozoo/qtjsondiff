@@ -34,6 +34,7 @@ public:
     QString value() const;
     QJsonValue::Type type() const;
     QString typeName() const;
+    QString text() const;
     QString toolTip() const;
     QColor color() const;
     QModelIndex idxRelation();

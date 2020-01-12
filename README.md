@@ -6,7 +6,6 @@ Some features:
 
     - two view modes json formatted text or json tree;
     - load json from file, url or copy paste;
-    - sort objects inside array by some kind of hash (usefull when you need to compare arrays content);
     - search through json text or json model with some options backward, forward, casesensitivity;
     - compare two jsons with highlightings, sync scrolling, sync item selection.
 

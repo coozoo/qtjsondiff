@@ -133,6 +133,19 @@ QJsonValue::Type QJsonTreeItem::type() const
 {
     return mType;
 }
+
+QString QJsonTreeItem::text() const
+{
+    if(mType==QJsonValue::Array)
+    {
+        return mKey+" "+typeName()+"["+QString::number(childCount())+"] "+mValue;
+    }
+    else
+    {
+        return mKey+" "+typeName()+" "+mValue;
+    }
+}
+
 /* Get string type name of json item
  */
 QString QJsonTreeItem::typeName() const

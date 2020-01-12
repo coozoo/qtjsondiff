@@ -18,6 +18,9 @@
 #include <QPushButton>
 #include <QToolTip>
 #include <QToolBar>
+#include <QMenu>
+#include <QClipboard>
+#include <QApplication>
 
 #include <QNetworkAccessManager>
 #include <QUrl>
@@ -63,6 +66,7 @@ public:
     QToolButton *findCaseSensitivity_toolbutton;
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
+    QStringList extractItemTextFromModel(QJsonModel *model, const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
     //QJsonDocument sortObjectArrays(QJsonDocument data);
     //QJsonArray sortObjectArraysGrabArray(QJsonArray data);
@@ -98,6 +102,7 @@ private slots:
     void serviceGetDataRequestFinished(QNetworkReply* reply);
     void on_find_lineEdit_textChanged(QString text);
     void on_model_dataUpdated();
+    void showContextMenu(const QPoint &point);
 public slots:
     void findText();
 
