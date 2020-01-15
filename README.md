@@ -8,6 +8,9 @@ As tester often I need to compare JSONs from different sources or simply handy v
 
 Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
 
+For example I'm using this in my SignalR, cometD clients to visualize responses or simply to show http response and compare them from other sources.
+And found this example app pretty handy as well.
+
 Some features:
 
     - two view modes json formatted text or json tree;
@@ -31,6 +34,8 @@ Open in QTcreator the QTjsonDiff.pro file and compile.
 
 Or execute commands:
 ```bash
+$ git clone https://github.com/coozoo/qtjsondiff
+$ cd qtjsondiff
 $ qmake-qt5
 $ make
 ```
