@@ -832,15 +832,12 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
 int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &parent,
                                    QList<QModelIndex> *currentFindIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid)
 {
-    //qint64 indexid=qint64();
     QTextStream cout(stdout);
     int rowCount = model->rowCount(parent);
 
     for (int i = 0; i < rowCount; ++i)
         {
             QModelIndex idx0 = model->index(i, 0, parent);
-            QModelIndex idx1 = model->index(i, 1, parent);
-            QModelIndex idx2 = model->index(i, 2, parent);
             if (idx0.isValid())
                 {
 
