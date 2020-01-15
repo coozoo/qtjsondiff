@@ -1,18 +1,88 @@
 # QT JSON diff
 ## Summary
-Some kind of diff viwer for Json (based on tree like json container/viewer widget).
+Some kind of diff viewer for Json (based on tree like json container/viewer widget).
+
+Actually I've created this widget for myself (that's explain little bit weird current comparison logic to search child+parent and doesn't matter what whole path is).
+
+As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
+
+Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
 
 Some features:
 
     - two view modes json formatted text or json tree;
     - load json from file, url or copy paste;
-    - search through json text or json model with some options backward, forward, casesensitivity;
-    - compare two jsons with highlightings, sync scrolling, sync item selection.
+    - search through json text or json model (backward, forward, casesensitivity);
+    - compare two jsons with highlightings, sync scrolling, sync item selection;
+    - copy text of items into clipboard (key value separated by spaces).
 
 
-<img src="https://user-images.githubusercontent.com/25594311/34464595-f1261198-ee8e-11e7-819c-326080495141.png" width="60%"></img> 
+JSON Tree View
 
-Current comparison behaviour very slow it's searching for elements, first occurance with the same parent whenever it exists. Later I'm planning to implement comparison by exact path...
+<img src="https://user-images.githubusercontent.com/25594311/72466610-e78a6f00-37e1-11ea-91dd-cdbe86c317d6.png" width="60%"></img> 
+
+JSON Compare View
+
+<img src="https://user-images.githubusercontent.com/25594311/72466616-ea855f80-37e1-11ea-9fb5-5106b20916aa.png" width="60%"></img> 
+
+## Build from sources
+You should have preinstalled QT5 (version 5.11 if you want to use older you need to modify few lines).
+Open in QTcreator the QTjsonDiff.pro file and compile.
+
+Or execute commands:
+```bash
+$ qmake-qt5
+$ make
+```
+
+If you want to load jsons from https source then you need openssl. Under windows default paths for openssl are C:/OpenSSL-Win64/ and C:/OpenSSL-Win32/lib depends on platform. You can change them inside .pro file
+
+## Integrate it to your application
+
+Actually this application it is example so you can simply to view MainWindow class and you will get idea.
+
+You need to include those files:
+```cpp
+#include "qjsonitem.h"
+#include "qjsonmodel.h"
+#include "qjsoncontainer.h"
+#include "qjsondiff.h"
+```
+If you need just json tree view you can ignore qjsondiff.h
+
+Declare pointers:
+```cpp
+    QJsonContainer *messageJsonCont; //json treeview
+    QJsonDiff *differ;               //json diff like treeview
+```
+
+You need to create some UI elements where you can put those objects.
+
+Create objects and defined their properties:
+```cpp
+    
+    // create json treeview and set tab as parent
+    messageJsonCont=new QJsonContainer(ui->jsonview_tab);
+    // you can hide address line and browse button
+    //messageJsonCont->setBrowseVisible(false);
+    // you can set json text
+    messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
+    
+    // create json diff like tree view set some tab as parrent
+    differ=new QJsonDiff(ui->compare_tab);
+    // set some text to left diff view
+    QJsonDocument data22=QJsonDocument::fromJson("{\"empty\":\"empty\"}");
+    differ->loadJsonLeft(data22);
+    // set some text to right diff view
+    QJsonDocument data11=QJsonDocument::fromJson("{\"empty\":\"empty\"}");
+    differ->loadJsonRight(data11);
+```
+
+That's all pretty simple.
+
+
+
+Current comparison behavior very slow it's searching for elements, first occurance with the same parent whenever it exists. Later I'm planning to implement comparison by exact path...
 
 A lot of to do...
 
