@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
             platform="-64bit";
         #endif
     #endif
-    a.setProperty("appversion","0.21b" + platform + " (QTbuild:" + QString(QT_VERSION_STR) +")");
+    a.setProperty("appversion","0.22b" + platform + " (QTbuild:" + QString(QT_VERSION_STR) +")");
     a.setProperty("appname","QT JSON Diff");
 
 #ifdef Q_OS_LINUX
