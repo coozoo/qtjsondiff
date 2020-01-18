@@ -207,6 +207,8 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     copyRow = myMenu.addAction(tr("Copy Row"));
     QAction *copyRows;
     copyRows = myMenu.addAction(tr("Copy Rows"));
+    QAction *copyPath;
+    copyPath = myMenu.addAction(tr("Copy Path"));
     /*QAction *copyJsonPlainText;
     copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
     QAction *copyJsonPrettyText;
@@ -237,6 +239,13 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             cout << "copyRows" << endl;
             QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
             cout << string << endl;
+            QClipboard *clip = QApplication::clipboard();
+            clip->setText(string);
+        }
+    else if (selectedItem==copyPath)
+        {
+            QString string =model->jsonPath(idx);
+            cout<<string<<endl;
             QClipboard *clip = QApplication::clipboard();
             clip->setText(string);
         }
