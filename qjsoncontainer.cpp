@@ -220,8 +220,8 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     QAction *selectedItem = myMenu.exec(globalPos);
     if (selectedItem == copyRow)
         {
-            int columnid = treeview->selectionModel()->currentIndex().column();
-            int rowid = treeview->selectionModel()->currentIndex().row();
+            //int columnid = treeview->selectionModel()->currentIndex().column();
+            //int rowid = treeview->selectionModel()->currentIndex().row();
             //QModelIndex idx=treeview->currentIndex();
 
             QStringList strings = extractItemTextFromModel(model, idx);
@@ -398,7 +398,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
     if (currentFindIndexesList.count() == 0)
         {
             QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=red>Text Not Found!</font></b>"), 0, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=red>Text Not Found!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
         }
     if (currentFindIndexId >= 0)
         {
@@ -505,7 +505,7 @@ void QJsonContainer::on_treeview_item_expanded()
     //qDebug()<<"expanded";
     if (!expandAll_Checkbox->isChecked())
         {
-            QTreeView *treeviewcall = (QTreeView *)sender();
+            QTreeView *treeviewcall = static_cast<QTreeView *>(sender());
             treeviewcall->resizeColumnToContents(0);
             treeviewcall->resizeColumnToContents(1);
             treeviewcall->resizeColumnToContents(2);
@@ -661,11 +661,11 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
     char out[CHUNK_SIZE];
 
     /* allocate inflate state */
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-    strm.avail_in = data.size();
-    strm.next_in = (Bytef *)(data.data());
+    strm.zalloc = nullptr;
+    strm.zfree = nullptr;
+    strm.opaque = nullptr;
+    strm.avail_in = static_cast<uint>(data.size());
+    strm.next_in = reinterpret_cast<Bytef*>(const_cast<char *>(data.data()));
 
     ret = inflateInit2(&strm, 15 +  32); // gzip decoding
     if (ret != Z_OK)
@@ -675,7 +675,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
     do
         {
             strm.avail_out = CHUNK_SIZE;
-            strm.next_out = (Bytef *)(out);
+            strm.next_out = reinterpret_cast<Bytef*>(const_cast<char *>(out));
 
             ret = inflate(&strm, Z_NO_FLUSH);
             Q_ASSERT(ret != Z_STREAM_ERROR);  // state not clobbered
@@ -690,7 +690,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
                     return QByteArray();
                 }
 
-            result.append(out, CHUNK_SIZE - strm.avail_out);
+            result.append(out, CHUNK_SIZE - static_cast<int>(strm.avail_out));
         }
     while (strm.avail_out == 0);
 
