@@ -252,4 +252,43 @@ void QJsonModel::setIcon(const QJsonValue::Type &type, const QIcon &icon)
     mTypeIcons.insert(type,icon);
 }
 
+QList<QModelIndex> QJsonModel::parents(QModelIndex &index) const
+{
+    QList<QModelIndex> parents=QList<QModelIndex>();
+    if (!index.isValid())
+        return  parents;
+
+    QJsonTreeItem *current_item = static_cast<QJsonTreeItem*>(index.internalPointer());
+    QJsonTreeItem *current_parent = current_item->parent();
+
+    while(current_parent!=mRootItem)
+    {
+        parents.append(createIndex(current_parent->row(), 0, current_parent));
+        current_item = current_parent;
+        current_parent = current_item->parent();
+    }
+    //parents.append(createIndex(mRootItem->row(), 0, mRootItem));
+    return parents;
+}
+
+QList<QModelIndex> QJsonModel::jsonIndexPath(QModelIndex &index) const
+{
+    QList<QModelIndex> parents=this->parents(index);
+    for(int k = 0; k < (parents.size()/2); k++) parents.swap(k,parents.size()-(1+k));
+    QJsonTreeItem *current_item = static_cast<QJsonTreeItem*>(index.internalPointer());
+    parents.append(createIndex(current_item->row(), 0, current_item));
+    return parents;
+}
+
+QString QJsonModel::jsonPath(QModelIndex &index) const
+{
+    QList<QModelIndex> parents=this->jsonIndexPath(index);
+
+    QString ret="";
+    for( int i=0; i<parents.count(); ++i )
+    {
+        ret.append( parents[i].data(Qt::DisplayRole).toString()+"("+static_cast<QJsonTreeItem*>(parents[i].internalPointer())->typeName()+")->");
+    }
+    return ret.left(ret.length()-2);
+}
 
