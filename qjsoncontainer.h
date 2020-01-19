@@ -66,7 +66,7 @@ public:
     QToolButton *findCaseSensitivity_toolbutton;
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
-    QStringList extractItemTextFromModel(QJsonModel *model, const QModelIndex &parent);
+    QStringList extractItemTextFromModel(const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
     int currentIndexFinder(QJsonModel *model, const QModelIndex &parent, QList<QModelIndex> *currentFindIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid);
     //QJsonDocument sortObjectArrays(QJsonDocument data);

@@ -224,7 +224,7 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             //int rowid = treeview->selectionModel()->currentIndex().row();
             //QModelIndex idx=treeview->currentIndex();
 
-            QStringList strings = extractItemTextFromModel(model, idx);
+            QStringList strings = extractItemTextFromModel(idx);
 
             //QStringList strings = extractStringsFromModel(model, QModelIndex());
 
@@ -684,7 +684,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
                 {
                 case Z_NEED_DICT:
                     ret = Z_DATA_ERROR;     // and fall through
-                case Z_DATA_ERROR:
+                [[clang::fallthrough]]; case Z_DATA_ERROR:
                 case Z_MEM_ERROR:
                     (void)inflateEnd(&strm);
                     return QByteArray();
@@ -774,20 +774,12 @@ QStringList QJsonContainer::extractStringsFromModel(QJsonModel *model, const QMo
     return retval;
 }
 
-QStringList QJsonContainer::extractItemTextFromModel(QJsonModel *model, const QModelIndex &parent)
+QStringList QJsonContainer::extractItemTextFromModel(const QModelIndex &parent)
 {
     QStringList retval;
-    //QModelIndex idx0 = model->index(i, 0, parent);
-    //QModelIndex idx1 = model->index(i, 1, parent);
-    //QModelIndex idx2 = model->index(i, 2, parent);
-    //qDebug()<<idx0.data(Qt::DisplayRole).toString()<<idx1.data(Qt::DisplayRole).toString()<<idx2.data(Qt::DisplayRole).toString();
-    //qDebug()<<static_cast<QJsonTreeItem*>(idx0.internalPointer())->typeName();
     QJsonTreeItem *item = static_cast<QJsonTreeItem *>(parent.internalPointer());
     if (parent.isValid())
         {
-            //retval << idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString();
-            //retval << extractStringsFromModel(model, idx0);
-            //retval<<item->value();
             retval << item->text();
         }
 
