@@ -138,11 +138,11 @@ QString QJsonTreeItem::text() const
 {
     if(mType==QJsonValue::Array)
     {
-        return mKey+" "+typeName()+"["+QString::number(childCount())+"] "+mValue;
+        return mKey+"\t"+typeName()+"["+QString::number(childCount())+"]\t"+mValue;
     }
     else
     {
-        return mKey+" "+typeName()+" "+mValue;
+        return mKey+"\t"+typeName()+"\t"+mValue;
     }
 }
 

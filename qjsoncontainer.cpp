@@ -761,11 +761,12 @@ QStringList QJsonContainer::extractStringsFromModel(QJsonModel *model, const QMo
             QModelIndex idx2 = model->index(i, 2, parent);
             qDebug() << idx0.data(Qt::DisplayRole).toString() << idx1.data(Qt::DisplayRole).toString() << idx2.data(Qt::DisplayRole).toString();
             qDebug() << static_cast<QJsonTreeItem *>(idx0.internalPointer())->typeName();
-            //QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx0.internalPointer());
+            QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx0.internalPointer());
 
             if (idx0.isValid())
                 {
-                    retval << idx0.data(Qt::DisplayRole).toString() + QString(" ") + idx2.data(Qt::DisplayRole).toString();
+                    retval << item->text();
+                    //retval << idx0.data(Qt::DisplayRole).toString() + QString("\t") + idx2.data(Qt::DisplayRole).toString() + QString("\n");
                     //qDebug()<<idx0.data(Qt::DisplayRole).toString();
                     retval << extractStringsFromModel(model, idx0);
                 }
