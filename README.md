@@ -18,6 +18,7 @@ Some features:
     - search through json text or json model (backward, forward, casesensitivity);
     - compare two jsons with highlightings, sync scrolling, sync item selection;
     - copy text of items into clipboard (key value separated by spaces).
+    - copy path to the item in such format "name(type)". For example: 1(Object)->owner(Object)->gravatar_id(String)
 
 
 JSON Tree View
@@ -29,14 +30,14 @@ JSON Compare View
 <img src="https://user-images.githubusercontent.com/25594311/72466616-ea855f80-37e1-11ea-9fb5-5106b20916aa.png" width="60%"></img> 
 
 ## Build from sources
-You should have preinstalled QT5 (version 5.11 if you want to use older you need to modify few lines).
+You should have preinstalled QT5 (version 5.11 if you want to use older one you need to modify few lines).
 Open in QTcreator the QTjsonDiff.pro file and compile.
 
 Or execute commands:
 ```bash
 $ git clone https://github.com/coozoo/qtjsondiff
 $ cd qtjsondiff
-$ qmake-qt5
+$ qmake-qt5 # or it can be simply qmake
 $ make
 ```
 
