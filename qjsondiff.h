@@ -22,7 +22,7 @@ class QJsonDiff : public QWidget
     Q_OBJECT
 
 public:
-    explicit QJsonDiff(QWidget *parent = 0);
+    explicit QJsonDiff(QWidget *parent = nullptr);
     ~QJsonDiff();
     QJsonContainer *left_cont;
     QJsonContainer *right_cont;

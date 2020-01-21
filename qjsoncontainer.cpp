@@ -209,14 +209,13 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     copyRows = myMenu.addAction(tr("Copy Rows"));
     QAction *copyPath;
     copyPath = myMenu.addAction(tr("Copy Path"));
-    /*QAction *copyJsonPlainText;
+    QAction *copyJsonPlainText;
     copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
     QAction *copyJsonPrettyText;
     copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
-    */
 
     QTextStream cout(stdout);
-
+    QClipboard *clip = QApplication::clipboard();
     QAction *selectedItem = myMenu.exec(globalPos);
     if (selectedItem == copyRow)
         {
@@ -230,8 +229,7 @@ void QJsonContainer::showContextMenu(const QPoint &point)
 
             //cout<<treeview->model()->index(rowid , columnid).data().toString()<<endl;
             cout << "copyRow" << endl;
-            cout << strings.join("\n") << endl;
-            QClipboard *clip = QApplication::clipboard();
+            cout << strings.join("\n") << endl;        
             clip->setText(strings.join("\n"));
         }
     else if (selectedItem == copyRows)
@@ -239,24 +237,24 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             cout << "copyRows" << endl;
             QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
             cout << string << endl;
-            QClipboard *clip = QApplication::clipboard();
             clip->setText(string);
         }
     else if (selectedItem==copyPath)
         {
             QString string =model->jsonPath(idx);
             cout<<string<<endl;
-            QClipboard *clip = QApplication::clipboard();
             clip->setText(string);
         }
-    /*else if(selectedItem==copyJsonPlainText)
+    else if(selectedItem==copyJsonPlainText)
         {
             cout<<"copyJsonPlainText"<<endl;
+            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Compact));
         }
     else if(selectedItem==copyJsonPrettyText)
         {
             cout<<"copyJsonPrettyText"<<endl;
-        }*/
+            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
+        }
 }
 
 
@@ -473,6 +471,13 @@ void QJsonContainer::loadJson(QString data)
     model->loadJson(data.toUtf8());
     on_expandAll_checkbox_marked();
     //treeview->setColumnWidth(2,300);
+}
+
+QString QJsonContainer::getJson(QString jsonPath)
+{
+    QString json;
+
+    return json;
 }
 
 void QJsonContainer::on_expandAll_checkbox_marked()

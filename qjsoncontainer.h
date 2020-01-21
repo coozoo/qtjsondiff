@@ -35,7 +35,7 @@ class QJsonContainer : public QWidget
 {
 Q_OBJECT
 public:
-    explicit QJsonContainer(QWidget *parent=0);
+    explicit QJsonContainer(QWidget *parent=nullptr);
     ~QJsonContainer();
 
     QJsonModel *model;
@@ -44,6 +44,7 @@ public:
     QCheckBox *expandAll_Checkbox;
     void loadJson(QJsonDocument data);
     void loadJson(QString data);
+    QString getJson(QString jsonPath);
     QTreeView* getTreeView();
     QJsonModel* getJsonModel();
     QVBoxLayout *treeview_layout;
