@@ -213,7 +213,9 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
     QAction *copyJsonPrettyText;
     copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
-
+    /*QAction *copyJsonByPath;
+    copyJsonByPath=myMenu.addAction(tr("Copy Json By Path"));
+*/
     QTextStream cout(stdout);
     QClipboard *clip = QApplication::clipboard();
     QAction *selectedItem = myMenu.exec(globalPos);
@@ -255,6 +257,11 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             cout<<"copyJsonPrettyText"<<endl;
             clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
         }
+  /*  else if(selectedItem==copyJsonByPath)
+        {
+            cout<<"copyJsonByPath"<<endl;
+            QString string=getJson(model->jsonPath(idx));
+        }*/
 }
 
 

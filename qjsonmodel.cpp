@@ -99,10 +99,12 @@ bool QJsonModel::loadJson(const QByteArray &json)
             if(mDocument.isObject())
             {
                 mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.object()));
+                mRootItem->setType(QJsonValue::Object);
             }
             else
             {
                 mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.array()));
+                mRootItem->setType(QJsonValue::Array);
             }
             endResetModel();
             emit dataUpdated();
@@ -267,7 +269,7 @@ QList<QModelIndex> QJsonModel::parents(QModelIndex &index) const
         current_item = current_parent;
         current_parent = current_item->parent();
     }
-    //parents.append(createIndex(mRootItem->row(), 0, mRootItem));
+    parents.append(createIndex(mRootItem->row(), 0, mRootItem));
     return parents;
 }
 
