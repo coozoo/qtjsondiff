@@ -44,7 +44,7 @@ public:
     QCheckBox *expandAll_Checkbox;
     void loadJson(QJsonDocument data);
     void loadJson(QString data);
-    QString getJson(QString jsonPath);
+    QString getJson(QList<QModelIndex> jsonPath);
     QTreeView* getTreeView();
     QJsonModel* getJsonModel();
     QVBoxLayout *treeview_layout;

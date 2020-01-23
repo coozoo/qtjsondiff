@@ -213,9 +213,9 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
     QAction *copyJsonPrettyText;
     copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
-    /*QAction *copyJsonByPath;
-    copyJsonByPath=myMenu.addAction(tr("Copy Json By Path"));
-*/
+    QAction *copyJsonByPath;
+    copyJsonByPath=myMenu.addAction(tr("Copy Selected Json Value"));
+
     QTextStream cout(stdout);
     QClipboard *clip = QApplication::clipboard();
     QAction *selectedItem = myMenu.exec(globalPos);
@@ -257,11 +257,12 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             cout<<"copyJsonPrettyText"<<endl;
             clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
         }
-  /*  else if(selectedItem==copyJsonByPath)
+    else if(selectedItem==copyJsonByPath)
         {
             cout<<"copyJsonByPath"<<endl;
-            QString string=getJson(model->jsonPath(idx));
-        }*/
+            QString string=getJson(model->jsonIndexPath(idx));
+            clip->setText(string);
+        }
 }
 
 
@@ -480,9 +481,98 @@ void QJsonContainer::loadJson(QString data)
     //treeview->setColumnWidth(2,300);
 }
 
-QString QJsonContainer::getJson(QString jsonPath)
+QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
 {
-    QString json;
+    QTextStream cout(stdout);
+    QString json="{}";
+    QJsonDocument jsonDoc=QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8());
+    QJsonValue tempValue=QJsonValue();
+    QJsonValue tempValuePrev=QJsonValue();
+    if(jsonDoc.isObject())
+    {
+        tempValue=jsonDoc.object();
+    }
+    else if(jsonDoc.isArray())
+    {
+        tempValue=jsonDoc.array();
+    }
+    else
+    {
+        return json;
+    }
+    for (int i = 0; i < jsonPath.size(); ++i)
+    {
+
+        QJsonTreeItem *treeItem=static_cast<QJsonTreeItem *>(jsonPath[i].internalPointer());
+        //cout<<tempValue[treeItem->key()].toString()<<endl;
+        if(!treeItem->parent())
+        {
+            cout<<i<<"root"<<endl;
+        }
+        else
+        {
+            if(tempValue.isObject())
+            {
+                QString key=treeItem->key();
+                if(tempValue[key].isArray())
+                {
+                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                    tempValue=tempValue[key].toArray();
+                }
+                else if(tempValue[key].isObject())
+                {
+                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                    tempValue=tempValue[key].toObject();
+                }
+                else if(tempValue[key].isDouble())
+                {
+                    json=QString::number(tempValue[key].toDouble());
+                }
+                else if(tempValue[key].isString())
+                {
+                    json=tempValue[key].toString();
+                }
+                else if(tempValue[key].isNull())
+                {
+                    json="null";
+                }
+                else if(tempValue[key].isBool())
+                {
+                    json=QString((tempValue[key].toBool())?QString("true"):QString("false"));
+                }
+            }
+            else if(tempValue.isArray())
+            {
+                int key=treeItem->key().toInt();
+                if(tempValue[key].isArray())
+                {
+                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                    tempValue=tempValue[key].toArray();
+                }
+                else if(tempValue[key].isObject())
+                {
+                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                    tempValue=tempValue[key].toObject();
+                }
+                else if(tempValue[key].isDouble())
+                {
+                    json=QString::number(tempValue[key].toDouble());
+                }
+                else if(tempValue[key].isString())
+                {
+                    json=tempValue[key].toString();
+                }
+                else if(tempValue[key].isNull())
+                {
+                    json="null";
+                }
+                else if(tempValue[key].isBool())
+                {
+                    json=QString((tempValue[key].toBool())?QString("true"):QString("false"));
+                }
+            }
+        }
+    }
 
     return json;
 }
