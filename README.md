@@ -105,6 +105,6 @@ Full Path - much faster mode (switched by default) it search for absolute path a
 
 ## Special thanks to this projects:
     
-    [dridk QJsonModel](https://github.com/dridk/QJsonModel) - I've used this model as basement
+    https://github.com/dridk/QJsonModel - I've used this model as basement
 
-    [probonopd linuxdeployqt](https://github.com/probonopd/linuxdeployqt) - nice tool to deploy application on linux
+    https://github.com/probonopd/linuxdeployqt - nice tool to deploy application on linux
