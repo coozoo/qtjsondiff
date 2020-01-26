@@ -24,7 +24,8 @@ Some features:
       * try to find child+parent pair anywhere inside JSON (first occurance).
     - copy text into clipboard 
       * items - key value separated by spaces;
-      * copy path to the item in such format "name(type)". For example: root(Object)->widget(Object)->image(Object)->alignment(String);
+      * copy path to the item in such format "name(type)". 
+           For example: root(Object)->widget(Object)->image(Object)->alignment(String);
       * copy full json (in pretty print or plain);
       * copy value, array, object.
 
@@ -104,6 +105,6 @@ Full Path - much faster mode (switched by default) it search for absolute path a
 
 ## Special thanks to this projects:
     
-    [https://github.com/dridk/QJsonModel](https://github.com/dridk/QJsonModel) - I've used this model as basement
+    [dridk QJsonModel](https://github.com/dridk/QJsonModel) - I've used this model as basement
 
-    [https://github.com/probonopd/linuxdeployqt](https://github.com/probonopd/linuxdeployqt) - nice tool to deploy application on linux
+    [probonopd linuxdeployqt](https://github.com/probonopd/linuxdeployqt) - nice tool to deploy application on linux
