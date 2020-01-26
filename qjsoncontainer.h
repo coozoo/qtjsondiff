@@ -108,6 +108,9 @@ private slots:
 public slots:
     void findText();
 
+protected:
+    bool eventFilter(QObject* obj, QEvent *event);
+
 };
 
 

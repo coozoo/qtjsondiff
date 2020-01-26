@@ -149,6 +149,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
         }
     treeview->ensurePolished();
     treeview->setContextMenuPolicy(Qt::CustomContextMenu);
+    treeview->installEventFilter(this);
 
 
     qDebug() << "obj_layout add widget treeview_groupbox";
@@ -992,4 +993,21 @@ void QJsonContainer::on_model_dataUpdated()
 {
     qDebug() << "model has been changed";
     resetCurrentFind();
+}
+
+bool QJsonContainer::eventFilter(QObject* obj, QEvent *event)
+{
+    Q_UNUSED(obj);
+    QTextStream cout(stdout);
+    if (event->type() == QEvent::KeyPress)
+      {
+        QKeyEvent *keyevent=static_cast<QKeyEvent *>(event);
+        if(keyevent->matches(QKeySequence::Paste))
+        {
+            QClipboard *clipboard = QGuiApplication::clipboard();
+            loadJson(clipboard->text());
+            emit jsonUpdated();
+        }
+      }
+      return false;
 }
