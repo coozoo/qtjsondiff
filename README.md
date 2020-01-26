@@ -1,5 +1,7 @@
 # QT JSON diff
+
 ## Summary
+
 Some kind of diff viewer for Json (based on tree like json container/viewer widget).
 
 Actually I've created this widget for myself (that's explain little bit weird current comparison logic to search child+parent and doesn't matter what whole path is).
@@ -14,11 +16,17 @@ And found this example app pretty handy as well.
 Some features:
 
     - two view modes json formatted text or json tree;
-    - load json from file, url or copy paste;
+    - load json from file, url or copy paste (CTRL+V in treeview mode to paste JSON);
     - search through json text or json model (backward, forward, casesensitivity);
-    - compare two jsons with highlightings, sync scrolling, sync item selection;
-    - copy text of items into clipboard (key value separated by spaces).
-    - copy path to the item in such format "name(type)". For example: 1(Object)->owner(Object)->gravatar_id(String)
+    - compare two jsons with highlightings, sync scrolling, sync item selection (only treeview mode);
+    - two comparison modes (switched by checkbox):
+      * follow by full path;
+      * try to find child+parent pair anywhere inside JSON (first occurance).
+    - copy text into clipboard 
+      * items - key value separated by spaces;
+      * copy path to the item in such format "name(type)". For example: root(Object)->widget(Object)->image(Object)->alignment(String);
+      * copy full json (in pretty print or plain);
+      * copy value, array, object.
 
 
 JSON Tree View
@@ -87,13 +95,15 @@ Create objects and defined their properties:
 That's all pretty simple.
 
 
+## Comparison modes
 
-Current comparison behavior very slow it's searching for elements, first occurance with the same parent whenever it exists. Later I'm planning to implement comparison by exact path...
+Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSON are significantly different.
 
-A lot of to do...
+Full Path - much faster mode (switched by default) it search for absolute path and type. It will be faster if JSONs are significantly different.
 
-Special thanks to this projects:
+
+## Special thanks to this projects:
     
-    https://github.com/dridk/QJsonModel - I've used this model as basement. 
+    [https://github.com/dridk/QJsonModel](https://github.com/dridk/QJsonModel) - I've used this model as basement
 
-    https://github.com/probonopd/linuxdeployqt - nice tool to deploy application on linux
+    [https://github.com/probonopd/linuxdeployqt](https://github.com/probonopd/linuxdeployqt) - nice tool to deploy application on linux
