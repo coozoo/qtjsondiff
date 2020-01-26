@@ -35,8 +35,8 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
 
     qDebug()<<"$qjsoncontainer_layout->addWidget";
-    qjsoncontainer_layout->addWidget(container_left_groupbox,2,0);
-    qjsoncontainer_layout->addWidget(container_right_groupbox,2,1);
+    qjsoncontainer_layout->addWidget(container_left_groupbox,2,0,1,2);
+    qjsoncontainer_layout->addWidget(container_right_groupbox,2,2,1,2);
     qDebug()<<"$container_groupbox->setLayout(qjsoncontainer_layout)";
     //parent->setLayout(qjsoncontainer_layout);
 
@@ -47,10 +47,17 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     compare_pushbutton=new QPushButton(common_groupbox);
     compare_pushbutton->setText("Compare");
-    qjsoncontainer_layout->addWidget(compare_pushbutton,0,0,1,2);
+    qjsoncontainer_layout->addWidget(compare_pushbutton,0,0,1,4);
     syncScroll_checkbox=new QCheckBox(common_groupbox);
     syncScroll_checkbox->setText("Sync Scrolls");
     qjsoncontainer_layout->addWidget(syncScroll_checkbox,1,0);
+    useFullPath_checkbox=new QCheckBox(common_groupbox);
+    useFullPath_checkbox->setText("Use Full Path");
+    useFullPath_checkbox->setChecked(true);
+    useFullPath_checkbox->setToolTip("Otherwise try to find child+parent pair anywhere JSON in tree");
+    qjsoncontainer_layout->addWidget(useFullPath_checkbox,1,1);
+    checkboxSpacer=new QSpacerItem(5, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    qjsoncontainer_layout->addItem(checkboxSpacer,1,2,1,2);
     common_layout->addWidget(common_groupbox);
     connect(compare_pushbutton,SIGNAL(clicked()),this,SLOT(on_compare_pushbutton_clicked()));
     connect(left_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_lefttreeview_clicked(QModelIndex)));
@@ -212,9 +219,25 @@ void QJsonDiff::on_compare_pushbutton_clicked()
 
 void QJsonDiff::startComparison()
 {
-    compareModels(left_cont->getJsonModel(),QModelIndex(),right_cont->getJsonModel());
-    fixColors(left_cont->getJsonModel(),QModelIndex());
-    fixColors(right_cont->getJsonModel(),QModelIndex());
+    if(!useFullPath_checkbox->isChecked())
+    {
+        compareModels(left_cont->getJsonModel(),QModelIndex(),right_cont->getJsonModel());
+        fixColors(left_cont->getJsonModel(),QModelIndex());
+        fixColors(right_cont->getJsonModel(),QModelIndex());
+    }
+    else
+    {
+        QList<QModelIndex> leftIndexList;
+        QStringList leftStringList=jsonPathList(left_cont->getJsonModel(),QModelIndex(),&leftIndexList);
+        QList<QModelIndex> rightIndexList;
+        QStringList rightStringList=jsonPathList(right_cont->getJsonModel(),QModelIndex(),&rightIndexList);
+        comparePath(left_cont->getJsonModel(),leftStringList,leftIndexList,right_cont->getJsonModel(),rightStringList,rightIndexList);
+        comparePath(right_cont->getJsonModel(),rightStringList,rightIndexList,left_cont->getJsonModel(),leftStringList,leftIndexList);
+        compareValue(left_cont->getJsonModel(),leftIndexList,right_cont->getJsonModel());
+        compareValue(right_cont->getJsonModel(),rightIndexList,left_cont->getJsonModel());
+        fixColors(left_cont->getJsonModel(),QModelIndex());
+        fixColors(right_cont->getJsonModel(),QModelIndex());
+    }
 }
 
 void QJsonDiff::setBrowseVisible(bool state)
@@ -323,8 +346,8 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
     int rowCount = modelRight->rowCount(parentRight);
     for(int i = 0; i < rowCount; ++i)
     {
-        QColor leftColor=QColor(Qt::red);
-        QColor rightColor=QColor(Qt::red);
+        QColor leftColor=hugeDiffColor;
+        QColor rightColor=hugeDiffColor;
 
         QModelIndex idx0 = modelRight->index(i, 0, parentRight);
         QModelIndex idxRight = modelRight->index(i, 0, parentRight);
@@ -348,13 +371,13 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         {
                     if(itemLeft->childCount()==item->childCount())
                     {
-                        leftColor=QColor(0, 100, 0, 150);
-                        rightColor=QColor(0, 100, 0, 150);
+                        leftColor=identicalDiffColor;
+                        rightColor=identicalDiffColor;
                     }
                     else
                     {
-                        leftColor=QColor(Qt::red);
-                        rightColor=QColor(Qt::red);
+                        leftColor=hugeDiffColor;
+                        rightColor=hugeDiffColor;
                     }
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
@@ -368,13 +391,13 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         {
                     if(itemLeft->childCount()==item->childCount())
                     {
-                        leftColor=QColor(0, 100, 0, 150);
-                        rightColor=QColor(0, 100, 0, 150);
+                        leftColor=identicalDiffColor;
+                        rightColor=identicalDiffColor;
                     }
                     else
                     {
-                        leftColor=QColor(Qt::red);
-                        rightColor=QColor(Qt::red);
+                        leftColor=hugeDiffColor;
+                        rightColor=hugeDiffColor;
                     }
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
@@ -389,13 +412,13 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
 
                     if(itemLeft->value()==item->value())
                     {
-                        leftColor=QColor(0, 100, 0, 150);
-                        rightColor=QColor(0, 100, 0, 150);
+                        leftColor=identicalDiffColor;
+                        rightColor=identicalDiffColor;
                     }
                     else
                     {
-                        leftColor=QColor(Qt::red);
-                        rightColor=QColor(Qt::red);
+                        leftColor=hugeDiffColor;
+                        rightColor=hugeDiffColor;
                     }
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
@@ -410,13 +433,13 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         {
                     if(itemLeft->value()==item->value())
                     {
-                        leftColor=QColor(0, 100, 0, 150);
-                        rightColor=QColor(0, 100, 0, 150);
+                        leftColor=identicalDiffColor;
+                        rightColor=identicalDiffColor;
                     }
                     else
                     {
-                        leftColor=QColor(Qt::red);
-                        rightColor=QColor(Qt::red);
+                        leftColor=hugeDiffColor;
+                        rightColor=hugeDiffColor;
                     }
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
@@ -430,13 +453,13 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         {
                     if(itemLeft->value()==item->value())
                     {
-                        leftColor=QColor(0, 100, 0, 150);
-                        rightColor=QColor(0, 100, 0, 150);
+                        leftColor=identicalDiffColor;
+                        rightColor=identicalDiffColor;
                     }
                     else
                     {
-                        leftColor=QColor(Qt::red);
-                        rightColor=QColor(Qt::red);
+                        leftColor=hugeDiffColor;
+                        rightColor=hugeDiffColor;
                     }
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
@@ -451,8 +474,8 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         {
                if(itemLeft->key()==item->key())
                {
-                   leftColor=QColor(0, 100, 0, 150);
-                   rightColor=QColor(0, 100, 0, 150);
+                   leftColor=identicalDiffColor;
+                   rightColor=identicalDiffColor;
                }
                item->setColor(rightColor);
                itemLeft->setColor(leftColor);
@@ -470,8 +493,8 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
 
         if(!itemLeft->color().isValid() && !item->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
         {
-                    leftColor=QColor(Qt::red);
-                    rightColor=QColor(Qt::red);
+                    leftColor=hugeDiffColor;
+                    rightColor=hugeDiffColor;
                     item->setColor(rightColor);
                     itemLeft->setColor(leftColor);
                     item->setIdxRelation(idxLeft);
@@ -481,7 +504,7 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
         }
         }
 
-        //item->setColor(QColor(Qt::red));
+        //item->setColor(hugeDiffColor);
         modelRight->layoutChanged();
         //result.leftRelations=item;
         //result.rightRelations=itemLeft;
@@ -516,14 +539,14 @@ int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
         }
         QJsonTreeItem *item=model->itemFromIndex(idx0);
 
-        if(item->color()!=QColor(0, 100, 0, 150) && item->color().isValid() && item->color()!=QColor(Qt::lightGray) && item->parent()->color()!=QColor(Qt::red) && item->parent()->color()!=QColor(Qt::lightGray))
+        if(item->color()!=identicalDiffColor && item->color().isValid() && item->color()!=notPresentDiffColor && item->parent()->color()!=hugeDiffColor && item->parent()->color()!=notPresentDiffColor)
         {
-            item->parent()->setColor(QColor(Qt::yellow));
+            item->parent()->setColor(moderateDiffColor);
         }
 
         if(!item->color().isValid())
         {
-           item->setColor(QColor(Qt::lightGray));
+           item->setColor(notPresentDiffColor);
 
         }
         model->layoutChanged();
@@ -531,3 +554,81 @@ int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
 
     return 0;
 }
+
+
+QStringList QJsonDiff::jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList)
+{
+    QStringList text;
+    QTextStream cout(stdout);
+    int rowCount = model->rowCount(parent);
+    for(int i = 0; i < rowCount; ++i)
+    {
+        QModelIndex idx0 = model->index(i, 0, parent);
+        QString path=model->jsonPath(idx0);
+        //cout<<path<<endl;
+        text<<path;
+        indexList->append(idx0);
+        if(idx0.isValid())
+        {
+            text<<jsonPathList(model, idx0,indexList);
+        }
+    }
+    return text;
+}
+
+void QJsonDiff::comparePath(QJsonModel *modelLeft, QStringList leftPathList, QList<QModelIndex> leftIndexList,
+                                 QJsonModel *modelRight,QStringList rightPathList, QList<QModelIndex> rightIndexList)
+{
+    for(int i = 0; i < leftPathList.count(); ++i)
+    {
+        QModelIndex idxLeft =leftIndexList[i];
+        QJsonTreeItem *item=modelRight->itemFromIndex(idxLeft);
+        if(item->color()!=identicalDiffColor)
+        {
+        if(rightPathList.contains(leftPathList[i]))
+        {
+            item->setColor(identicalDiffColor);
+            QModelIndex idxRight =rightIndexList[rightPathList.indexOf(leftPathList[i])];
+            QJsonTreeItem *itemRight=modelRight->itemFromIndex(idxRight);
+            item->setIdxRelation(idxRight);
+            itemRight->setIdxRelation(idxLeft);
+            itemRight->setColor(identicalDiffColor);
+            modelLeft->layoutChanged();
+        }
+        else
+        {
+            item->setColor(notPresentDiffColor);
+        }
+        }
+    }
+}
+
+void QJsonDiff::compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndexList,
+                                 QJsonModel *modelRight)
+{
+    for(int i = 0; i < leftIndexList.count(); ++i)
+    {
+        QModelIndex idxLeft =leftIndexList[i];
+        QJsonTreeItem *item=modelRight->itemFromIndex(idxLeft);
+        if(item->color()==identicalDiffColor)
+        {
+            QModelIndex idxRight =item->idxRelation();
+            QJsonTreeItem *itemRight=modelRight->itemFromIndex(idxRight);
+            if((item->type()!=QJsonValue::Array || item->type()!=QJsonValue::Object) && item->value()!=itemRight->value())
+            {
+                item->setColor(hugeDiffColor);
+                itemRight->setColor(hugeDiffColor);
+            }
+            else
+            {
+                if(item->childCount()!=itemRight->childCount())
+                {
+                    item->setColor(hugeDiffColor);
+                    itemRight->setColor(hugeDiffColor);
+                }
+            }
+            modelLeft->layoutChanged();
+        }
+    }
+}
+

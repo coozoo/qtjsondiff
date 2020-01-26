@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QModelIndex>
 #include <QScrollBar>
+#include <QSpacerItem>
 
 #include "qjsoncontainer.h"
 #include"qjsonitem.h"
@@ -42,14 +43,26 @@ public:
     QPushButton *compare_pushbutton;
     void expandIt();
     QCheckBox *syncScroll_checkbox;
+    QCheckBox *useFullPath_checkbox;
+    QSpacerItem *checkboxSpacer;
 
     void compareModels(QJsonModel *modelLeft, const QModelIndex &parentLeft, QJsonModel *modelRight);
     int findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, QModelIndex idxLeft, QJsonModel *modelRight, const QModelIndex &parentRight);
     int fixColors(QJsonModel *model, const QModelIndex &parent);
+    QStringList jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList);
+    void comparePath(QJsonModel *modelLeft, QStringList leftPathList, QList<QModelIndex> leftIndexList,
+                                     QJsonModel *modelRight,QStringList rightPathList, QList<QModelIndex> rightIndexList);
+    void compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndexList,
+                                     QJsonModel *modelRight);
     int prevLeftScroll;
     int prevRightScroll;
     void startComparison();
     void setBrowseVisible(bool state);
+
+    const QColor identicalDiffColor=QColor(0, 100, 0, 150);
+    const QColor moderateDiffColor=QColor(Qt::yellow);
+    const QColor hugeDiffColor=QColor(Qt::red);
+    const QColor notPresentDiffColor=QColor(Qt::lightGray);
 
 signals:
 

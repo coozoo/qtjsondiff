@@ -38,9 +38,6 @@ public:
     QJsonTreeItem* itemFromIndex(const QModelIndex &index) const;
     void setIcon(const QJsonValue::Type& type, const QIcon& icon);
 
-
-
-
 private:
     QJsonTreeItem * mRootItem;
     QJsonDocument mDocument;
