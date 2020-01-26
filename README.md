@@ -4,9 +4,7 @@
 
 Some kind of diff viewer for Json (based on tree like json container/viewer widget).
 
-Actually I've created this widget for myself (that's explain little bit weird current comparison logic to search child+parent and doesn't matter what whole path is).
-
-As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
+Actually I've created this widget for myself. As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
 
 Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
 
