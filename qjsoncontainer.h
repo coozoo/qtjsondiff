@@ -33,7 +33,7 @@
 
 class QJsonContainer : public QWidget
 {
-Q_OBJECT
+    Q_OBJECT
 public:
     explicit QJsonContainer(QWidget *parent=nullptr);
     ~QJsonContainer();
@@ -78,17 +78,24 @@ public:
     void getData();
 
 private:
-        QByteArray gUncompress(const QByteArray &data);
-        //variables to handle serach nodes in tree
-        QList<QModelIndex> currentFindIndexesList;
-        QString currentFindText;
-        int currentFindIndexId;
-        void resetCurrentFind();
-        void findTextJsonIndexHandler(bool direction);
+    QByteArray gUncompress(const QByteArray &data);
+    //variables to handle serach nodes in tree
+    QList<QModelIndex> currentFindIndexesList;
+    QString currentFindText;
+    int currentFindIndexId;
+    void resetCurrentFind();
+    void findTextJsonIndexHandler(bool direction);
+    QMenu myMenu;
+    QAction *copyRow;
+    QAction *copyRows;
+    QAction *copyPath;
+    QAction *copyJsonPlainText;
+    QAction *copyJsonPrettyText;
+    QAction *copyJsonByPath;
 
 signals:
-   void sOpenJsonFile();
-   void jsonUpdated();
+    void sOpenJsonFile();
+    void jsonUpdated();
 
 
 private slots:
