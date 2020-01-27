@@ -122,7 +122,7 @@ void QJsonDiff::on_lefttreeview_scroll_valuechanged(int val)
         }
     prevLeftScroll=left_cont->getTreeView()->verticalScrollBar()->value();
     prevRightScroll=right_cont->getTreeView()->verticalScrollBar()->value();
-    right_cont->getTreeView()->repaint();
+    //right_cont->getTreeView()->repaint();
     right_cont->getTreeView()->viewport()->repaint();
     right_cont->getTreeView()->verticalScrollBar()->blockSignals(false);
 
@@ -145,7 +145,7 @@ void QJsonDiff::on_righttreeview_scroll_valuechanged(int val)
         }
     prevLeftScroll=left_cont->getTreeView()->verticalScrollBar()->value();
     prevRightScroll=right_cont->getTreeView()->verticalScrollBar()->value();
-    left_cont->getTreeView()->repaint();
+    //left_cont->getTreeView()->repaint();
     left_cont->getTreeView()->viewport()->repaint();
     left_cont->getTreeView()->verticalScrollBar()->blockSignals(false);
 }
