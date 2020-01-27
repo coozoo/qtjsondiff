@@ -196,7 +196,7 @@ QJsonContainer::~QJsonContainer()
 
 void QJsonContainer::showContextMenu(const QPoint &point)
 {
-    QModelIndex idx = treeview->indexAt(point);
+
 
     //QModelIndex index = treeview->indexAt(point);
     //if (index.isValid() && index.row() % 2 == 0) {
@@ -219,7 +219,7 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             //int columnid = treeview->selectionModel()->currentIndex().column();
             //int rowid = treeview->selectionModel()->currentIndex().row();
             //QModelIndex idx=treeview->currentIndex();
-
+            QModelIndex idx = treeview->indexAt(point);
             QStringList strings = extractItemTextFromModel(idx);
 
             //QStringList strings = extractStringsFromModel(model, QModelIndex());
@@ -238,6 +238,7 @@ void QJsonContainer::showContextMenu(const QPoint &point)
         }
     else if (selectedItem==copyPath)
         {
+            QModelIndex idx = treeview->indexAt(point);
             QString string =model->jsonPath(idx);
             cout<<string<<endl;
             clip->setText(string);
@@ -254,6 +255,7 @@ void QJsonContainer::showContextMenu(const QPoint &point)
         }
     else if(selectedItem==copyJsonByPath)
         {
+            QModelIndex idx = treeview->indexAt(point);
             cout<<"copyJsonByPath"<<endl;
             QString string=getJson(model->jsonIndexPath(idx));
             clip->setText(string);
