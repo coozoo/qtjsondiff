@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 #endif
 
     MainWindow w;
-    w.show();
+    w.showMaximized();
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
     return a.exec();
 }
