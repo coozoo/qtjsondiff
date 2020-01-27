@@ -96,9 +96,9 @@ That's all pretty simple.
 
 ## Comparison modes
 
-Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSON are significantly different.
+Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different.
 
-Full Path - much faster mode (switched by default) it search for absolute path and type. It will be faster if JSONs are significantly different.
+Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different.
 
 
 ## Special thanks to this projects:
