@@ -4,9 +4,7 @@
 
 Some kind of diff viewer for Json (based on tree like json container/viewer widget).
 
-Actually I've created this widget for myself (that's explain little bit weird current comparison logic to search child+parent and doesn't matter what whole path is).
-
-As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
+Actually I've created this widget for myself. As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
 
 Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
 
@@ -24,7 +22,8 @@ Some features:
       * try to find child+parent pair anywhere inside JSON (first occurance).
     - copy text into clipboard 
       * items - key value separated by spaces;
-      * copy path to the item in such format "name(type)". For example: root(Object)->widget(Object)->image(Object)->alignment(String);
+      * copy path to the item in such format "name(type)". 
+           For example: root(Object)->widget(Object)->image(Object)->alignment(String);
       * copy full json (in pretty print or plain);
       * copy value, array, object.
 
@@ -104,6 +103,6 @@ Full Path - much faster mode (switched by default) it search for absolute path a
 
 ## Special thanks to this projects:
     
-    [https://github.com/dridk/QJsonModel](https://github.com/dridk/QJsonModel) - I've used this model as basement
+    https://github.com/dridk/QJsonModel - I've used this model as basement
 
-    [https://github.com/probonopd/linuxdeployqt](https://github.com/probonopd/linuxdeployqt) - nice tool to deploy application on linux
+    https://github.com/probonopd/linuxdeployqt - nice tool to deploy application on linux
