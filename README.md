@@ -13,19 +13,21 @@ And found this example app pretty handy as well.
 
 Some features:
 
-    - two view modes json formatted text or json tree;
+    - two view modes json formatted text or json tree (switch by "Show JSON Text/View" button);
     - load json from file, url or copy paste (CTRL+V in treeview mode to paste JSON);
     - search through json text or json model (backward, forward, casesensitivity);
     - compare two jsons with highlightings, sync scrolling, sync item selection (only treeview mode);
-    - two comparison modes (switched by checkbox):
+    - two comparison modes (switched by "Use Full Path" checkbox):
       * follow by full path;
-      * try to find child+parent pair anywhere inside JSON (first occurance).
-    - copy text into clipboard 
-      * items - key value separated by spaces;
-      * copy path to the item in such format "name(type)". 
+      * try to find child+parent pair anywhere inside JSON (first occurrence).
+    - copy text into clipboard:
+      * **Copy Row** - item text "Name Type Value" separated by tab;
+      * **Copy Rows** - all items text separated by tab (tabs allow spreadsheet paste);
+      * **Copy Path** - path to the item in such format "name(type)->name(type)"
            For example: root(Object)->widget(Object)->image(Object)->alignment(String);
-      * copy full json (in pretty print or plain);
-      * copy value, array, object.
+      * **Copy Plain Json** - copy full plain text JSON (not formatted);
+      * **Copy Pretty Json** - copy full pretty print JSON;
+      * **Copy Selected Json Value** - copy value, array or object.
 
 
 JSON Tree View
@@ -36,17 +38,55 @@ JSON Compare View
 
 <img src="https://user-images.githubusercontent.com/25594311/72466616-ea855f80-37e1-11ea-9fb5-5106b20916aa.png" width="60%"></img> 
 
-## Build from sources
-You should have preinstalled QT5 (version 5.11 if you want to use older one you need to modify few lines).
-Open in QTcreator the QTjsonDiff.pro file and compile.
+## Installation
+You can get precompiled package for your OS here:
 
-Or execute commands:
+https://github.com/coozoo/qtjsondiff/releases
+
+If you prefer to compile it by yourself then see below. 
+
+
+## Build from sources
+
+You should have preinstalled QT5 (version 5.11 if you want to use older one you need to modify few lines).
+Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something).
+
+### MAC OS
+
+Suppose you have installed and configured:
+  - xCode+command line tools
+  - QT (```brew install qt```)
+
+```bash
+$ cd ~
+$ mkdir proj
+$ cd proj
+$ git clone https://github.com/coozoo/qtjsondiff
+$ cd qtjsondiff
+$ chmod 777 MAC_build_RELEASE.sh
+$ ./MAC_build_RELEASE.sh
+```
+
+It will build and copy libs into app. You will find ready app inside this directory.
+
+### Linux
+
+You should have QT5 if no then install it accordingly to your distro.
+
+You can build it with QTreator or execute commands:
 ```bash
 $ git clone https://github.com/coozoo/qtjsondiff
 $ cd qtjsondiff
 $ qmake-qt5 # or it can be simply qmake
 $ make
 ```
+### Windows
+
+Qt5 should be installed.
+
+git clone https://github.com/coozoo/qtjsondiff
+
+Open QTCreator and navigate to project dir. Open QTjsonDiff.pro and compile it.
 
 If you want to load jsons from https source then you need openssl. Under windows default paths for openssl are C:/OpenSSL-Win64/ and C:/OpenSSL-Win32/lib depends on platform. You can change them inside .pro file
 
