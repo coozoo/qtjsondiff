@@ -54,7 +54,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     useFullPath_checkbox=new QCheckBox(common_groupbox);
     useFullPath_checkbox->setText("Use Full Path");
     useFullPath_checkbox->setChecked(true);
-    useFullPath_checkbox->setToolTip("Otherwise try to find child+parent pair anywhere JSON in tree");
+    useFullPath_checkbox->setToolTip("Otherwise try to find child+parent pair anywhere in JSON tree");
     qjsoncontainer_layout->addWidget(useFullPath_checkbox,1,1);
     checkboxSpacer=new QSpacerItem(5, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
     qjsoncontainer_layout->addItem(checkboxSpacer,1,2,1,2);
