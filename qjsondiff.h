@@ -72,6 +72,7 @@ public slots:
     void on_righttreeview_clicked(const QModelIndex&);
     void on_lefttreeview_scroll_valuechanged(int);
     void on_righttreeview_scroll_valuechanged(int);
+    void on_useFullPath_checkbox_stateChanged(int);
     void reinitRightModel();
     void reinitLeftModel();
 

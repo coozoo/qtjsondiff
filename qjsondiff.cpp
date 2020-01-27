@@ -66,6 +66,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(left_cont,SIGNAL(sOpenJsonFile()),this,SLOT(reinitRightModel()));
     connect(right_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitLeftModel()));
     connect(left_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitRightModel()));
+    connect(useFullPath_checkbox,&QCheckBox::stateChanged,this,&QJsonDiff::on_useFullPath_checkbox_stateChanged);
     /*//good but not enough for this case
     connect(left_cont->getTreeView()->verticalScrollBar(), SIGNAL(valueChanged(int)),
             right_cont->getTreeView()->verticalScrollBar(), SLOT(setValue(int)));
@@ -630,5 +631,10 @@ void QJsonDiff::compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndex
             modelLeft->layoutChanged();
         }
     }
+}
+
+void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
+{
+    reinitLeftModel();
 }
 
