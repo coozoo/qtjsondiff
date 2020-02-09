@@ -46,15 +46,15 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     parent->setLayout(common_layout);
 
     compare_pushbutton=new QPushButton(common_groupbox);
-    compare_pushbutton->setText("Compare");
+    compare_pushbutton->setText(tr("Compare"));
     qjsoncontainer_layout->addWidget(compare_pushbutton,0,0,1,4);
     syncScroll_checkbox=new QCheckBox(common_groupbox);
-    syncScroll_checkbox->setText("Sync Scrolls");
+    syncScroll_checkbox->setText(tr("Sync Scrolls"));
     qjsoncontainer_layout->addWidget(syncScroll_checkbox,1,0);
     useFullPath_checkbox=new QCheckBox(common_groupbox);
-    useFullPath_checkbox->setText("Use Full Path");
+    useFullPath_checkbox->setText(tr("Use Full Path"));
     useFullPath_checkbox->setChecked(true);
-    useFullPath_checkbox->setToolTip("Otherwise try to find child+parent pair anywhere in JSON tree");
+    useFullPath_checkbox->setToolTip(tr("Otherwise try to find child+parent pair anywhere in JSON tree"));
     qjsoncontainer_layout->addWidget(useFullPath_checkbox,1,1);
     checkboxSpacer=new QSpacerItem(5, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
     qjsoncontainer_layout->addItem(checkboxSpacer,1,2,1,2);
