@@ -73,7 +73,7 @@ It will build and copy libs into app. You will find ready app inside this direct
 
 You should have QT5 if no then install it accordingly to your distro.
 
-You can build it with QTreator or execute commands:
+You can build it with QTcreator or execute commands:
 ```bash
 $ git clone https://github.com/coozoo/qtjsondiff
 $ cd qtjsondiff
@@ -88,7 +88,7 @@ git clone https://github.com/coozoo/qtjsondiff
 
 Open QTCreator and navigate to project dir. Open QTjsonDiff.pro and compile it.
 
-If you want to load jsons from https source then you need openssl. Under windows default paths for openssl are C:/OpenSSL-Win64/ and C:/OpenSSL-Win32/lib depends on platform. You can change them inside .pro file
+If you want to load jsons from https source then you need openssl. Under windows QT provides their own openssl you can install it using QT installer from start menu and add this component.
 
 ## Integrate it to your application
 

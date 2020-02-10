@@ -14,15 +14,6 @@ TEMPLATE = app
 
 CONFIG += c++11
 CONFIG += openssl-linked
-win32{
-    !contains(QMAKE_TARGET.arch, x86_64){
-        LIBS += -LC:/OpenSSL-Win64/lib -lubsec
-        INCLUDEPATH += C:/OpenSSL-Win64/include
-    } else {
-        LIBS += -LC:/OpenSSL-Win32/lib -lubsec
-        INCLUDEPATH += C:/OpenSSL-Win32/include
-    }
-}
 
 SOURCES += main.cpp\
         mainwindow.cpp \
