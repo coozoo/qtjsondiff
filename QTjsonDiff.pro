@@ -9,8 +9,7 @@ QT       += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = QTjsonDiff
-#TRANSLATIONS = qtjsondiff_en.ts qtjsondiff_uk_UA.ts
-#CODECFORSRC = UTF-8
+TRANSLATIONS = QTjsonDiff_en.ts QTjsonDiff_uk_UA.ts
 TEMPLATE = app
 
 CONFIG += c++11

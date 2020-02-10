@@ -85,11 +85,11 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     findNext_toolbutton->setToolTip(tr("Find Next"));
     findPrevious_toolbutton = new QToolButton(toolbar);
     findPrevious_toolbutton->setText("<<");
-    findPrevious_toolbutton->setToolTip("Find Previous");
+    findPrevious_toolbutton->setToolTip(tr("Find Previous"));
     findCaseSensitivity_toolbutton = new QToolButton(toolbar);
     findCaseSensitivity_toolbutton->setCheckable(true);
     findCaseSensitivity_toolbutton->setIcon(QIcon(QPixmap(":/images/casesensitivity.png")));
-    findCaseSensitivity_toolbutton->setToolTip(tr("Check to make case sensetive"));
+    findCaseSensitivity_toolbutton->setToolTip(tr("Check to make case sensitive"));
     //findCaseSensitivity_toolbutton->setChecked(true);
     //tools_layout->addWidget(expandAll_Checkbox,0,Qt::AlignLeft);
     toolbar->addWidget(expandAll_Checkbox);
