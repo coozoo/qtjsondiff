@@ -16,9 +16,9 @@ script:
   - make -j$(nproc)
   # make INSTALL_ROOT=appdir -j$(nproc) install ; find appdir/ # FIXME: Make this work
   - mkdir -p appdir/usr/bin # FIXME: make install should do this
-  - cp QTjsonDiff appdir/usr/bin/qtjsondiff # FIXME: make install should do this
-  - mkdir -p appdir/usr/share/icons/hicolor/256x256/apps/ # FIXME: make install should do this
-  - cp diff.png appdir/usr/share/icons/hicolor/256x256/apps/diff.png # FIXME: make install should do this
+  - cp QTjsonDiff appdir/usr/bin/QTjsonDiff # FIXME: make install should do this
+  - mkdir -p appdir/usr/share/icons/ # FIXME: make install should do this
+  - cp diff.png appdir/usr/share/icons/ # FIXME: make install should do this
   - mkdir -p appdir/usr/share/applications/ # FIXME: make install should do this
   - cp qtjsondiff.desktop appdir/usr/share/applications/ # FIXME: make install should do this
   - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
