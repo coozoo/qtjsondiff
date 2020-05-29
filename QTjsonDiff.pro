@@ -14,6 +14,7 @@ TEMPLATE = app
 
 CONFIG += c++11
 CONFIG += openssl-linked
+CONFIG += lrelease
 
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -39,3 +40,9 @@ DISTFILES +=
 
 RESOURCES += \
     qjsontreeview.qrc
+
+binary.files += $$TARGET
+binary.path = /usr/bin
+translations.files += $$files(.qm/*.qm,true)
+translations.path = /usr/share/$$TARGET
+INSTALLS += binary translations
