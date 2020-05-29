@@ -48,5 +48,5 @@ translations.path = /usr/share/$$TARGET
 icon.files +=diff.png
 icon.path += /usr/share/icons
 desktop.files += qtjsondiff.desktop
-desktop.path += /usr/share/applications/$$TARGET
+desktop.path += /usr/share/applications/
 INSTALLS += binary translations icon desktop
