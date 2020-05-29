@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Categories=Development;
+Name=QTjsonDiff
+Exec=QTjsonDiff %F
+Icon=diff
+Comment=Qt JSON diff
+
