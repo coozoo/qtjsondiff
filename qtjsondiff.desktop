@@ -2,6 +2,6 @@
 Type=Application
 Categories=Development;
 Name=Qt JSON diff
-Exec=qtjsondiff %F
+Exec=QTjsonDiff %F
 Icon=diff
 Comment=Qt JSON diff
