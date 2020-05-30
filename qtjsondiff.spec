@@ -10,7 +10,8 @@ Summary: QT json diff widget that consists of two json viewer widgets with highl
 Name: %{name}
 Version: %{version}
 Release: %{build_timestamp}
-Source0: https://github.com/coozoo/qtjsondiff/archive/master.zip#/%{name}-%{version}-%{release}.tar.gz
+Source0: https://github.com/coozoo/qtjsondiff/archive/master.zip
+#/%{name}-%{version}-%{release}.tar.gz
 
 
 License: MIT
@@ -48,8 +49,8 @@ Some features:
 
 %prep
 #%autosetup -n %{reponame}-master
-#%setup -n %{reponame}-master
-%setup -n %{name}-%{version}
+%setup -n %{reponame}-master
+#%setup -n %{name}-%{version}
 
 %build
 # don't know maybe it's stupid me but lrelease in qt looks like runs after make file generation as result automatic file list inside qmake doesn't work
