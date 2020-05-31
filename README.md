@@ -1,5 +1,17 @@
 # QT JSON diff
 
+## Contents
+
+* [Summary](#summary)
+* [Installation](#installation)
+* [Installation](#build-from-sources)
+   * [MAC OS](#mac-os)
+   * [Linux](#linux)
+   * [Windows](#windows)
+* [Integrate it to your application](#integrate-it-to-your-application)
+* [Comparison modes](#comparison-modes)
+
+
 ## Summary
 
 Some kind of diff viewer for Json (based on tree like json container/viewer widget).
@@ -39,7 +51,12 @@ JSON Compare View
 <img src="https://user-images.githubusercontent.com/25594311/72466616-ea855f80-37e1-11ea-9fb5-5106b20916aa.png" width="60%"></img> 
 
 ## Installation
-You can get precompiled package for your OS here:
+
+Precompiled RPMs (Fedora,RHEL etc) can be found in COPR click below:
+
+[<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/)
+
+You can find some precompiled packages for your OS here:
 
 https://github.com/coozoo/qtjsondiff/releases
 
@@ -79,7 +96,10 @@ $ git clone https://github.com/coozoo/qtjsondiff
 $ cd qtjsondiff
 $ qmake-qt5 # or it can be simply qmake
 $ make
+$ make install #if you wish to do that
 ```
+
+
 ### Windows
 
 Qt5 should be installed.
