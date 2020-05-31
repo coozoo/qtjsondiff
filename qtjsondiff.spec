@@ -30,23 +30,6 @@ Actually I've created this widget for myself. As tester often I need to compare 
 Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
 For example I'm using this in my SignalR, cometD clients to visualize responses or simply to show http response and compare them from other sources. And found this example app pretty handy as well.
 
-Some features:
-- two view modes json formatted text or json tree (switch by "Show JSON Text/View" button);
-- load json from file, url or copy paste (CTRL+V in treeview mode to paste JSON);
-- search through json text or json model (backward, forward, casesensitivity);
-- compare two jsons with highlightings, sync scrolling, sync item selection (only treeview mode);
-- two comparison modes (switched by "Use Full Path" checkbox):
-  * follow by full path;
-  * try to find child+parent pair anywhere inside JSON (first occurrence).
-- copy text into clipboard:
-  * **Copy Row** - item text "Name Type Value" separated by tab;
-  * **Copy Rows** - all items text separated by tab (tabs allow spreadsheet paste);
-  * **Copy Path** - path to the item in such format "name(type)->name(type)"
-       For example: root(Object)->widget(Object)->image(Object)->alignment(String);
-  * **Copy Plain Json** - copy full plain text JSON (not formatted);
-  * **Copy Pretty Json** - copy full pretty print JSON;
-  * **Copy Selected Json Value** - copy value, array or object.
-
 %global debug_package %{nil}
 
 %prep
