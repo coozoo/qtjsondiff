@@ -17,6 +17,7 @@ License: MIT
 
 BuildRequires: qt5-qtbase-devel >= 5.11
 BuildRequires: qt5-linguist >= 5.11
+BuildRequires: zlib-devel
 
 # Requires: qt5 >= 5.11
 
