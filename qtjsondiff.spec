@@ -49,7 +49,7 @@ Some features:
 %prep
 #%autosetup -n %{reponame}-master
 #%setup -n %{reponame}-master
-%setup -n %{name}-%{version}
+%setup -q -n %{name}-%{version}
 
 %build
 # don't know maybe it's stupid me but lrelease in qt looks like runs after make file generation as result automatic file list inside qmake doesn't work
