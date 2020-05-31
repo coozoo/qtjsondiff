@@ -15,7 +15,7 @@ Source0: https://github.com/coozoo/qtjsondiff/archive/master.zip#/%{name}-%{vers
 
 License: MIT
 
-BuildRequires: qt5-qtbase-devel >=5.11
+BuildRequires: qt5-qtbase-devel >= 5.11
 
 # Requires: qt5 >= 5.11
 
