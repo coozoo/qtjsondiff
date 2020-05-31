@@ -47,8 +47,6 @@ Some features:
 %global debug_package %{nil}
 
 %prep
-#%autosetup -n %{reponame}-master
-#%setup -n %{reponame}-master
 %setup -q -n %{name}-%{version}
 
 %build
