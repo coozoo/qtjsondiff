@@ -5,37 +5,35 @@ jobs:
     compiler: gcc
     sudo: require
     dist: xenial
-    env: TRAVIS_OS_NAME=linux
   - os: osx
     osx_image: xcode7.2
     compiler: clang
-    env: TRAVIS_OS_NAME=osx
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; sudo add-apt-repository ppa:beineri/opt-qt-5.11.1-xenial -y ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; sudo apt-get update -qq                                     ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo add-apt-repository ppa:beineri/opt-qt-5.11.1-xenial -y ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update -qq                                     ; fi
 
 install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; sudo apt-get -y install qt511base libgl1-mesa-dev           ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; source /opt/qt*/bin/qt*-env.sh                              ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get -y install qt511base libgl1-mesa-dev           ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then source /opt/qt*/bin/qt*-env.sh                              ; fi
 
 script:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; qmake CONFIG+=release PREFIX=/usr                                                                                              ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; make -j$(nproc)                                                                                                                ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then qmake CONFIG+=release PREFIX=/usr                                                                                              ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then make -j$(nproc)                                                                                                                ; fi
   # make INSTALL_ROOT=appdir -j$(nproc) install ; find appdir/ # FIXME: Make this work
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; mkdir -p appdir/usr/bin                                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; cp QTjsonDiff appdir/usr/bin/QTjsonDiff                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; mkdir -p appdir/usr/share/icons/                                                                                               ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; cp diff.png appdir/usr/share/icons/                                                                                            ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; mkdir -p appdir/usr/share/applications/                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; cp qtjsondiff.desktop appdir/usr/share/applications/                                                                           ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage" ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; chmod a+x linuxdeployqt-continuous-x86_64.AppImage                                                                             ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage                                   ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/bin                                                                                                        ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp QTjsonDiff appdir/usr/bin/QTjsonDiff                                                                                        ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/share/icons/                                                                                               ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp diff.png appdir/usr/share/icons/                                                                                            ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/share/applications/                                                                                        ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp qtjsondiff.desktop appdir/usr/share/applications/                                                                           ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage" ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage                                                                             ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage                                   ; fi
 
 after_success:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; bash upload.sh Qt*.AppImage*                                         ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage*                                         ; fi
   
 branches:
   except:
