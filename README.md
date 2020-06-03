@@ -56,6 +56,10 @@ Precompiled RPMs (Fedora,RHEL etc) can be found in COPR click below:
 
 [<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/)
 
+Debian, Ubuntu and some others distros may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable:
+
+[![Build Status](https://travis-ci.com/coozoo/qtjsondiff.svg?branch=master)](https://travis-ci.com/coozoo/qtjsondiff)
+
 You can find some precompiled packages for your OS here:
 
 https://github.com/coozoo/qtjsondiff/releases
