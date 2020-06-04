@@ -33,11 +33,12 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage                                                                             ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage                                   ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ];   then chmod 777 MAC_build_RELEASE.sh                                            ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];   then brew ./MAC_build_RELEASE.sh                                            ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ];   then ./MAC_build_RELEASE.sh                                            ; fi
 
 after_success:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
+  - then wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage*                                         ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh QT*.zip* QT*.dmg*                                        ; fi
 
 branches:
   except:
