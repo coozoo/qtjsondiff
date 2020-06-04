@@ -36,7 +36,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "osx" ];   then ./MAC_build_RELEASE.sh                                            ; fi
 
 after_success:
-  - then wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
+  - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage*                                         ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh Qt*.zip* Qt*.dmg*                                        ; fi
 
