@@ -38,7 +38,7 @@ script:
 after_success:
   - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage*                                         ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh Qt*.zip* Qt*.dmg*                                        ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh QT*.zip QT*.dmg                                        ; fi
 
 branches:
   except:
