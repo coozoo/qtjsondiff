@@ -15,9 +15,16 @@ before_install:
 
 
 install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get -y install qt511base libgl1-mesa-dev           ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then source /opt/qt*/bin/qt*-env.sh                              ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];   then brew install qt5                                            ; fi
+  - |-
+      case $TRAVIS_OS_NAME in
+        linux)
+          sudo apt-get -y install qt511base libgl1-mesa-dev
+          source /opt/qt*/bin/qt*-env.sh
+          ;;
+        osx)
+          brew install qt5
+          ;;
+      esac
 
 script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then qmake CONFIG+=release PREFIX=/usr                                                                                              ; fi
