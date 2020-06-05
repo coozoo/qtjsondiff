@@ -75,7 +75,7 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          $msys2 qmake
+          $msys2 ls -lR
           $msys2 make
           $msys2 ls -l
       esac
