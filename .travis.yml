@@ -10,8 +10,28 @@ jobs:
     compiler: gcc
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo add-apt-repository ppa:beineri/opt-qt-5.11.1-xenial -y ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update -qq                                     ; fi
+  - |-
+      case $TRAVIS_OS_NAME in
+        linux)
+          sudo add-apt-repository ppa:beineri/opt-qt-5.11.1-xenial -y
+          sudo apt-get update -qq
+          ;;
+        windows)
+          [[ ! -f C:/tools/msys64/msys2_shell.cmd ]] && rm -rf C:/tools/msys64
+          choco uninstall -y mingw
+          choco upgrade --no-progress -y msys2
+          export msys2='cmd //C RefreshEnv.cmd '
+          export msys2+='& set MSYS=winsymlinks:nativestrict '
+          export msys2+='& C:\\tools\\msys64\\msys2_shell.cmd -defterm -no-start'
+          export mingw64="$msys2 -mingw64 -full-path -here -c "\"\$@"\" --"
+          export msys2+=" -msys2 -c "\"\$@"\" --"
+          $msys2 pacman --sync --noconfirm --needed mingw-w64-x86_64-toolchain
+          ## Install more MSYS2 packages from https://packages.msys2.org/base here
+          taskkill //IM gpg-agent.exe //F  # https://travis-ci.community/t/4967
+          export PATH=/C/tools/msys64/mingw64/bin:$PATH
+          export MAKE=mingw32-make  # so that Autotools can find it
+        ;;
+      esac
 
 
 install:
@@ -24,23 +44,40 @@ install:
         osx)
           brew install qt5
           ;;
+        windows)
+          $msys2 pacman --sync --clean --noconfirm
+          $msys2 pacman -S mingw-w64-i686-qt5-static mingw-w64-x86_64-qt5-static
+          $msys2 pacman -S mingw-w64-x86_64-zlib
+          $msys2 pacman -S base-devel git mercurial cvs wget p7zip
+          $msys2 pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
+          ;;
       esac
 
 script:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then qmake CONFIG+=release PREFIX=/usr                                                                                              ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then make -j$(nproc)                                                                                                                ; fi
-  # make INSTALL_ROOT=appdir -j$(nproc) install ; find appdir/ # FIXME: Make this work
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/bin                                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp QTjsonDiff appdir/usr/bin/QTjsonDiff                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/share/icons/                                                                                               ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp diff.png appdir/usr/share/icons/                                                                                            ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then mkdir -p appdir/usr/share/applications/                                                                                        ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cp qtjsondiff.desktop appdir/usr/share/applications/                                                                           ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage" ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage                                                                             ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage                                   ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];   then chmod 777 MAC_build_RELEASE.sh                                            ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];   then ./MAC_build_RELEASE.sh                                            ; fi
+  - |-
+      case $TRAVIS_OS_NAME in
+        linux)
+          qmake CONFIG+=release PREFIX=/usr
+          make -j$(nproc)
+          mkdir -p appdir/usr/bin
+          cp QTjsonDiff appdir/usr/bin/QTjsonDiff
+          mkdir -p appdir/usr/share/icons/
+          cp diff.png appdir/usr/share/icons/
+          mkdir -p appdir/usr/share/applications/
+          cp qtjsondiff.desktop appdir/usr/share/applications/
+          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+          ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage
+          ;;
+        osx)
+          chmod 777 MAC_build_RELEASE.sh
+          ./MAC_build_RELEASE.sh
+          ;;
+        windows)
+          $msys2 qmake
+          $msys2 make
+          $msys2 ls -l
+      esac
 
 after_success:
   - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
