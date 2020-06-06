@@ -48,7 +48,8 @@ install:
           $msys2 pacman --sync --clean --noconfirm
           $msys2 pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
           $msys2 pacman -S --noconfirm perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
-          $msys2 pacman -S --noconfirm mingw-w64-i686-qt5-static mingw-w64-x86_64-qt5-static
+          #$msys2 pacman -S --noconfirm mingw-w64-i686-qt5-static mingw-w64-x86_64-qt5-static
+          $msys2 pacman -S --noconfirm mingw-w64-i686-qt5 mingw-w64-x86_64-qt5
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-zlib zlib-devel
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-openssl openssl-devel
           export QT_MSYS2=true
@@ -79,9 +80,11 @@ script:
           $msys2 export QT_MSYS2_ARCH=386
           $msys2 export QT_MSYS2_STATIC=true
           $msys2 QMAKE_CXX=g++
-          $msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
+          #$msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
+          $msys2 /c/tools/msys64/mingw32/bin/qmake.exe
           #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
-          $msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
+          #$msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
+          $msys2 ls -l /c/tools/msys64/mingw32/bin
           $msys2 ls -l /c/tools/msys64/mingw32/bin
           $msys2 /c/tools/msys64/mingw32/bin/mingw32-make.exe
           #$msys2 /c/tools/msys64/mingw64/bin/mingw32-make.exe
