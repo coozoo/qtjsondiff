@@ -78,9 +78,11 @@ script:
         windows)
           $msys2 QT_MSYS2_ARCH=386
           $msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
-          #$msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
-          $msys2 ls -lR /c/tools/msys64/
+          #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
+          $msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
+          $msys2 ls -l /c/tools/msys64/mingw32/bin
           $msys2 /c/tools/msys64/mingw32/bin/mingw32-make.exe
+          #$msys2 /c/tools/msys64/mingw64/bin/mingw32-make.exe
           $msys2 ls -l
       esac
 
