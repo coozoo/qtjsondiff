@@ -76,7 +76,9 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          $msys2 QT_MSYS2_ARCH=386
+          $msys2 export QT_MSYS2_ARCH=386
+          $msys2 export QT_MSYS2_STATIC=true
+          $msys2 QMAKE_CXX=g++
           $msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
           #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
           $msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
