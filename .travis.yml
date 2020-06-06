@@ -88,6 +88,7 @@ script:
           ;;
         windows)
           $msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
+          $msys2 ls -l /c/tools/msys64/mingw64/qt5-static/bin
           $msys2 make
           $msys2 ls -l
       esac
