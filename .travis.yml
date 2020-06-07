@@ -1,4 +1,6 @@
 language: cpp
+env:
+  - APP_VERSION="$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"
 jobs:
   include:
   - os: linux
@@ -78,7 +80,7 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          $mingw64 export 
+          #$mingw64 export APP_VERSION=$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')
           #$msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
           #$mingw64 qmake
           #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
@@ -93,11 +95,19 @@ script:
           #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
           $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /mingw64/bin/libcrypto*.dll release/; cp /mingw64/bin/libssl*.dll release/
-          $mingw64 APP_VERSION="$(uname -a|grep -oP '(?<=^).+(?=_NT)')"; mv release QTjsonDiff_"$APP_VERSION"; 7z -tzip a QTjsonDiff_"$APP_VERSION".zip ./QTjsonDiff_"$APP_VERSION"/*
+          $mingw64 uname
+          $mingw64 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')"; echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
           $mingw64 make clean
           $mingw64 ls -l
+          $mingw64 uname
           $mingw32 qmake
           $mingw32 make
+          $mingw32 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
+          $mingw32 windeployqt.exe release/QTjsonDiff.exe
+          $mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
+          $mingw32 cp /mingw32/bin/libcrypto*.dll release/; cp /mingw32/bin/libssl*.dll release/
+          $mingw32 uname
+          $mingw32 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')"; echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
       esac
 
 after_success:
