@@ -50,10 +50,10 @@ install:
           $msys2 pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
           $msys2 pacman -S --noconfirm perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
           #$msys2 pacman -S --noconfirm mingw-w64-i686-qt5-static mingw-w64-x86_64-qt5-static
-          #$msys2 pacman -S --noconfirm mingw-w64-i686-qt5 # mingw-w64-x86_64-qt5
-          $msys2 pacman -S --noconfirm mingw-w64-x86_64-qt5
-          $msys2 pacman -S --noconfirm mingw-w64-x86_64-zlib zlib-devel
-          $msys2 pacman -S --noconfirm mingw-w64-x86_64-openssl openssl-devel
+          $msys2 pacman -S --noconfirm mingw-w64-i686-qt5 mingw-w64-x86_64-qt5
+          #$msys2 pacman -S --noconfirm mingw-w64-x86_64-qt5
+          $msys2 pacman -S --noconfirm mingw-w64-x86_64-zlib mingw-w64-i686-zlib zlib-devel
+          $msys2 pacman -S --noconfirm mingw-w64-x86_64-openssl mingw-w64-i686-openssl openssl-devel
           ;;
       esac
 
@@ -78,7 +78,7 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          $mingw64 export APP_VERSION="$(uname -a|grep -oP '(?<=^).+(?=_NT)')";
+          $mingw64 export 
           #$msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
           #$mingw64 qmake
           #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
@@ -93,9 +93,11 @@ script:
           #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
           $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /mingw64/bin/libcrypto*.dll release/; cp /mingw64/bin/libssl*.dll release/
-          $mingw64 mv release QTjsonDiff_"$APP_VERSION"
-          $mingw64 7z -tzip a QTjsonDiff_"$APP_VERSION".zip ./QTjsonDiff_"$APP_VERSION"/*
+          $mingw64 APP_VERSION="$(uname -a|grep -oP '(?<=^).+(?=_NT)')"; mv release QTjsonDiff_"$APP_VERSION"; 7z -tzip a QTjsonDiff_"$APP_VERSION".zip ./QTjsonDiff_"$APP_VERSION"/*
+          $mingw64 make clean
           $mingw64 ls -l
+          $mingw32 qmake
+          $mingw32 make
       esac
 
 after_success:
