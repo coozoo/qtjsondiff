@@ -1,6 +1,4 @@
 language: cpp
-env:
-  - APP_VERSION="$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"
 jobs:
   include:
   - os: linux
@@ -34,6 +32,7 @@ before_install:
           taskkill //IM gpg-agent.exe //F  # https://travis-ci.community/t/4967
           export PATH=/C/tools/msys64/mingw64/bin:$PATH
           export MAKE=mingw32-make  # so that Autotools can find it
+          export APP_VERSION="$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"
         ;;
       esac
 
@@ -96,10 +95,10 @@ script:
           $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /mingw64/bin/libcrypto*.dll release/; cp /mingw64/bin/libssl*.dll release/
           $mingw64 uname
-          $mingw64 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')"; echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
+          $mingw64 export APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')";
+          $mingw64 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
           $mingw64 make clean
-          $mingw64 ls -l
-          $mingw64 uname
+          $msys2 ls -l
           $mingw32 qmake
           $mingw32 make
           $mingw32 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
@@ -107,7 +106,9 @@ script:
           $mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw32 cp /mingw32/bin/libcrypto*.dll release/; cp /mingw32/bin/libssl*.dll release/
           $mingw32 uname
-          $mingw32 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')"; echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
+          $mingw32 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')";
+          $mingw32 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
+          $msys2 ls -l
       esac
 
 after_success:
