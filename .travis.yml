@@ -53,7 +53,6 @@ install:
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-qt5
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-zlib zlib-devel
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-openssl openssl-devel
-          export QT_MSYS2=true
           ;;
       esac
 
@@ -78,15 +77,14 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          $msys2 export QT_MSYS2_ARCH=386
           #$msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
-          $msys2 /c/tools/msys64/mingw64/bin/qmake.exe
+          $mingw64 qmake.exe
           #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
           #$msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
-          $msys2 ls -l /c/tools/msys64/mingw64/bin
+          #$msys2 ls -l /c/tools/msys64/mingw64/bin
           #$msys2 ls -l /c/tools/msys64/mingw32/bin
           #$msys2 /c/tools/msys64/mingw32/bin/mingw32-make.exe
-          $msys2 /c/tools/msys64/mingw64/bin/mingw32-make.exe
+          $mingw64 make
           $msys2 ls -l
           $msys2 echo $PATH
       esac
