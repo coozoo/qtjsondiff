@@ -93,9 +93,9 @@ script:
           $mingw64 windeployqt.exe release/QTjsonDiff.exe
           #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
           $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
-          $mingw64 cp /mingw64/bin/libcrypto*.dll release/; cp /mingw64/bin/libssl*.dll release/
+          $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
           $mingw64 uname
-          $mingw64 export APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')";
+          export APP_PLATFORM="$mingw64 $(uname|grep -oP '(?<=^).+(?=_NT)')";
           $mingw64 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
           $mingw64 make clean
           $msys2 ls -l
@@ -104,17 +104,17 @@ script:
           $mingw32 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
           $mingw32 windeployqt.exe release/QTjsonDiff.exe
           $mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
-          $mingw32 cp /mingw32/bin/libcrypto*.dll release/; cp /mingw32/bin/libssl*.dll release/
+          $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
           $mingw32 uname
-          $mingw32 APP_PLATFORM="$(uname|grep -oP '(?<=^).+(?=_NT)')";
+          export APP_PLATFORM="$mingw32 $(uname|grep -oP '(?<=^).+(?=_NT)')";
           $mingw32 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
           $msys2 ls -l
       esac
 
 after_success:
   - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage*                                         ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh QT*.zip QT*.dmg                                        ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage* ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh QT*.zip QT*.dmg ; fi
 
 branches:
   except:
