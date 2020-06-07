@@ -90,7 +90,8 @@ script:
           $mingw64 make
           $mingw64 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
           $mingw64 windeployqt.exe release/QTjsonDiff.exe
-          $mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
+          #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
+          $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /mingw64/bin/libcrypto*.dll release/; cp /mingw64/bin/libssl*.dll release/
           $mingw64 mv release QTjsonDiff_"$APP_VERSION"
           $mingw64 7z -tzip a QTjsonDiff_"$APP_VERSION".zip ./QTjsonDiff_"$APP_VERSION"/*
