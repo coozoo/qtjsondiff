@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 
+const QString APP_VERSION="0.33b";
 
 int main(int argc, char *argv[])
 {
@@ -16,16 +17,17 @@ int main(int argc, char *argv[])
     QDir dir(a.applicationDirPath());
     if (dir.cdUp() && dir.cd("share"))
         {
-            translations.append(dir.absolutePath() + "/" + a.applicationName() + "/");
+            translations.append(dir.absolutePath() + "/" + a.applicationName());
         }
     translations.append(QStandardPaths::standardLocations(QStandardPaths::DataLocation));
-    translations.append(a.applicationDirPath() + "/.qm/");
-    translations.append(a.applicationDirPath() + "/lang/");
+    translations.append(QCoreApplication::applicationDirPath());
+    translations.append(a.applicationDirPath() + "/.qm");
+    translations.append(a.applicationDirPath() + "/lang");
     QString translationFilePath = "";
     cout<<"Search for translations"<<endl;
     foreach (const QString &str, translations)
         {
-            QFileInfo fileinfo(str + a.applicationName() + "_" + QLocale::system().name() + ".qm");
+            QFileInfo fileinfo(str + "/" + a.applicationName() + "_" + QLocale::system().name() + ".qm");
             cout << fileinfo.filePath() << endl;
             if (fileinfo.exists() && fileinfo.isFile())
                 {
@@ -45,7 +47,7 @@ int main(int argc, char *argv[])
     platform = "-64bit";
 #endif
 #endif
-    a.setProperty("appversion", "0.33b" + platform + " (QTbuild:" + QString(QT_VERSION_STR) + ")");
+    a.setProperty("appversion", APP_VERSION + platform + " (QTbuild:" + QString(QT_VERSION_STR) + ")");
     a.setProperty("appname", "QT JSON Diff");
 
 #ifdef Q_OS_LINUX
