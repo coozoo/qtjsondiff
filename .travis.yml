@@ -92,22 +92,22 @@ script:
           $mingw64 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
           $mingw64 windeployqt.exe release/QTjsonDiff.exe
           #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
-          $mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
+          #$mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
+          $mingw64 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}'> ldd.mingw64
+          $mingw64 xargs -I '{}' cp '{}' release/ < ldd.mingw64
           $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
-          $mingw64 uname
-          export APP_PLATFORM="$mingw64 $(uname|grep -oP '(?<=^).+(?=_NT)')";
-          $mingw64 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
+          $mingw64 mv release QTjsonDiff_"$APP_VERSION"_WIN64; 7z -tzip a QTjsonDiff_"$APP_VERSION"_WIN64.zip ./QTjsonDiff_"$APP_VERSION"_WIN64/*
           $mingw64 make clean
           $msys2 ls -l
           $mingw32 qmake
           $mingw32 make
           $mingw32 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
           $mingw32 windeployqt.exe release/QTjsonDiff.exe
-          $mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
+          #$mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
+          $mingw32 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}'> ldd.mingw32
+          $mingw32 xargs -I '{}' cp '{}' release/ < ldd.mingw32
           $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
-          $mingw32 uname
-          export APP_PLATFORM="$mingw32 $(uname|grep -oP '(?<=^).+(?=_NT)')";
-          $mingw32 echo $APP_PLATFORM; mv release QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"; 7z -tzip a QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM".zip ./QTjsonDiff_"$APP_VERSION"_"$APP_PLATFORM"/*
+          $mingw32 mv release QTjsonDiff_"$APP_VERSION"_WIN32; 7z -tzip a QTjsonDiff_"$APP_VERSION"_WIN32.zip ./QTjsonDiff_"$APP_VERSION"_WIN32/*
           $msys2 ls -l
       esac
 
@@ -115,6 +115,7 @@ after_success:
   - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash upload.sh Qt*.AppImage* ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then bash upload.sh QT*.zip QT*.dmg ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then bash upload.sh QT*.zip     ; fi
 
 branches:
   except:
