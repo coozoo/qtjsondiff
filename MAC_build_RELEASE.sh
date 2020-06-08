@@ -32,6 +32,7 @@ main(){
         return $RESULT
     fi
     
+    app_ver=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')
     makeDMG
     RESULT=$?
     if [ $RESULT -ne 0 ] ; then
@@ -127,7 +128,7 @@ makeDMG(){
     
     rm -f "$APP_NAME".dmg
 
-    hdiutil create -format UDZO -srcfolder "$BUNDLE_NAME" "$APP_NAME".dmg
+    hdiutil create -format UDZO -srcfolder "$BUNDLE_NAME" "$APP_NAME"_"$app_ver".dmg
     
     echo Done.
     return 0
@@ -144,7 +145,7 @@ makeZIP(){
     
     rm -f "$APP_NAME".zip
 
-    zip -r -X "$APP_NAME".zip "$BUNDLE_NAME"
+    zip -r -X "$APP_NAME"_"$app_ver".zip "$BUNDLE_NAME"
     
     echo Done.
     return 0

@@ -49,9 +49,7 @@ install:
           $msys2 pacman --sync --clean --noconfirm
           $msys2 pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
           $msys2 pacman -S --noconfirm perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
-          #$msys2 pacman -S --noconfirm mingw-w64-i686-qt5-static mingw-w64-x86_64-qt5-static
           $msys2 pacman -S --noconfirm mingw-w64-i686-qt5 mingw-w64-x86_64-qt5
-          #$msys2 pacman -S --noconfirm mingw-w64-x86_64-qt5
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-zlib mingw-w64-i686-zlib zlib-devel
           $msys2 pacman -S --noconfirm mingw-w64-x86_64-openssl mingw-w64-i686-openssl openssl-devel
           ;;
@@ -78,14 +76,6 @@ script:
           ./MAC_build_RELEASE.sh
           ;;
         windows)
-          #$mingw64 export APP_VERSION=$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')
-          #$msys2 /c/tools/msys64/mingw32/qt5-static/bin/qmake.exe
-          #$mingw64 qmake
-          #$msys2 /tools/msys64/mingw64/qt5-static/bin/qmake.exe
-          #$msys2 ls -l /c/tools/msys64/mingw32/qt5-static/bin
-          #$msys2 ls -l /c/tools/msys64/mingw64/bin
-          #$msys2 ls -l /c/tools/msys64/mingw32/bin
-          #$msys2 /c/tools/msys64/mingw32/bin/mingw32-make.exe
           $mingw64 qmake
           $mingw64 make
           $mingw64 rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
@@ -97,12 +87,10 @@ script:
           #$mingw64 cat ldd.mingw64
           #$msys2 xargs -I++ -0 -n 1 -P 8 cp ++ release/ < <(tr \\n \\0 <ldd.mingw64)
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /mingw64/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
-          #$msys2 cat win.libs
           #$msys2 xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw64/bin -type f -name '++*.dll' -exec echo '{}' release/ ';' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
           #$msys2 lines="$(cat ldd.mingw64)"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /c/tools/msys64/mingw64/bin/zlib*.dll release/; cp /c/tools/msys64/mingw64/bin/libgcc*.dll release/; cp /c/tools/msys64/mingw64/bin/libwinpthread*.dll release/; cp /c/tools/msys64/mingw64/bin/libstdc*.dll release/; cp /c/tools/msys64/mingw64/bin/libdouble*.dll release/; cp /c/tools/msys64/mingw64/bin/libicuin6*.dll release/; cp /c/tools/msys64/mingw64/bin/libicuuc6*.dll release/; cp /c/tools/msys64/mingw64/bin/libicudt6*.dll release/; cp /c/tools/msys64/mingw64/bin/libpcre*.dll release/; cp /c/tools/msys64/mingw64/bin/libzstd*.dll release/; cp /c/tools/msys64/mingw64/bin/libharfbuzz*.dll release/; cp /c/tools/msys64/mingw64/bin/libgraphite*.dll release/; cp /c/tools/msys64/mingw64/bin/libfreetype*.dll release/; cp /c/tools/msys64/mingw64/bin/libbrotlidec*.dll release/; cp /c/tools/msys64/mingw64/bin/libbrotlicommon*.dll release/; cp /c/tools/msys64/mingw64/bin/libbz*.dll release/; cp /c/tools/msys64/mingw64/bin/libpng*.dll release/; cp /c/tools/msys64/mingw64/bin/libglib*.dll release/; cp /c/tools/msys64/mingw64/bin/libintl*.dll release/; cp /c/tools/msys64/mingw64/bin/libiconv*.dll release/; cp /c/tools/msys64/mingw64/bin/libpcre*.dll release/;
           $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
-          #$msys2 ls -l /c/tools/msys64/mingw64/bin
           $mingw64 mv release QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN64; 7z -tzip a QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN64.zip ./QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN64/*
           $mingw64 make clean
           $msys2 ls -l
@@ -116,13 +104,10 @@ script:
           #$mingw32 cat ldd.mingw32
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <ldd.mingw32)
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
-          #$msys2 cat win.libs
           #$msys2 xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec echo '{}' release/ ';' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
           $mingw32 cp /c/tools/msys64/mingw32/bin/zlib*.dll release/; cp /c/tools/msys64/mingw32/bin/libgcc*.dll release/; cp /c/tools/msys64/mingw32/bin/libwinpthread*.dll release/; cp /c/tools/msys64/mingw32/bin/libstdc*.dll release/; cp /c/tools/msys64/mingw32/bin/libdouble*.dll release/; cp /c/tools/msys64/mingw32/bin/libicuin6*.dll release/; cp /c/tools/msys64/mingw32/bin/libicuuc6*.dll release/; cp /c/tools/msys64/mingw32/bin/libicudt6*.dll release/; cp /c/tools/msys64/mingw32/bin/libpcre*.dll release/; cp /c/tools/msys64/mingw32/bin/libzstd*.dll release/; cp /c/tools/msys64/mingw32/bin/libharfbuzz*.dll release/; cp /c/tools/msys64/mingw32/bin/libgraphite*.dll release/; cp /c/tools/msys64/mingw32/bin/libfreetype*.dll release/; cp /c/tools/msys64/mingw32/bin/libbrotlidec*.dll release/; cp /c/tools/msys64/mingw32/bin/libbrotlicommon*.dll release/; cp /c/tools/msys64/mingw32/bin/libbz*.dll release/; cp /c/tools/msys64/mingw32/bin/libpng*.dll release/; cp /c/tools/msys64/mingw32/bin/libglib*.dll release/; cp /c/tools/msys64/mingw32/bin/libintl*.dll release/; cp /c/tools/msys64/mingw32/bin/libiconv*.dll release/; cp /c/tools/msys64/mingw32/bin/libpcre*.dll release/;
           $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
-          #$msys2 ls -l /c/tools/msys64/mingw32/bin
           $mingw32 mv release QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN32; 7z -tzip a QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN32.zip ./QTjsonDiff_"$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"_WIN32/*
-          $msys2 ls -l
       esac
 
 after_success:
