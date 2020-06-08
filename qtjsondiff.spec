@@ -3,7 +3,7 @@
 
 %define name QTjsonDiff
 %define reponame qtjsondiff
-%define version 0.33b
+%define version %(echo "$(curl --silent "https://raw.githubusercontent.com/coozoo/qtjsondiff/master/main.cpp"|grep "const QString APP"|awk -F\" '{print $2;}')")
 %define build_timestamp %{lua: print(os.date("%Y%m%d"))}
 
 Summary: QT json diff widget that consists of two json viewer widgets with highlighting of jsons. This app made as example of using widgets that can be integrated into your own Qt application but still it's pretty useful as such raw app.
