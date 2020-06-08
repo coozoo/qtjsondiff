@@ -97,9 +97,10 @@ script:
           $mingw64 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}' > ldd.mingw64
           $mingw64 ldd release/QTjsonDiff.exe |grep mingw|awk '{print$1;}'|awk -F'[_.-]' '{print $1;}' >ldd.mingw32
           $mingw64 cat ldd.mingw64
-          $mingw64 xargs -I{} -0 -n 1 -P 8 cp {} release/ < <(tr \\n \\0 <ldd.mingw64)
+          #$mingw64 xargs -I{} -0 -n 1 -P 8 cp {} release/ < <(tr \\n \\0 <ldd.mingw64)
+          $mingw64 lines="$(cat ldd.mingw64)"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
-          $mingw64 APP_VER=$(cat main.cpp |grep "const QString APP"|awk -F\" '{print $2;}'); mv release QTjsonDiff_"$APP_VER"_WIN64; 7z -tzip a QTjsonDiff_"$APP_VER"_WIN64.zip ./QTjsonDiff_"$APP_VER"_WIN64/*
+          $mingw64 export APP_VER="$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"; mv release QTjsonDiff_"$APP_VER"_WIN64; 7z -tzip a QTjsonDiff_"$APP_VER"_WIN64.zip ./QTjsonDiff_"$APP_VER"_WIN64/*
           $mingw64 make clean
           $msys2 ls -l
           $mingw32 qmake
@@ -109,9 +110,9 @@ script:
           #$mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           #$mingw32 ldd release/QTjsonDiff.exe
           #$mingw32 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}' > ldd.mingw32
-          $mingw32  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release32/ ';' < <(tr \\n \\0 <ldd.mingw32)
+          $mingw32  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <ldd.mingw32)
           $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
-          $mingw32 APP_VER=$(cat main.cpp |grep "const QString APP"|awk -F\" '{print $2;}'); mv release QTjsonDiff_"$APP_VER"_WIN32; 7z -tzip a QTjsonDiff_"$APP_VER"_WIN32.zip ./QTjsonDiff_"$APP_VER"_WIN32/*
+          $mingw32 export APP_VER="$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"; mv release QTjsonDiff_"$APP_VER"_WIN32; 7z -tzip a QTjsonDiff_"$APP_VER"_WIN32.zip ./QTjsonDiff_"$APP_VER"_WIN32/*
           $msys2 ls -l
       esac
 
