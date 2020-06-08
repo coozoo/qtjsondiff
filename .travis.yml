@@ -97,6 +97,7 @@ script:
           #$mingw64 cat ldd.mingw64
           #$msys2 xargs -I++ -0 -n 1 -P 8 cp ++ release/ < <(tr \\n \\0 <ldd.mingw64)
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /mingw64/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
+          $msys2 cat win.libs
           $msys2 xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw64/bin -type f -name '++*.dll' -exec echo '{}' release/ ';' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
           #$msys2 lines="$(cat ldd.mingw64)"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
@@ -114,6 +115,7 @@ script:
           #$mingw32 cat ldd.mingw32
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <ldd.mingw32)
           #$msys2  xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
+          $msys2 cat win.libs
           $msys2 xargs -I++ -0 -n 1 -P 8 find /c/tools/msys64/mingw32/bin -type f -name '++*.dll' -exec echo '{}' release/ ';' -exec cp '{}' release/ ';' < <(tr \\n \\0 <win.libs)
           $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
           $msys2 ls -l /c/tools/msys64/mingw32/bin
