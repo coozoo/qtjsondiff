@@ -6,7 +6,7 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 
-const QString APP_VERSION="0.33b";
+const QString APP_VERSION="0.34b";
 
 int main(int argc, char *argv[])
 {
