@@ -94,7 +94,7 @@ script:
           #$mingw64 while IFS= read -r line; do echo "copy $line"; cp "$line" release/; done <<< "$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"
           #$mingw64 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw64 ldd release/QTjsonDiff.exe
-          $mingw64 ldd release/QTjsonDiff.exe|grep msys|grep -iv qt|awk '{print $3;}' > ldd.mingw64
+          $mingw64 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}' > ldd.mingw64
           $mingw64 xargs -I '{}' cp '{}' release/ < ldd.mingw64
           $mingw64 cp /c/tools/msys64/mingw64/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw64/bin/libssl*.dll release/
           $mingw64 mv release QTjsonDiff_"$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"_WIN64; 7z -tzip a QTjsonDiff_"$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"_WIN64.zip ./QTjsonDiff_"$APP_VERSION"_WIN64/*
@@ -106,7 +106,7 @@ script:
           $mingw32 windeployqt.exe release/QTjsonDiff.exe
           #$mingw32 lines="$(ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}')"; for line in ${lines//\\n/ } ; do echo "copy $line"; cp "$line" release/ ; done
           $mingw32 ldd release/QTjsonDiff.exe
-          $mingw32 ldd release/QTjsonDiff.exe|grep msys|grep -iv qt|awk '{print $3;}' > ldd.mingw32
+          $mingw32 ldd release/QTjsonDiff.exe|grep mingw|grep -iv qt|awk '{print $3;}' > ldd.mingw32
           $mingw32 xargs -I '{}' cp '{}' release/ < ldd.mingw32
           $mingw32 cp /c/tools/msys64/mingw32/bin/libcrypto*.dll release/; cp /c/tools/msys64/mingw32/bin/libssl*.dll release/
           $mingw32 mv release QTjsonDiff_"$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"_WIN32; 7z -tzip a QTjsonDiff_"$(cat main.cpp |grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')"_WIN32.zip ./QTjsonDiff_"$APP_VERSION"_WIN32/*
