@@ -3,9 +3,9 @@ libgcc
 libwinpthread
 libstdc
 libdouble
-libicuin
-libicuuc
-libicudt
+libicuin6
+libicuuc6
+libicudt6
 libpcre
 libzstd
 libharfbuzz
