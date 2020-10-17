@@ -117,12 +117,19 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     filePath_lineEdit = new QLineEdit(browse_groupBox);
     filePath_lineEdit->setPlaceholderText(tr("Select file or use URL to load json data"));
     filePath_lineEdit->setToolTip(tr("Select file or use full path/URL and hit enter to load json data"));
+    filePath_lineEdit->setFixedHeight(28);
     browse_toolButton = new QToolButton(browse_groupBox);
     browse_toolButton->setText(tr("..."));
+    browse_toolButton->setFixedSize(28,28);
+    refresh_toolButton = new QToolButton(browse_groupBox);
+    refresh_toolButton->setIcon(QIcon(QPixmap(":/images/refresh.png")));
+    refresh_toolButton->setToolTip(tr("Reload"));
+    refresh_toolButton->setFixedSize(28,28);
     //filePath_lineEdit->setStyleSheet("border: 2");
     qDebug() << "treeview_layout adding widgets";
     browse_layout->addWidget(filePath_lineEdit, 1);
     browse_layout->addWidget(browse_toolButton, 0);
+    browse_layout->addWidget(refresh_toolButton, 1);
     browse_groupBox->setLayout(browse_layout);
     treeview_layout->addWidget(browse_groupBox, 0);
 
@@ -169,6 +176,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     connect(treeview, SIGNAL(expanded(const QModelIndex &)), this, SLOT(on_treeview_item_expanded()));
     connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
     connect(browse_toolButton, SIGNAL(clicked()), this, SLOT(on_browse_toolButton_clicked()));
+    connect(refresh_toolButton, &QToolButton::clicked, this, &QJsonContainer::on_refresh_toolButton_clicked);
     connect(sortObj_toolButton, SIGNAL(clicked()), this, SLOT(on_sortObj_toolButton_clicked()));
     connect(filePath_lineEdit, SIGNAL(returnPressed()), this, SLOT(openJsonFile()));
     connect(showjson_pushbutton, SIGNAL(clicked()), this, SLOT(on_showjson_pushbutton_clicked()));
@@ -438,6 +446,11 @@ void QJsonContainer::on_browse_toolButton_clicked()
     filePath_lineEdit->setText(fileName);
     openJsonFile();
 
+}
+
+void QJsonContainer::on_refresh_toolButton_clicked()
+{
+    openJsonFile();
 }
 
 void QJsonContainer::openJsonFile()

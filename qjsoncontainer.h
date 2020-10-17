@@ -55,6 +55,7 @@ public:
     QLineEdit *filePath_lineEdit;
     QLineEdit *find_lineEdit;
     QToolButton* browse_toolButton;
+    QToolButton* refresh_toolButton;
     QToolButton* sortObj_toolButton;
     QGridLayout* tools_layout;
     QToolBar *toolbar;
@@ -102,6 +103,7 @@ private slots:
     void on_expandAll_checkbox_marked();
     void on_treeview_item_expanded();
     void on_browse_toolButton_clicked();
+    void on_refresh_toolButton_clicked();
     void on_showjson_pushbutton_clicked();
     //void on_sortObj_toolButton_clicked();
     void on_findNext_toolbutton_clicked();

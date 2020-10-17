@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="uk_UA" sourcelanguage="en">
+<TS version="2.1" language="uk_UA">
 <context>
     <name>MainWindow</name>
     <message>
@@ -114,6 +114,10 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Find Previous</source>
         <translation>Знайти попереднє</translation>
+    </message>
+    <message>
+        <source>Reload</source>
+        <translation>Перезавантажити JSON</translation>
     </message>
 </context>
 <context>
