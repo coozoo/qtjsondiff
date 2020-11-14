@@ -15,32 +15,40 @@
         <source>Compare View</source>
         <translation>Режим порівняння</translation>
     </message>
+    <message>
+        <source>Restore on Start</source>
+        <translation>Відновити при старті</translation>
+    </message>
+    <message>
+        <source>Open last state on application start</source>
+        <translation>Відкрити останній стан програми під час запуску</translation>
+    </message>
 </context>
 <context>
     <name>QJsonContainer</name>
     <message>
         <source>Copy Row</source>
-        <translation>Зкопіювати рядок</translation>
+        <translation>Скопіювати рядок</translation>
     </message>
     <message>
         <source>Copy Rows</source>
-        <translation>Зкопіювати рядки</translation>
+        <translation>Скопіювати рядки</translation>
     </message>
     <message>
         <source>Copy Path</source>
-        <translation>Зкопіювати шлях</translation>
+        <translation>Скопіювати шлях</translation>
     </message>
     <message>
         <source>Copy Plain Json</source>
-        <translation>Зкопіювати неформатований Json</translation>
+        <translation>Скопіювати неформатований Json</translation>
     </message>
     <message>
         <source>Copy Pretty Json</source>
-        <translation>Зкопіювати форматований Json</translation>
+        <translation>Скопіювати форматований Json</translation>
     </message>
     <message>
         <source>Copy Selected Json Value</source>
-        <translation>Зкопіювати вміст обраного</translation>
+        <translation>Скопіювати вміст обраного</translation>
     </message>
     <message>
         <source>Show Json Text</source>

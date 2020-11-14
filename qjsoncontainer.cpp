@@ -448,6 +448,12 @@ void QJsonContainer::on_browse_toolButton_clicked()
 
 }
 
+void QJsonContainer::loadJsonFile(QString target)
+{
+    filePath_lineEdit->setText(target);
+    openJsonFile();
+}
+
 void QJsonContainer::on_refresh_toolButton_clicked()
 {
     openJsonFile();
@@ -471,7 +477,7 @@ void QJsonContainer::openJsonFile()
             qDebug() << "downloading";
             getData();
         }
-    emit sOpenJsonFile();
+    emit sJsonFileLoaded(filePath_lineEdit->text());
 }
 
 void QJsonContainer::loadJson(QJsonDocument data)
@@ -832,7 +838,7 @@ void QJsonContainer::getData()
     request.setRawHeader("Accept-Encoding", "gzip, deflate");
     loadJson("{\"status\":\"Sending Get\",\"host\":\"" + serviceUrl.url() + "\"}");
     QNetworkReply *reply = networkManager->get(request);
-    Q_UNUSED(reply);
+    Q_UNUSED(reply)
 }
 
 void QJsonContainer::serviceGetDataRequestFinished(QNetworkReply *reply)
@@ -1007,7 +1013,7 @@ void QJsonContainer::on_model_dataUpdated()
 
 bool QJsonContainer::eventFilter(QObject* obj, QEvent *event)
 {
-    Q_UNUSED(obj);
+    Q_UNUSED(obj)
     QTextStream cout(stdout);
     if (event->type() == QEvent::KeyPress)
         {

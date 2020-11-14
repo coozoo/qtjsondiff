@@ -39,7 +39,7 @@ public:
     QColor color() const;
     QModelIndex idxRelation();
 
-    static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = 0);
+    static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);
 
 protected:
 

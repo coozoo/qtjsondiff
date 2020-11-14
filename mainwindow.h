@@ -23,12 +23,28 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
     QJsonContainer *messageJsonCont;
     QJsonDiff *differ;
+    QToolButton *openLast_toolbutton;
+    QSettings s;
+
+public slots:
+    void containerFileLoaded(QString path);
+    void differLeftFileLoaded(QString path);
+    void differRightFileLoaded(QString path);
+
+    void on_openLast_toolbutton_clicked();
 
 private:
     Ui::MainWindow *ui;
+
+    void loadLastPaths();
+
+    const QString json_container_path="Saved_Paths/json_container_path";
+    const QString differ_left_path="Saved_Paths/differ_left_path";
+    const QString differ_right_path="Saved_Paths/differ_right_path";
+    const QString restore_on_start="Saved_Paths/restore_on_start";
 };
 
 #endif // MAINWINDOW_H

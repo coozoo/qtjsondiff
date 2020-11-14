@@ -15,6 +15,14 @@
         <source>Compare View</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Restore on Start</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Open last state on application start</source>
+        <translation></translation>
+    </message>
 </context>
 <context>
     <name>QJsonContainer</name>

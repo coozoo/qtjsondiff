@@ -24,7 +24,7 @@ class QJsonDiff : public QWidget
 
 public:
     explicit QJsonDiff(QWidget *parent = nullptr);
-    ~QJsonDiff();
+    ~QJsonDiff() override;
     QJsonContainer *left_cont;
     QJsonContainer *right_cont;
     void loadJsonLeft(QJsonDocument data);
@@ -65,6 +65,10 @@ public:
     const QColor notPresentDiffColor=QColor(Qt::lightGray);
 
 signals:
+    void sLoadRightJsonFile(QString target);
+    void sLoadLeftJsonFile(QString target);
+    void sRightJsonFileLoaded(QString path);
+    void sLeftJsonFileLoaded(QString path);
 
 public slots:
     void on_compare_pushbutton_clicked();
@@ -75,10 +79,13 @@ public slots:
     void on_useFullPath_checkbox_stateChanged(int);
     void reinitRightModel();
     void reinitLeftModel();
-
+    void loadRightJsonFile(QString target);
+    void loadLeftJsonFile(QString target);
+    void rightJsonFileLoaded(QString path);
+    void leftJsonFileLoaded(QString path);
 
 protected:
-    void paintEvent(QPaintEvent *);
+    void paintEvent(QPaintEvent *) override;
 };
 
 #endif // QJSONDIFF_H

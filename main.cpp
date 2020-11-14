@@ -5,8 +5,9 @@
 #include <QTranslator>
 #include <QStandardPaths>
 #include <QFileInfo>
+#include <QSettings>
 
-const QString APP_VERSION="0.35b";
+const QString APP_VERSION = "0.36b";
 
 int main(int argc, char *argv[])
 {
@@ -24,15 +25,15 @@ int main(int argc, char *argv[])
     translations.append(a.applicationDirPath() + "/.qm");
     translations.append(a.applicationDirPath() + "/lang");
     QString translationFilePath = "";
-    cout<<"Search for translations"<<Qt::endl;
+    cout << "Search for translations" << Qt::endl;
     foreach (const QString &str, translations)
         {
             QFileInfo fileinfo(str + "/" + a.applicationName() + "_" + QLocale::system().name() + ".qm");
             cout << fileinfo.filePath() << Qt::endl;
             if (fileinfo.exists() && fileinfo.isFile())
                 {
-                    translationFilePath=fileinfo.filePath();
-                    cout<<"Translation found in: "+translationFilePath<<Qt::endl;
+                    translationFilePath = fileinfo.filePath();
+                    cout << "Translation found in: " + translationFilePath << Qt::endl;
                     break;
                 }
         }
@@ -53,6 +54,18 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_LINUX
     a.setWindowIcon(QIcon(":/images/diff.png"));
 #endif
+
+    QString settingsDir = "";
+#ifdef Q_OS_WIN
+    settingsDir = qApp->applicationDirPath();
+#endif
+#if defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+    settingsDir = QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0] + "/" + qAppName();
+#endif
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
+    QApplication::setOrganizationName("ini");
+    QApplication::setApplicationName("qtjsondiff");
 
     MainWindow w;
     w.showMaximized();

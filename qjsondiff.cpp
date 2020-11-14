@@ -62,8 +62,8 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(compare_pushbutton,SIGNAL(clicked()),this,SLOT(on_compare_pushbutton_clicked()));
     connect(left_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_lefttreeview_clicked(QModelIndex)));
     connect(right_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_righttreeview_clicked(QModelIndex)));
-    connect(right_cont,SIGNAL(sOpenJsonFile()),this,SLOT(reinitLeftModel()));
-    connect(left_cont,SIGNAL(sOpenJsonFile()),this,SLOT(reinitRightModel()));
+    connect(right_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::reinitLeftModel);
+    connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::reinitRightModel);
     connect(right_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitLeftModel()));
     connect(left_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitRightModel()));
     connect(useFullPath_checkbox,&QCheckBox::stateChanged,this,&QJsonDiff::on_useFullPath_checkbox_stateChanged);
@@ -77,6 +77,10 @@ QJsonDiff::QJsonDiff(QWidget *parent):
             this,SLOT(on_lefttreeview_scroll_valuechanged(int)));
     connect(right_cont->getTreeView()->verticalScrollBar(),SIGNAL(valueChanged(int)),
             this,SLOT(on_righttreeview_scroll_valuechanged(int)));
+    connect(this,&QJsonDiff::sLoadLeftJsonFile,left_cont,&QJsonContainer::loadJsonFile);
+    connect(this,&QJsonDiff::sLoadRightJsonFile,right_cont,&QJsonContainer::loadJsonFile);
+    connect(right_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::rightJsonFileLoaded);
+    connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::leftJsonFileLoaded);
 }
 
 QJsonDiff::~QJsonDiff()
@@ -323,7 +327,7 @@ void QJsonDiff::compareModels(QJsonModel *modelLeft, const QModelIndex &parentLe
             if(!item->color().isValid())
                 {
                     int res=findIndexInModel(modelLeft,item,idx2,modelRight,QModelIndex());
-                    Q_UNUSED(res);
+                    Q_UNUSED(res)
 
                     //QPainter::drawLine(QAbstractItemView::visualRect(idx0).center(),
                     //                   QAbstractItemView::visualRect(idx1).center());
@@ -637,5 +641,28 @@ void QJsonDiff::compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndex
 void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
 {
     reinitLeftModel();
+}
+
+// load json file
+void QJsonDiff::loadRightJsonFile(QString target)
+{
+    emit sLoadRightJsonFile(target);
+}
+
+// load json file
+void QJsonDiff::loadLeftJsonFile(QString target)
+{
+    emit sLoadLeftJsonFile(target);
+}
+
+//emit signal whn new file or url loaded
+void QJsonDiff::rightJsonFileLoaded(QString path)
+{
+    emit sRightJsonFileLoaded(path);
+}
+//emit signal whn new file or url loaded
+void QJsonDiff::leftJsonFileLoaded(QString path)
+{
+    emit sLeftJsonFileLoaded(path);
 }
 

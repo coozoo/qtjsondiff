@@ -36,7 +36,7 @@ class QJsonContainer : public QWidget
     Q_OBJECT
 public:
     explicit QJsonContainer(QWidget *parent=nullptr);
-    ~QJsonContainer();
+    ~QJsonContainer() override;
 
     QJsonModel *model;
     QTreeView *treeview;
@@ -95,9 +95,8 @@ private:
     QAction *copyJsonByPath;
 
 signals:
-    void sOpenJsonFile();
+    void sJsonFileLoaded(QString path);
     void jsonUpdated();
-
 
 private slots:
     void on_expandAll_checkbox_marked();
@@ -114,11 +113,13 @@ private slots:
     void on_find_lineEdit_textChanged(QString text);
     void on_model_dataUpdated();
     void showContextMenu(const QPoint &point);
+
 public slots:
     void findText();
+    void loadJsonFile(QString target);
 
 protected:
-    bool eventFilter(QObject* obj, QEvent *event);
+    bool eventFilter(QObject* obj, QEvent *event) override;
 
 };
 
