@@ -14,7 +14,7 @@ before_install:
   - |-
       case $TRAVIS_OS_NAME in
         linux)
-          sudo add-apt-repository ppa:beineri/opt-qt-5.11.1-xenial -y
+          sudo add-apt-repository ppa:beineri/opt-qt-5.15.0-xenial -y
           sudo apt-get update -qq
           ;;
         windows)
