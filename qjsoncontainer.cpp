@@ -232,39 +232,39 @@ void QJsonContainer::showContextMenu(const QPoint &point)
 
             //QStringList strings = extractStringsFromModel(model, QModelIndex());
 
-            //cout<<treeview->model()->index(rowid , columnid).data().toString()<<endl;
-            cout << "copyRow" << endl;
-            cout << strings.join("\n") << endl;
+            //cout<<treeview->model()->index(rowid , columnid).data().toString()<<Qt::endl;
+            cout << "copyRow" << Qt::endl;
+            cout << strings.join("\n") << Qt::endl;
             clip->setText(strings.join("\n"));
         }
     else if (selectedItem == copyRows)
         {
-            cout << "copyRows" << endl;
+            cout << "copyRows" << Qt::endl;
             QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
-            cout << string << endl;
+            cout << string << Qt::endl;
             clip->setText(string);
         }
     else if (selectedItem==copyPath)
         {
             QModelIndex idx = treeview->indexAt(point);
             QString string =model->jsonPath(idx);
-            cout<<string<<endl;
+            cout<<string<<Qt::endl;
             clip->setText(string);
         }
     else if(selectedItem==copyJsonPlainText)
         {
-            cout<<"copyJsonPlainText"<<endl;
+            cout<<"copyJsonPlainText"<<Qt::endl;
             clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Compact));
         }
     else if(selectedItem==copyJsonPrettyText)
         {
-            cout<<"copyJsonPrettyText"<<endl;
+            cout<<"copyJsonPrettyText"<<Qt::endl;
             clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
         }
     else if(selectedItem==copyJsonByPath)
         {
             QModelIndex idx = treeview->indexAt(point);
-            cout<<"copyJsonByPath"<<endl;
+            cout<<"copyJsonByPath"<<Qt::endl;
             QString string=getJson(model->jsonIndexPath(idx));
             clip->setText(string);
         }
@@ -345,7 +345,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
     QModelIndex idx = treeview->currentIndex();
     if (idx.isValid() && idx.column() != 0)
         {
-            //cout << idx.row() << endl;
+            //cout << idx.row() << Qt::endl;
             //idx = model->index(idx.row(), 0);
             idx=idx.siblingAtColumn(0);
         }
@@ -358,13 +358,13 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
             currentFindIndexId = -1;
             qDebug() << "##################" << currentFindIndexesList;
         }
-    //cout<<"before"<<currentFindIndexId<<endl;
+    //cout<<"before"<<currentFindIndexId<<Qt::endl;
     if(!currentFindIndexesList.contains(idx))
         {
             int indexid = -1;
             bool matchselectedbool=false;
             currentIndexFinder(model, QModelIndex(), &currentFindIndexesList,idx,matchselectedbool,indexid);
-            cout << "Found index at:" << indexid << endl;
+            cout << "Found index at:" << indexid << Qt::endl;
             if(currentFindIndexId!=-1 && indexid!=currentFindIndexesList.count()-1 && indexid!=0)
                 {
                     currentFindIndexId=indexid;
@@ -381,7 +381,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
                     currentFindIndexId = currentFindIndexesList.indexOf(idx);
                 }
         }
-    //cout<<"after"<<currentFindIndexId<<endl;
+    //cout<<"after"<<currentFindIndexId<<Qt::endl;
 //QList<QModelIndex> tempList=currentFindIndexesList;
 //        if(!direction)
 //        {
@@ -514,10 +514,10 @@ QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
         {
 
             QJsonTreeItem *treeItem=static_cast<QJsonTreeItem *>(jsonPath[i].internalPointer());
-            //cout<<tempValue[treeItem->key()].toString()<<endl;
+            //cout<<tempValue[treeItem->key()].toString()<<Qt::endl;
             if(!treeItem->parent())
                 {
-                    cout<<i<<"root"<<endl;
+                    cout<<i<<"root"<<Qt::endl;
                 }
             else
                 {
@@ -956,24 +956,24 @@ int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &par
             if (idx0.isValid())
                 {
 
-                    //cout<<"row"<<i<<endl;
+                    //cout<<"row"<<i<<Qt::endl;
 
 
                     if (currentFindIndexesList->contains(idx0))
                         {
-                            //cout<<"hit in find map"<<currentFindIndexesList->count()<<endl;
+                            //cout<<"hit in find map"<<currentFindIndexesList->count()<<Qt::endl;
                             ++indexid;
-                            //cout<<indexid<<endl;
+                            //cout<<indexid<<Qt::endl;
                         }
-                    //cout<<idx0.data(Qt::DisplayRole).toString()<<" "<<idx1.data(Qt::DisplayRole).toString()<<" "<<idx2.data(Qt::DisplayRole).toString()<<endl;
-                    //cout<<selectedIndex.internalPointer()<<" "<<idx0.internalPointer()<<endl;
+                    //cout<<idx0.data(Qt::DisplayRole).toString()<<" "<<idx1.data(Qt::DisplayRole).toString()<<" "<<idx2.data(Qt::DisplayRole).toString()<<Qt::endl;
+                    //cout<<selectedIndex.internalPointer()<<" "<<idx0.internalPointer()<<Qt::endl;
                     if(selectedIndex==idx0 || selectedIndex==parent)
                         {
                             matchedSelectedIndex=true;
                             break;
                         }
                     QString state=(matchedSelectedIndex)?QString("matched"):QString("notmatched");
-                    //cout<<state<<endl;
+                    //cout<<state<<Qt::endl;
                     currentIndexFinder(model, idx0, currentFindIndexesList,selectedIndex,matchedSelectedIndex,indexid);
                     if(matchedSelectedIndex)
                         {

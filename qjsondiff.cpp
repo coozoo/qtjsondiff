@@ -567,7 +567,7 @@ QStringList QJsonDiff::jsonPathList(QJsonModel * model, const QModelIndex &paren
         {
             QModelIndex idx0 = model->index(i, 0, parent);
             QString path=model->jsonPath(idx0);
-            //cout<<path<<endl;
+            //cout<<path<<Qt::endl;
             text<<path;
             indexList->append(idx0);
             if(idx0.isValid())
