@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 {
     QTextStream cout(stdout);
     QApplication a(argc, argv);
-    cout << QLocale::system().name() << Qt::endl;
+    cout << QLocale::system().name() << endl;
     QStringList translations;
     QDir dir(a.applicationDirPath());
     if (dir.cdUp() && dir.cd("share"))
@@ -25,21 +25,21 @@ int main(int argc, char *argv[])
     translations.append(a.applicationDirPath() + "/.qm");
     translations.append(a.applicationDirPath() + "/lang");
     QString translationFilePath = "";
-    cout << "Search for translations" << Qt::endl;
+    cout << "Search for translations" << endl;
     foreach (const QString &str, translations)
         {
             QFileInfo fileinfo(str + "/" + a.applicationName() + "_" + QLocale::system().name() + ".qm");
-            cout << fileinfo.filePath() << Qt::endl;
+            cout << fileinfo.filePath() << endl;
             if (fileinfo.exists() && fileinfo.isFile())
                 {
                     translationFilePath = fileinfo.filePath();
-                    cout << "Translation found in: " + translationFilePath << Qt::endl;
+                    cout << "Translation found in: " + translationFilePath << endl;
                     break;
                 }
         }
 
     QTranslator translator;
-    cout << translator.load(translationFilePath) << Qt::endl;
+    cout << translator.load(translationFilePath) << endl;
     a.installTranslator(&translator);
 
     QString platform = "";
