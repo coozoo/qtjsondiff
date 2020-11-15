@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->tabWidget->setCurrentIndex(s.value(active_tab_index, QVariant()).toInt()?s.value(active_tab_index, QVariant()).toInt():0);
 
     openLast_toolbutton = new QToolButton();
     openLast_toolbutton->setText(tr("Restore on Start"));
@@ -41,6 +42,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    saveSettings();
     delete ui;
 }
 
@@ -81,3 +83,10 @@ void MainWindow::on_openLast_toolbutton_clicked()
         }
 
 }
+
+
+void MainWindow::saveSettings()
+{
+    s.setValue(active_tab_index,ui->tabWidget->currentIndex());
+}
+
