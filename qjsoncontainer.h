@@ -93,6 +93,9 @@ private:
     QAction *copyJsonPlainText;
     QAction *copyJsonPrettyText;
     QAction *copyJsonByPath;
+    QMenu multiSelectMenu;
+    QAction *expandSelected;
+    QAction *collapseSelected;
 
 signals:
     void sJsonFileLoaded(QString path);

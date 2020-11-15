@@ -17,6 +17,9 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
     copyJsonByPath=myMenu.addAction(tr("Copy Selected Json Value"));
 
+    expandSelected = multiSelectMenu.addAction("Expand Selected");
+    collapseSelected = multiSelectMenu.addAction("Collapse Selected");
+
     qDebug() << "obj_layout parent";
     obj_layout = new QVBoxLayout(parent);
     obj_layout->setContentsMargins(QMargins(5, 5, 5, 5));
@@ -31,6 +34,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     qDebug() << "treeview_layout treeview_groupbox";
     treeview = new QTreeView(treeview_groupbox);
+    treeview->setSelectionMode(QAbstractItemView::ExtendedSelection);
     viewjson_plaintext = new QPlainTextEdit(treeview_groupbox);
     viewjson_plaintext->setVisible(false);
 
@@ -215,11 +219,14 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     QTreeView *treeview = static_cast<QTreeView *>(sender());
     // for most widgets
 
+
     QPoint globalPos = treeview->mapToGlobal(point);
     // for QAbstractScrollArea and derived classes you would use:
     // QPoint globalPos = myWidget->viewport()->mapToGlobal(pos);
 
     QTextStream cout(stdout);
+    if(treeview->selectionModel()->selectedRows().size()==1)
+    {
     QClipboard *clip = QApplication::clipboard();
     QAction *selectedItem = myMenu.exec(globalPos);
     if (selectedItem == copyRow)
@@ -268,6 +275,29 @@ void QJsonContainer::showContextMenu(const QPoint &point)
             QString string=getJson(model->jsonIndexPath(idx));
             clip->setText(string);
         }
+    }
+    else
+    {
+        QAction *selectedItem = multiSelectMenu.exec(globalPos);
+        if (selectedItem==expandSelected)
+        {
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for(int i=0; i< selection.count(); i++)
+                {
+                    QModelIndex index = selection.at(i);
+                    treeview->setExpanded(index,true);
+                }
+        }
+        else if (selectedItem==collapseSelected)
+        {
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for(int i=0; i< selection.count(); i++)
+                {
+                    QModelIndex index = selection.at(i);
+                    treeview->setExpanded(index,false);
+                }
+        }
+    }
 }
 
 
