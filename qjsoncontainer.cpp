@@ -17,8 +17,9 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
     copyJsonByPath=myMenu.addAction(tr("Copy Selected Json Value"));
 
-    expandSelected = multiSelectMenu.addAction("Expand Selected");
-    collapseSelected = multiSelectMenu.addAction("Collapse Selected");
+    expandSelectedRecursively = multiSelectMenu.addAction(tr("Expand Selected Tree"));
+    expandSelected = multiSelectMenu.addAction(tr("Expand Selected"));
+    collapseSelected = multiSelectMenu.addAction(tr("Collapse Selected"));
 
     qDebug() << "obj_layout parent";
     obj_layout = new QVBoxLayout(parent);
@@ -295,6 +296,19 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                 {
                     QModelIndex index = selection.at(i);
                     treeview->setExpanded(index,false);
+                }
+        }
+        if (selectedItem==expandSelectedRecursively)
+        {
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for(int i=0; i< selection.count(); i++)
+                {
+                    QModelIndex index = selection.at(i);
+                    // From 5.13 qt provides native expandRecursively function but it acts weirdly
+                    // when calling it in loop in some reason only first one expanded completly
+                    // and I don't wanna to change qt version yet
+                    expandRecursively(index,treeview);
+
                 }
         }
     }
@@ -1056,4 +1070,24 @@ bool QJsonContainer::eventFilter(QObject* obj, QEvent *event)
                 }
         }
     return false;
+}
+
+void QJsonContainer::expandRecursively(const QModelIndex &index, QTreeView *treeview)
+{
+    if (!index.isValid()) {
+        return;
+    }
+    QTextStream cout(stdout);
+    for (int i = 0; i < index.model()->rowCount(index); ++i) {
+        const QModelIndex &childIndex = treeview->model()->index(i,0,index);
+        if(childIndex.model()->rowCount()>0)
+        {
+            cout<<childIndex.model()->data(childIndex).toString()<<endl;
+            expandRecursively(childIndex, treeview);
+        }
+    }
+
+    if (!treeview->isExpanded(index)) {
+        treeview->expand(index);
+    }
 }

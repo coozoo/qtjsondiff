@@ -127,6 +127,18 @@ maybe helpful when order does not relevant</source>
         <source>Reload</source>
         <translation>Перезавантажити JSON</translation>
     </message>
+    <message>
+        <source>Expand Selected</source>
+        <translation>Розгорнути обрані</translation>
+    </message>
+    <message>
+        <source>Collapse Selected</source>
+        <translation>Згорнути обрані</translation>
+    </message>
+    <message>
+        <source>Expand Selected Tree</source>
+        <translation>Розгорнути обране дерево</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>

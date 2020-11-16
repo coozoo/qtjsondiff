@@ -96,6 +96,8 @@ private:
     QMenu multiSelectMenu;
     QAction *expandSelected;
     QAction *collapseSelected;
+    QAction *expandSelectedRecursively;
+    void expandRecursively(const QModelIndex &index, QTreeView *view);
 
 signals:
     void sJsonFileLoaded(QString path);

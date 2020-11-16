@@ -127,6 +127,18 @@ maybe helpful when order does not relevant</source>
         <source>Reload</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Expand Selected</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Collapse Selected</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Expand Selected Tree</source>
+        <translation></translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
