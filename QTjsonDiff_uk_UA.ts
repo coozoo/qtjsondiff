@@ -139,6 +139,10 @@ maybe helpful when order does not relevant</source>
         <source>Expand Selected Tree</source>
         <translation>Розгорнути обране дерево</translation>
     </message>
+    <message>
+        <source>Collapse Selected Tree</source>
+        <translation>Згорнути обране дерево</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>

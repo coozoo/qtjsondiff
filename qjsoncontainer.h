@@ -97,7 +97,8 @@ private:
     QAction *expandSelected;
     QAction *collapseSelected;
     QAction *expandSelectedRecursively;
-    void expandRecursively(const QModelIndex &index, QTreeView *view);
+    QAction *collapseSelectedRecursively;
+    void expandRecursively(const QModelIndex &index, QTreeView *view,bool expand);
 
 signals:
     void sJsonFileLoaded(QString path);

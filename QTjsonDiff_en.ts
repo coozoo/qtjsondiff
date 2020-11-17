@@ -139,6 +139,10 @@ maybe helpful when order does not relevant</source>
         <source>Expand Selected Tree</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Collapse Selected Tree</source>
+        <translation></translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
