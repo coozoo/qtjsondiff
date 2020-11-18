@@ -10,17 +10,24 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     QWidget(parent)
 {
 
+    QString expandSelectedRecursively_string = tr("Expand Selected Tree");
+    QString collapseSelectedRecursively_string = tr("Collapse Selected Tree");
+
     copyRow = myMenu.addAction(tr("Copy Row"));
     copyRows = myMenu.addAction(tr("Copy Rows"));
     copyPath = myMenu.addAction(tr("Copy Path"));
-    copyJsonPlainText=myMenu.addAction(tr("Copy Plain Json"));
-    copyJsonPrettyText=myMenu.addAction(tr("Copy Pretty Json"));
-    copyJsonByPath=myMenu.addAction(tr("Copy Selected Json Value"));
+    copyJsonPlainText = myMenu.addAction(tr("Copy Plain Json"));
+    copyJsonPrettyText = myMenu.addAction(tr("Copy Pretty Json"));
+    copyJsonByPath = myMenu.addAction(tr("Copy Selected Json Value"));
+    myMenu.addSeparator();
+    singleExpandSelectedRecursively = myMenu.addAction(expandSelectedRecursively_string);
+    singleCollapseSelectedRecursively = myMenu.addAction(collapseSelectedRecursively_string);
 
-    expandSelectedRecursively = multiSelectMenu.addAction(tr("Expand Selected Tree"));
-    collapseSelectedRecursively = multiSelectMenu.addAction(tr("Collapse Selected Tree"));
+    expandSelectedRecursively = multiSelectMenu.addAction(expandSelectedRecursively_string);
+    collapseSelectedRecursively = multiSelectMenu.addAction(collapseSelectedRecursively_string);
     expandSelected = multiSelectMenu.addAction(tr("Expand Selected"));
     collapseSelected = multiSelectMenu.addAction(tr("Collapse Selected"));
+
 
     qDebug() << "obj_layout parent";
     obj_layout = new QVBoxLayout(parent);
@@ -126,11 +133,11 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     filePath_lineEdit->setFixedHeight(28);
     browse_toolButton = new QToolButton(browse_groupBox);
     browse_toolButton->setText(tr("..."));
-    browse_toolButton->setFixedSize(28,28);
+    browse_toolButton->setFixedSize(28, 28);
     refresh_toolButton = new QToolButton(browse_groupBox);
     refresh_toolButton->setIcon(QIcon(QPixmap(":/images/refresh.png")));
     refresh_toolButton->setToolTip(tr("Reload"));
-    refresh_toolButton->setFixedSize(28,28);
+    refresh_toolButton->setFixedSize(28, 28);
     //filePath_lineEdit->setStyleSheet("border: 2");
     qDebug() << "treeview_layout adding widgets";
     browse_layout->addWidget(filePath_lineEdit, 1);
@@ -227,103 +234,122 @@ void QJsonContainer::showContextMenu(const QPoint &point)
     // QPoint globalPos = myWidget->viewport()->mapToGlobal(pos);
 
     QTextStream cout(stdout);
-    if(treeview->selectionModel()->selectedRows().size()==1)
-    {
-    QClipboard *clip = QApplication::clipboard();
-    QAction *selectedItem = myMenu.exec(globalPos);
-    if (selectedItem == copyRow)
+    if (treeview->selectionModel()->selectedRows().size() == 1)
         {
-            //int columnid = treeview->selectionModel()->currentIndex().column();
-            //int rowid = treeview->selectionModel()->currentIndex().row();
-            //QModelIndex idx=treeview->currentIndex();
-            QModelIndex idx = treeview->indexAt(point);
-            QStringList strings = extractItemTextFromModel(idx);
+            QClipboard *clip = QApplication::clipboard();
+            QAction *selectedItem = myMenu.exec(globalPos);
+            if (selectedItem == copyRow)
+                {
+                    //int columnid = treeview->selectionModel()->currentIndex().column();
+                    //int rowid = treeview->selectionModel()->currentIndex().row();
+                    //QModelIndex idx=treeview->currentIndex();
+                    QModelIndex idx = treeview->indexAt(point);
+                    QStringList strings = extractItemTextFromModel(idx);
 
-            //QStringList strings = extractStringsFromModel(model, QModelIndex());
+                    //QStringList strings = extractStringsFromModel(model, QModelIndex());
 
-            //cout<<treeview->model()->index(rowid , columnid).data().toString()<<endl;
-            cout << "copyRow" << endl;
-            cout << strings.join("\n") << endl;
-            clip->setText(strings.join("\n"));
+                    //cout<<treeview->model()->index(rowid , columnid).data().toString()<<endl;
+                    cout << "copyRow" << endl;
+                    cout << strings.join("\n") << endl;
+                    clip->setText(strings.join("\n"));
+                }
+            else if (selectedItem == copyRows)
+                {
+                    cout << "copyRows" << endl;
+                    QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
+                    cout << string << endl;
+                    clip->setText(string);
+                }
+            else if (selectedItem == copyPath)
+                {
+                    QModelIndex idx = treeview->indexAt(point);
+                    QString string = model->jsonPath(idx);
+                    cout << string << endl;
+                    clip->setText(string);
+                }
+            else if (selectedItem == copyJsonPlainText)
+                {
+                    cout << "copyJsonPlainText" << endl;
+                    clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Compact));
+                }
+            else if (selectedItem == copyJsonPrettyText)
+                {
+                    cout << "copyJsonPrettyText" << endl;
+                    clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
+                }
+            else if (selectedItem == copyJsonByPath)
+                {
+                    QModelIndex idx = treeview->indexAt(point);
+                    cout << "copyJsonByPath" << endl;
+                    QString string = getJson(model->jsonIndexPath(idx));
+                    clip->setText(string);
+                }
+            else if (selectedItem == singleExpandSelectedRecursively)
+                {
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            expandRecursively(index, treeview, true);
+
+                        }
+                }
+            else if (selectedItem == singleCollapseSelectedRecursively)
+                {
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            expandRecursively(index, treeview, false);
+                        }
+                }
         }
-    else if (selectedItem == copyRows)
-        {
-            cout << "copyRows" << endl;
-            QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
-            cout << string << endl;
-            clip->setText(string);
-        }
-    else if (selectedItem==copyPath)
-        {
-            QModelIndex idx = treeview->indexAt(point);
-            QString string =model->jsonPath(idx);
-            cout<<string<<endl;
-            clip->setText(string);
-        }
-    else if(selectedItem==copyJsonPlainText)
-        {
-            cout<<"copyJsonPlainText"<<endl;
-            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Compact));
-        }
-    else if(selectedItem==copyJsonPrettyText)
-        {
-            cout<<"copyJsonPrettyText"<<endl;
-            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
-        }
-    else if(selectedItem==copyJsonByPath)
-        {
-            QModelIndex idx = treeview->indexAt(point);
-            cout<<"copyJsonByPath"<<endl;
-            QString string=getJson(model->jsonIndexPath(idx));
-            clip->setText(string);
-        }
-    }
     else
-    {
-        QAction *selectedItem = multiSelectMenu.exec(globalPos);
-        if (selectedItem==expandSelected)
         {
-            QModelIndexList selection = treeview->selectionModel()->selectedRows();
-            for(int i=0; i< selection.count(); i++)
+            QAction *selectedItem = multiSelectMenu.exec(globalPos);
+            if (selectedItem == expandSelected)
                 {
-                    QModelIndex index = selection.at(i);
-                    treeview->setExpanded(index,true);
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            treeview->setExpanded(index, true);
+                        }
                 }
-        }
-        else if (selectedItem==collapseSelected)
-        {
-            QModelIndexList selection = treeview->selectionModel()->selectedRows();
-            for(int i=0; i< selection.count(); i++)
+            else if (selectedItem == collapseSelected)
                 {
-                    QModelIndex index = selection.at(i);
-                    treeview->setExpanded(index,false);
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            treeview->setExpanded(index, false);
+                        }
                 }
-        }
-        if (selectedItem==expandSelectedRecursively)
-        {
-            QModelIndexList selection = treeview->selectionModel()->selectedRows();
-            for(int i=0; i< selection.count(); i++)
+            if (selectedItem == expandSelectedRecursively)
                 {
-                    QModelIndex index = selection.at(i);
-                    // From 5.13 qt provides native expandRecursively function but it acts weirdly
-                    // when calling it in loop in some reason only first one expanded completly
-                    // and I don't wanna to change qt version yet
-                    expandRecursively(index,treeview,true);
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            // From 5.13 qt provides native expandRecursively function but it acts weirdly
+                            // when calling it in loop in some reason only first one expanded completly
+                            // and I don't wanna to change qt version yet
+                            expandRecursively(index, treeview, true);
 
+                        }
                 }
-        }
-        if (selectedItem==collapseSelectedRecursively)
-        {
-            QModelIndexList selection = treeview->selectionModel()->selectedRows();
-            for(int i=0; i< selection.count(); i++)
+            if (selectedItem == collapseSelectedRecursively)
                 {
-                    QModelIndex index = selection.at(i);
-                    expandRecursively(index,treeview,false);
+                    QModelIndexList selection = treeview->selectionModel()->selectedRows();
+                    for (int i = 0; i < selection.count(); i++)
+                        {
+                            QModelIndex index = selection.at(i);
+                            expandRecursively(index, treeview, false);
 
+                        }
                 }
-        }
 
-    }
+        }
 }
 
 
@@ -403,7 +429,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
         {
             //cout << idx.row() << endl;
             //idx = model->index(idx.row(), 0);
-            idx=idx.siblingAtColumn(0);
+            idx = idx.siblingAtColumn(0);
         }
 
     if (currentFindText.isEmpty() || currentFindText != find_lineEdit->text())
@@ -415,24 +441,24 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
             qDebug() << "##################" << currentFindIndexesList;
         }
     //cout<<"before"<<currentFindIndexId<<endl;
-    if(!currentFindIndexesList.contains(idx))
+    if (!currentFindIndexesList.contains(idx))
         {
             int indexid = -1;
-            bool matchselectedbool=false;
-            currentIndexFinder(model, QModelIndex(), &currentFindIndexesList,idx,matchselectedbool,indexid);
+            bool matchselectedbool = false;
+            currentIndexFinder(model, QModelIndex(), &currentFindIndexesList, idx, matchselectedbool, indexid);
             cout << "Found index at:" << indexid << endl;
-            if(currentFindIndexId!=-1 && indexid!=currentFindIndexesList.count()-1 && indexid!=0)
+            if (currentFindIndexId != -1 && indexid != currentFindIndexesList.count() - 1 && indexid != 0)
                 {
-                    currentFindIndexId=indexid;
+                    currentFindIndexId = indexid;
                 }
-            else if(((indexid==currentFindIndexesList.count()-1) || (indexid==0)) && !direction)
+            else if (((indexid == currentFindIndexesList.count() - 1) || (indexid == 0)) && !direction)
                 {
-                    currentFindIndexId=indexid+1;
+                    currentFindIndexId = indexid + 1;
                 }
         }
     else
         {
-            if(currentFindIndexId!=-1 && currentFindIndexId!=currentFindIndexesList.count()-1)
+            if (currentFindIndexId != -1 && currentFindIndexId != currentFindIndexesList.count() - 1)
                 {
                     currentFindIndexId = currentFindIndexesList.indexOf(idx);
                 }
@@ -458,7 +484,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
             QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!direction) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, QRect(100, 200, 11, 16), 3000);
             currentFindIndexId = -1;
         }
-    else if (((currentFindIndexesList.count() > 0 && currentFindIndexId == -1) || (currentFindIndexId>currentFindIndexesList.count()-1)) && !direction)
+    else if (((currentFindIndexesList.count() > 0 && currentFindIndexId == -1) || (currentFindIndexId > currentFindIndexesList.count() - 1)) && !direction)
         {
             currentFindIndexId = currentFindIndexesList.count() - 1;
         }
@@ -556,17 +582,17 @@ void QJsonContainer::loadJson(QString data)
 QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
 {
     QTextStream cout(stdout);
-    QString json="{}";
-    QJsonDocument jsonDoc=QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8());
-    QJsonValue tempValue=QJsonValue();
-    QJsonValue tempValuePrev=QJsonValue();
-    if(jsonDoc.isObject())
+    QString json = "{}";
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8());
+    QJsonValue tempValue = QJsonValue();
+    QJsonValue tempValuePrev = QJsonValue();
+    if (jsonDoc.isObject())
         {
-            tempValue=jsonDoc.object();
+            tempValue = jsonDoc.object();
         }
-    else if(jsonDoc.isArray())
+    else if (jsonDoc.isArray())
         {
-            tempValue=jsonDoc.array();
+            tempValue = jsonDoc.array();
         }
     else
         {
@@ -575,72 +601,72 @@ QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
     for (int i = 0; i < jsonPath.size(); ++i)
         {
 
-            QJsonTreeItem *treeItem=static_cast<QJsonTreeItem *>(jsonPath[i].internalPointer());
+            QJsonTreeItem *treeItem = static_cast<QJsonTreeItem *>(jsonPath[i].internalPointer());
             //cout<<tempValue[treeItem->key()].toString()<<endl;
-            if(!treeItem->parent())
+            if (!treeItem->parent())
                 {
-                    cout<<i<<"root"<<endl;
+                    cout << i << "root" << endl;
                 }
             else
                 {
-                    if(tempValue.isObject())
+                    if (tempValue.isObject())
                         {
-                            QString key=treeItem->key();
-                            if(tempValue[key].isArray())
+                            QString key = treeItem->key();
+                            if (tempValue[key].isArray())
                                 {
-                                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
-                                    tempValue=tempValue[key].toArray();
+                                    json = QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                                    tempValue = tempValue[key].toArray();
                                 }
-                            else if(tempValue[key].isObject())
+                            else if (tempValue[key].isObject())
                                 {
-                                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
-                                    tempValue=tempValue[key].toObject();
+                                    json = QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                                    tempValue = tempValue[key].toObject();
                                 }
-                            else if(tempValue[key].isDouble())
+                            else if (tempValue[key].isDouble())
                                 {
-                                    json=QString::number(tempValue[key].toDouble());
+                                    json = QString::number(tempValue[key].toDouble());
                                 }
-                            else if(tempValue[key].isString())
+                            else if (tempValue[key].isString())
                                 {
-                                    json=tempValue[key].toString();
+                                    json = tempValue[key].toString();
                                 }
-                            else if(tempValue[key].isNull())
+                            else if (tempValue[key].isNull())
                                 {
-                                    json="null";
+                                    json = "null";
                                 }
-                            else if(tempValue[key].isBool())
+                            else if (tempValue[key].isBool())
                                 {
-                                    json=QString((tempValue[key].toBool())?QString("true"):QString("false"));
+                                    json = QString((tempValue[key].toBool()) ? QString("true") : QString("false"));
                                 }
                         }
-                    else if(tempValue.isArray())
+                    else if (tempValue.isArray())
                         {
-                            int key=treeItem->key().toInt();
-                            if(tempValue[key].isArray())
+                            int key = treeItem->key().toInt();
+                            if (tempValue[key].isArray())
                                 {
-                                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
-                                    tempValue=tempValue[key].toArray();
+                                    json = QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                                    tempValue = tempValue[key].toArray();
                                 }
-                            else if(tempValue[key].isObject())
+                            else if (tempValue[key].isObject())
                                 {
-                                    json=QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
-                                    tempValue=tempValue[key].toObject();
+                                    json = QJsonDocument::fromVariant(tempValue[key].toVariant()).toJson(QJsonDocument::Indented);
+                                    tempValue = tempValue[key].toObject();
                                 }
-                            else if(tempValue[key].isDouble())
+                            else if (tempValue[key].isDouble())
                                 {
-                                    json=QString::number(tempValue[key].toDouble());
+                                    json = QString::number(tempValue[key].toDouble());
                                 }
-                            else if(tempValue[key].isString())
+                            else if (tempValue[key].isString())
                                 {
-                                    json=tempValue[key].toString();
+                                    json = tempValue[key].toString();
                                 }
-                            else if(tempValue[key].isNull())
+                            else if (tempValue[key].isNull())
                                 {
-                                    json="null";
+                                    json = "null";
                                 }
-                            else if(tempValue[key].isBool())
+                            else if (tempValue[key].isBool())
                                 {
-                                    json=QString((tempValue[key].toBool())?QString("true"):QString("false"));
+                                    json = QString((tempValue[key].toBool()) ? QString("true") : QString("false"));
                                 }
                         }
                 }
@@ -839,7 +865,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
     strm.zfree = nullptr;
     strm.opaque = nullptr;
     strm.avail_in = static_cast<uint>(data.size());
-    strm.next_in = reinterpret_cast<Bytef*>(const_cast<char *>(data.data()));
+    strm.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(data.data()));
 
     ret = inflateInit2(&strm, 15 +  32); // gzip decoding
     if (ret != Z_OK)
@@ -849,7 +875,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
     do
         {
             strm.avail_out = CHUNK_SIZE;
-            strm.next_out = reinterpret_cast<Bytef*>(const_cast<char *>(out));
+            strm.next_out = reinterpret_cast<Bytef *>(const_cast<char *>(out));
 
             ret = inflate(&strm, Z_NO_FLUSH);
             Q_ASSERT(ret != Z_STREAM_ERROR);  // state not clobbered
@@ -936,7 +962,7 @@ QStringList QJsonContainer::extractStringsFromModel(QJsonModel *model, const QMo
             QModelIndex idx2 = model->index(i, 2, parent);
             qDebug() << idx0.data(Qt::DisplayRole).toString() << idx1.data(Qt::DisplayRole).toString() << idx2.data(Qt::DisplayRole).toString();
             qDebug() << static_cast<QJsonTreeItem *>(idx0.internalPointer())->typeName();
-            QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx0.internalPointer());
+            QJsonTreeItem *item = static_cast<QJsonTreeItem *>(idx0.internalPointer());
 
             if (idx0.isValid())
                 {
@@ -1029,15 +1055,15 @@ int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &par
                         }
                     //cout<<idx0.data(Qt::DisplayRole).toString()<<" "<<idx1.data(Qt::DisplayRole).toString()<<" "<<idx2.data(Qt::DisplayRole).toString()<<endl;
                     //cout<<selectedIndex.internalPointer()<<" "<<idx0.internalPointer()<<endl;
-                    if(selectedIndex==idx0 || selectedIndex==parent)
+                    if (selectedIndex == idx0 || selectedIndex == parent)
                         {
-                            matchedSelectedIndex=true;
+                            matchedSelectedIndex = true;
                             break;
                         }
-                    QString state=(matchedSelectedIndex)?QString("matched"):QString("notmatched");
+                    QString state = (matchedSelectedIndex) ? QString("matched") : QString("notmatched");
                     //cout<<state<<endl;
-                    currentIndexFinder(model, idx0, currentFindIndexesList,selectedIndex,matchedSelectedIndex,indexid);
-                    if(matchedSelectedIndex)
+                    currentIndexFinder(model, idx0, currentFindIndexesList, selectedIndex, matchedSelectedIndex, indexid);
+                    if (matchedSelectedIndex)
                         {
                             break;
                         }
@@ -1067,14 +1093,14 @@ void QJsonContainer::on_model_dataUpdated()
     resetCurrentFind();
 }
 
-bool QJsonContainer::eventFilter(QObject* obj, QEvent *event)
+bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)
 {
     Q_UNUSED(obj)
     QTextStream cout(stdout);
     if (event->type() == QEvent::KeyPress)
         {
-            QKeyEvent *keyevent=static_cast<QKeyEvent *>(event);
-            if(keyevent->matches(QKeySequence::Paste))
+            QKeyEvent *keyevent = static_cast<QKeyEvent *>(event);
+            if (keyevent->matches(QKeySequence::Paste))
                 {
                     QClipboard *clipboard = QGuiApplication::clipboard();
                     loadJson(clipboard->text());
@@ -1086,24 +1112,27 @@ bool QJsonContainer::eventFilter(QObject* obj, QEvent *event)
 
 void QJsonContainer::expandRecursively(const QModelIndex &index, QTreeView *treeview, bool expand)
 {
-    if (!index.isValid()) {
-        return;
-    }
-//    QTextStream cout(stdout);
-    for (int i = 0; i < index.model()->rowCount(index); ++i) {
-        const QModelIndex &childIndex = treeview->model()->index(i,0,index);
-        if(childIndex.model()->rowCount()>0)
+    if (!index.isValid())
         {
-//            cout<<childIndex.model()->data(childIndex).toString()<<endl;
-            expandRecursively(childIndex, treeview, expand);
+            return;
         }
-    }
+//    QTextStream cout(stdout);
+    for (int i = 0; i < index.model()->rowCount(index); ++i)
+        {
+            const QModelIndex &childIndex = treeview->model()->index(i, 0, index);
+            if (childIndex.model()->rowCount() > 0)
+                {
+//            cout<<childIndex.model()->data(childIndex).toString()<<endl;
+                    expandRecursively(childIndex, treeview, expand);
+                }
+        }
 
-    if (expand && !treeview->isExpanded(index)) {
-        treeview->expand(index);
-    }
+    if (expand && !treeview->isExpanded(index))
+        {
+            treeview->expand(index);
+        }
     else if (!expand && treeview->isExpanded(index))
-    {
-        treeview->collapse(index);
-    }
+        {
+            treeview->collapse(index);
+        }
 }

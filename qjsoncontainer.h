@@ -93,6 +93,8 @@ private:
     QAction *copyJsonPlainText;
     QAction *copyJsonPrettyText;
     QAction *copyJsonByPath;
+    QAction *singleExpandSelectedRecursively;
+    QAction *singleCollapseSelectedRecursively;
     QMenu multiSelectMenu;
     QAction *expandSelected;
     QAction *collapseSelected;
