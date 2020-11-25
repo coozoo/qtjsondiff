@@ -134,7 +134,9 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     {
         if(!item->color().isValid())
         {
-            return QColor(Qt::white);
+            // Let's not use white color. It breaks dark themes
+            // and alternating background row colors too.
+            return QPalette::Base;
         }
         else
         {
@@ -150,6 +152,10 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     if ((role == Qt::DecorationRole) && (index.column() == 0)){
 
         return mTypeIcons.value(item->type());
+    }
+
+    if (role == Qt::DecorationRole) {
+        return QPalette::Text; // Theme color for text
     }
 
     if (role == Qt::DisplayRole) {

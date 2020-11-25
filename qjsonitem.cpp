@@ -97,6 +97,9 @@ void QJsonTreeItem::setIdxRelation(QModelIndex idxPointer)
 void QJsonTreeItem::setColor(const QColor &color)
 {
         mColor = color;
+        // alpha helps with readability in case of alternating
+        // background row colors and in dark-ish themes
+        mColor.setAlpha(100);
 }
 
 /* Get index of relation from another model
