@@ -57,8 +57,20 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="openLast_action"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="openLast_action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Restore on Start</string>
+   </property>
+   <property name="toolTip">
+    <string>Open last state on application start</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

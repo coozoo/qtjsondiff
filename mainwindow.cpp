@@ -10,14 +10,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->tabWidget->setCurrentIndex(s.value(active_tab_index, QVariant()).toInt()?s.value(active_tab_index, QVariant()).toInt():0);
 
-    openLast_toolbutton = new QToolButton();
-    openLast_toolbutton->setText(tr("Restore on Start"));
-    openLast_toolbutton->setToolTip(tr("Open last state on application start"));
-    openLast_toolbutton->setCheckable(true);
-    ui->mainToolBar->addWidget(openLast_toolbutton);
-    openLast_toolbutton->setChecked(s.value(restore_on_start, QVariant()).toBool());
+    ui->openLast_action->setChecked(s.value(restore_on_start, QVariant()).toBool());
 
-    connect(openLast_toolbutton, &QToolButton::clicked, this, &MainWindow::on_openLast_toolbutton_clicked);
+    connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
 
     messageJsonCont = new QJsonContainer(ui->jsonview_tab);
     //messageJsonCont->setBrowseVisible(false);
@@ -33,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(messageJsonCont, &QJsonContainer::sJsonFileLoaded, this, &MainWindow::containerFileLoaded);
     connect(differ, &QJsonDiff::sRightJsonFileLoaded, this, &MainWindow::differRightFileLoaded);
     connect(differ, &QJsonDiff::sLeftJsonFileLoaded, this, &MainWindow::differLeftFileLoaded);
-    if (openLast_toolbutton->isChecked())
+    if (ui->openLast_action->isChecked())
         {
             loadLastPaths();
         }
@@ -74,10 +69,10 @@ void MainWindow::loadLastPaths()
     messageJsonCont->loadJsonFile(s.value(json_container_path, QVariant()).toString());
 }
 
-void MainWindow::on_openLast_toolbutton_clicked()
+void MainWindow::openLast_action_toggled(bool state)
 {
-    s.setValue(restore_on_start, openLast_toolbutton->isChecked());
-    if (openLast_toolbutton->isChecked())
+    s.setValue(restore_on_start, state);
+    if (state)
         {
             loadLastPaths();
         }
