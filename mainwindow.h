@@ -26,7 +26,6 @@ public:
     ~MainWindow() override;
     QJsonContainer *messageJsonCont;
     QJsonDiff *differ;
-    QToolButton *openLast_toolbutton;
     QSettings s;
 
 public slots:
@@ -34,7 +33,7 @@ public slots:
     void differLeftFileLoaded(QString path);
     void differRightFileLoaded(QString path);
 
-    void on_openLast_toolbutton_clicked();
+    void openLast_action_toggled(bool state);
 
     void saveSettings();
 
