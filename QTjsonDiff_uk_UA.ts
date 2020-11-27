@@ -92,10 +92,6 @@ maybe helpful when order does not relevant</source>
         <translation>Оберіть файл або вставте повний шлях/веб посилання і натисніть Enter, щоб завантажити json</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>Start of json has been reached! Next item will be from the end</source>
         <translation>Досягнуто початку! Наступний елемент буде з кінця</translation>
     </message>
@@ -142,6 +138,10 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Collapse Selected Tree</source>
         <translation>Згорнути обране дерево</translation>
+    </message>
+    <message>
+        <source>Open file</source>
+        <translation>Відкрити файл</translation>
     </message>
 </context>
 <context>
