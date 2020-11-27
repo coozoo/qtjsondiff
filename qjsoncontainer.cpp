@@ -6,6 +6,8 @@
  */
 #include "qjsoncontainer.h"
 
+#include <QFileIconProvider>
+
 QJsonContainer::QJsonContainer(QWidget *parent):
     QWidget(parent)
 {
@@ -132,7 +134,8 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     filePath_lineEdit->setToolTip(tr("Select file or use full path/URL and hit enter to load json data"));
     filePath_lineEdit->setFixedHeight(28);
     browse_toolButton = new QToolButton(browse_groupBox);
-    browse_toolButton->setText(tr("..."));
+    browse_toolButton->setIcon(QFileIconProvider().icon(QFileIconProvider::File));
+    browse_toolButton->setToolTip(tr("Open file"));
     browse_toolButton->setFixedSize(28, 28);
     refresh_toolButton = new QToolButton(browse_groupBox);
     refresh_toolButton->setIcon(QIcon(QPixmap(":/images/refresh.png")));
