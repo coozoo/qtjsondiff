@@ -92,10 +92,6 @@ maybe helpful when order does not relevant</source>
         <translation></translation>
     </message>
     <message>
-        <source>...</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>Start of json has been reached! Next item will be from the end</source>
         <translation></translation>
     </message>
@@ -141,6 +137,10 @@ maybe helpful when order does not relevant</source>
     </message>
     <message>
         <source>Collapse Selected Tree</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Open file</source>
         <translation></translation>
     </message>
 </context>
