@@ -7,7 +7,7 @@
 #include <QFileInfo>
 #include <QSettings>
 
-const QString APP_VERSION="0.40b";
+const QString APP_VERSION="0.41b";
 
 int main(int argc, char *argv[])
 {
