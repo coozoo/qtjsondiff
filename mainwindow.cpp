@@ -56,22 +56,19 @@ void MainWindow::setDisplayMode(const QStringList &files) {
 
 void MainWindow::containerFileLoaded(QString path)
 {
-    QTextStream cout(stdout);
-    cout << "Container got new file: " << path << endl;
+    qDebug() << "Container got new file: " << path;
     s.setValue(json_container_path, path);
 }
 
 void MainWindow::differLeftFileLoaded(QString path)
 {
-    QTextStream cout(stdout);
-    cout << "Differ left container got new file: " << path << endl;
+    qDebug() << "Differ left container got new file: " << path;
     s.setValue(differ_left_path, path);
 }
 
 void MainWindow::differRightFileLoaded(QString path)
 {
-    QTextStream cout(stdout);
-    cout << "Differ right container got new file: " << path << endl;
+    qDebug() << "Differ right container got new file: " << path;
     s.setValue(differ_right_path, path);
 }
 
