@@ -35,7 +35,8 @@ public slots:
 
     void openLast_action_toggled(bool state);
 
-    void saveSettings();
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     Ui::MainWindow *ui;

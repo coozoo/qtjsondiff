@@ -33,11 +33,12 @@ MainWindow::MainWindow(QWidget *parent) :
             loadLastPaths();
         }
 
+    restoreGeometry(s.value("MainWindow/geometry").toByteArray());
+    restoreState(s.value("MainWindow/windowState").toByteArray());
 }
 
 MainWindow::~MainWindow()
 {
-    saveSettings();
     delete ui;
 }
 
@@ -79,9 +80,12 @@ void MainWindow::openLast_action_toggled(bool state)
 
 }
 
-
-void MainWindow::saveSettings()
+void MainWindow::closeEvent(QCloseEvent *event)
 {
     s.setValue(active_tab_index,ui->tabWidget->currentIndex());
+    s.setValue("MainWindow/geometry", saveGeometry());
+    s.setValue("MainWindow/windowState", saveState());
+
+    QMainWindow::closeEvent(event);
 }
 

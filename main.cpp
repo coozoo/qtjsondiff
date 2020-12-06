@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName("qtjsondiff");
 
     MainWindow w;
-    w.showMaximized();
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
+    w.show();
+
     return a.exec();
 }
