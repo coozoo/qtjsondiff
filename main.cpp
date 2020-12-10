@@ -1,6 +1,7 @@
 /* Author: Yuriy Kuzin
  */
 #include "mainwindow.h"
+#include "commandlineparser.h"
 #include <QApplication>
 #include <QTranslator>
 #include <QStandardPaths>
@@ -66,8 +67,19 @@ int main(int argc, char *argv[])
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
     QApplication::setOrganizationName("ini");
     QApplication::setApplicationName("qtjsondiff");
+    QApplication::setApplicationVersion(APP_VERSION);
 
     MainWindow w;
+    // CLI options
+    CommandLineParser cliParser;
+    CliAppMode appMode = cliParser.parse();
+    if (appMode == Exit) {
+        return 0;
+    }
+    if (appMode == Tree || appMode == Diff) {
+        w.setDisplayMode(cliParser.files());
+    }
+  
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
     w.show();
 

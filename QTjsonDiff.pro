@@ -17,6 +17,7 @@ CONFIG += openssl-linked
 CONFIG += lrelease
 
 SOURCES += main.cpp\
+    commandlineparser.cpp \
         mainwindow.cpp \
     qjsondiff.cpp \
     qjsonitem.cpp \
@@ -24,6 +25,7 @@ SOURCES += main.cpp\
     qjsoncontainer.cpp
 
 HEADERS  += mainwindow.h \
+    commandlineparser.h \
     qjsoncontainer.h \
     qjsondiff.h \
     qjsonitem.h \
