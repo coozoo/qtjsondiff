@@ -41,6 +41,18 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::setDisplayMode(const QStringList &files) {
+    if (files.size() == 1) {
+        ui->tabWidget->setCurrentWidget(ui->jsonview_tab);
+        messageJsonCont->loadJsonFile(files.at(0));
+    }
+    else if (files.size() == 2) {
+        ui->tabWidget->setCurrentWidget(ui->compare_tab);
+        differ->loadLeftJsonFile(files.at(0));
+        differ->loadRightJsonFile(files.at(1));
+    }
+}
+
 void MainWindow::containerFileLoaded(QString path)
 {
     QTextStream cout(stdout);
@@ -84,4 +96,3 @@ void MainWindow::saveSettings()
 {
     s.setValue(active_tab_index,ui->tabWidget->currentIndex());
 }
-

@@ -28,6 +28,8 @@ public:
     QJsonDiff *differ;
     QSettings s;
 
+    void setDisplayMode(const QStringList &files);
+
 public slots:
     void containerFileLoaded(QString path);
     void differLeftFileLoaded(QString path);
