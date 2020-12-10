@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
     QApplication::setApplicationVersion(APP_VERSION);
 
     MainWindow w;
-
     // CLI options
     CommandLineParser cliParser;
     CliAppMode appMode = cliParser.parse();
@@ -80,8 +79,9 @@ int main(int argc, char *argv[])
     if (appMode == Tree || appMode == Diff) {
         w.setDisplayMode(cliParser.files());
     }
-
-    w.showMaximized();
+  
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
+    w.show();
+
     return a.exec();
 }
