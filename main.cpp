@@ -46,6 +46,9 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(qtJsonDiffLogger);
 
     QApplication a(argc, argv);
+
+    QLoggingCategory::setFilterRules("*.debug=true\nqt.*.debug=false");
+
     qDebug() << QLocale::system().name();
     QStringList translations;
     QDir dir(a.applicationDirPath());
