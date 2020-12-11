@@ -15,6 +15,8 @@ TEMPLATE = app
 CONFIG += c++11
 CONFIG += openssl-linked
 CONFIG += lrelease
+# do not show qDebug() messages in release builds
+CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 SOURCES += main.cpp\
     commandlineparser.cpp \

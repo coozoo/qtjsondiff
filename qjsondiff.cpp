@@ -565,13 +565,12 @@ int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
 QStringList QJsonDiff::jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList)
 {
     QStringList text;
-    QTextStream cout(stdout);
     int rowCount = model->rowCount(parent);
     for(int i = 0; i < rowCount; ++i)
         {
             QModelIndex idx0 = model->index(i, 0, parent);
             QString path=model->jsonPath(idx0);
-            //cout<<path<<endl;
+            //qDebug()<<path;
             text<<path;
             indexList->append(idx0);
             if(idx0.isValid())
