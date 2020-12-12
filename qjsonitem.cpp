@@ -99,7 +99,8 @@ void QJsonTreeItem::setColor(const QColor &color)
         mColor = color;
         // alpha helps with readability in case of alternating
         // background row colors and in dark-ish themes
-        mColor.setAlpha(100);
+        // disable temporary because using alpha affects to "fast" comparison logic and needs some handling there
+        // mColor.setAlpha(100);
 }
 
 /* Get index of relation from another model
