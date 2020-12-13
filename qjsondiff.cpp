@@ -643,24 +643,24 @@ void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
 }
 
 // load json file
-void QJsonDiff::loadRightJsonFile(QString target)
+void QJsonDiff::loadRightJsonFile(const QString &target)
 {
     emit sLoadRightJsonFile(target);
 }
 
 // load json file
-void QJsonDiff::loadLeftJsonFile(QString target)
+void QJsonDiff::loadLeftJsonFile(const QString &target)
 {
     emit sLoadLeftJsonFile(target);
 }
 
 //emit signal whn new file or url loaded
-void QJsonDiff::rightJsonFileLoaded(QString path)
+void QJsonDiff::rightJsonFileLoaded(const QString &path)
 {
     emit sRightJsonFileLoaded(path);
 }
 //emit signal whn new file or url loaded
-void QJsonDiff::leftJsonFileLoaded(QString path)
+void QJsonDiff::leftJsonFileLoaded(const QString &path)
 {
     emit sLeftJsonFileLoaded(path);
 }

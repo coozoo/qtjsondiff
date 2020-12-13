@@ -118,7 +118,7 @@ private slots:
     void on_findCaseSensitivity_toolbutton_clicked();
     void openJsonFile();
     void serviceGetDataRequestFinished(QNetworkReply* reply);
-    void on_find_lineEdit_textChanged(QString text);
+    void on_find_lineEdit_textChanged(const QString &text);
     void on_model_dataUpdated();
     void showContextMenu(const QPoint &point);
 

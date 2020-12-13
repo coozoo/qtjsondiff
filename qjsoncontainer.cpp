@@ -1072,7 +1072,7 @@ int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &par
     return indexid;
 }
 
-void QJsonContainer::on_find_lineEdit_textChanged(QString text)
+void QJsonContainer::on_find_lineEdit_textChanged(const QString &text)
 {
     qDebug() << "serach text has been changed: " << text;
     resetCurrentFind();

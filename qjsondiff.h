@@ -65,10 +65,10 @@ public:
     const QColor notPresentDiffColor=QColor(Qt::lightGray);
 
 signals:
-    void sLoadRightJsonFile(QString target);
-    void sLoadLeftJsonFile(QString target);
-    void sRightJsonFileLoaded(QString path);
-    void sLeftJsonFileLoaded(QString path);
+    void sLoadRightJsonFile(const QString &target);
+    void sLoadLeftJsonFile(const QString &target);
+    void sRightJsonFileLoaded(const QString &path);
+    void sLeftJsonFileLoaded(const QString &path);
 
 public slots:
     void on_compare_pushbutton_clicked();
@@ -79,10 +79,10 @@ public slots:
     void on_useFullPath_checkbox_stateChanged(int);
     void reinitRightModel();
     void reinitLeftModel();
-    void loadRightJsonFile(QString target);
-    void loadLeftJsonFile(QString target);
-    void rightJsonFileLoaded(QString path);
-    void leftJsonFileLoaded(QString path);
+    void loadRightJsonFile(const QString &target);
+    void loadLeftJsonFile(const QString &target);
+    void rightJsonFileLoaded(const QString &path);
+    void leftJsonFileLoaded(const QString &path);
 
 protected:
     void paintEvent(QPaintEvent *) override;
