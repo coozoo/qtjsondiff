@@ -31,6 +31,9 @@
 #include <QSsl>
 #include <zlib.h>
 
+class JsonSyntaxHighlighter;
+
+
 class QJsonContainer : public QWidget
 {
     Q_OBJECT
@@ -79,6 +82,8 @@ public:
     void getData();
 
 private:
+    JsonSyntaxHighlighter *viewJsonSyntaxHighlighter;
+
     QByteArray gUncompress(const QByteArray &data);
     //variables to handle serach nodes in tree
     QList<QModelIndex> currentFindIndexesList;
