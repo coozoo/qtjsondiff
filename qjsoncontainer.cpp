@@ -5,6 +5,7 @@
  *              it's possible to perform search in text view and json view
  */
 #include "qjsoncontainer.h"
+#include "jsonsyntaxhighlighter.h"
 
 #include <QFileIconProvider>
 
@@ -48,13 +49,8 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     treeview->setSelectionMode(QAbstractItemView::ExtendedSelection);
     viewjson_plaintext = new QPlainTextEdit(treeview_groupbox);
     viewjson_plaintext->setVisible(false);
-
-    QPalette p = viewjson_plaintext->palette();
-    p.setColor(QPalette::Highlight, QColor(Qt::blue));
-    p.setColor(QPalette::HighlightedText, QColor(Qt::lightGray));
-    viewjson_plaintext->setPalette(p);
-
-
+    viewjson_plaintext->document()->setDefaultFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    viewJsonSyntaxHighlighter = new JsonSyntaxHighlighter(viewjson_plaintext->document());
 
     showjson_pushbutton = new QPushButton(treeview_groupbox);
     showjson_pushbutton->setText(tr("Show Json Text"));

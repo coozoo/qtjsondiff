@@ -20,6 +20,7 @@ CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 SOURCES += main.cpp\
     commandlineparser.cpp \
+    jsonsyntaxhighlighter.cpp \
         mainwindow.cpp \
     qjsondiff.cpp \
     qjsonitem.cpp \
@@ -28,6 +29,7 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     commandlineparser.h \
+    jsonsyntaxhighlighter.h \
     qjsoncontainer.h \
     qjsondiff.h \
     qjsonitem.h \
