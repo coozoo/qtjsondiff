@@ -59,11 +59,6 @@ public:
     void startComparison();
     void setBrowseVisible(bool state);
 
-    const QColor identicalDiffColor=QColor(0, 100, 0, 150);
-    const QColor moderateDiffColor=QColor(Qt::yellow);
-    const QColor hugeDiffColor=QColor(Qt::red);
-    const QColor notPresentDiffColor=QColor(Qt::lightGray);
-
 signals:
     void sLoadRightJsonFile(const QString &target);
     void sLoadLeftJsonFile(const QString &target);

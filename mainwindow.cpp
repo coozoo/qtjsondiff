@@ -2,15 +2,19 @@
  */
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "preferences/preferences.h"
+#include "preferences/preferencesdialog.h"
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tabWidget->setCurrentIndex(s.value(active_tab_index, QVariant()).toInt()?s.value(active_tab_index, QVariant()).toInt():0);
 
-    ui->openLast_action->setChecked(s.value(restore_on_start, QVariant()).toBool());
+
+    ui->tabWidget->setCurrentIndex(P->activeTabIndex);
+    ui->openLast_action->setChecked(P->restoreOnStart);
 
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
 
@@ -28,13 +32,16 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(messageJsonCont, &QJsonContainer::sJsonFileLoaded, this, &MainWindow::containerFileLoaded);
     connect(differ, &QJsonDiff::sRightJsonFileLoaded, this, &MainWindow::differRightFileLoaded);
     connect(differ, &QJsonDiff::sLeftJsonFileLoaded, this, &MainWindow::differLeftFileLoaded);
+    connect(ui->actionPreferences, &QAction::triggered,
+            this, &MainWindow::actionPreferences_triggered);
+
     if (ui->openLast_action->isChecked())
         {
             loadLastPaths();
         }
 
-    restoreGeometry(s.value("MainWindow/geometry").toByteArray());
-    restoreState(s.value("MainWindow/windowState").toByteArray());
+    restoreGeometry(P->mainWindowGeometry);
+    restoreState(P->mainWindowState);
 }
 
 MainWindow::~MainWindow()
@@ -57,31 +64,31 @@ void MainWindow::setDisplayMode(const QStringList &files) {
 void MainWindow::containerFileLoaded(QString path)
 {
     qDebug() << "Container got new file: " << path;
-    s.setValue(json_container_path, path);
+    P->jsonContainerPath = path;
 }
 
 void MainWindow::differLeftFileLoaded(QString path)
 {
     qDebug() << "Differ left container got new file: " << path;
-    s.setValue(differ_left_path, path);
+    P->differLeftPath = path;
 }
 
 void MainWindow::differRightFileLoaded(QString path)
 {
     qDebug() << "Differ right container got new file: " << path;
-    s.setValue(differ_right_path, path);
+    P->differRightPath = path;
 }
 
 void MainWindow::loadLastPaths()
 {
-    differ->loadLeftJsonFile(s.value(differ_left_path, QVariant()).toString());
-    differ->loadRightJsonFile(s.value(differ_right_path, QVariant()).toString());
-    messageJsonCont->loadJsonFile(s.value(json_container_path, QVariant()).toString());
+    differ->loadLeftJsonFile(P->differLeftPath);
+    differ->loadRightJsonFile(P->differRightPath);
+    messageJsonCont->loadJsonFile(P->jsonContainerPath);
 }
 
 void MainWindow::openLast_action_toggled(bool state)
 {
-    s.setValue(restore_on_start, state);
+    P->restoreOnStart = state;
     if (state)
         {
             loadLastPaths();
@@ -91,9 +98,17 @@ void MainWindow::openLast_action_toggled(bool state)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    s.setValue(active_tab_index,ui->tabWidget->currentIndex());
-    s.setValue("MainWindow/geometry", saveGeometry());
-    s.setValue("MainWindow/windowState", saveState());
+    P->activeTabIndex = ui->tabWidget->currentIndex();
+    P->mainWindowGeometry = saveGeometry();
+    P->mainWindowState = saveState();
+
+    P->save();
 
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::actionPreferences_triggered()
+{
+    PreferencesDialog d;
+    d.exec();
 }

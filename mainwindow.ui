@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>24</height>
+     <height>28</height>
     </rect>
    </property>
   </widget>
@@ -58,6 +58,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="openLast_action"/>
+   <addaction name="actionPreferences"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="openLast_action">
@@ -69,6 +70,11 @@
    </property>
    <property name="toolTip">
     <string>Open last state on application start</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

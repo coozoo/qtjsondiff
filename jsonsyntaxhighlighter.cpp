@@ -1,11 +1,12 @@
 #include "jsonsyntaxhighlighter.h"
+#include "preferences/preferences.h"
 
 JsonSyntaxHighlighter::JsonSyntaxHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
     HighlightingRule rule;
 
-    keywordFormat.setForeground(Qt::white);
+    //keywordFormat.setForeground(Qt::white);
 
     QStringList keywordPatterns;
     keywordPatterns << "\"" << "\'";
@@ -16,15 +17,14 @@ JsonSyntaxHighlighter::JsonSyntaxHighlighter(QTextDocument *parent)
         highlightingRules.append(rule);
     }
 
-    // TODO: colors to be configured: https://github.com/coozoo/qtjsondiff/issues/16
-    jsonKeyFormat.setForeground(QBrush(Qt::red));
+    jsonKeyFormat.setForeground(P->syntaxKeywordColor);
     jsonKeyFormat.setFontWeight(QFont::Bold);
 
     rule.pattern = QRegularExpression("\".*\"(?=:)");
     rule.format = jsonKeyFormat;
     highlightingRules.append(rule);
 
-    jsonValueKeywordFormat.setForeground(QBrush(Qt::green));
+    jsonValueKeywordFormat.setForeground(P->syntaxValueColor);
 
     rule.pattern = QRegularExpression("(?= ?)true|false|null(?= +|,)");
     rule.format = jsonValueKeywordFormat;

@@ -22,6 +22,8 @@ SOURCES += main.cpp\
     commandlineparser.cpp \
     jsonsyntaxhighlighter.cpp \
         mainwindow.cpp \
+    preferences/preferences.cpp \
+    preferences/preferencesdialog.cpp \
     qjsondiff.cpp \
     qjsonitem.cpp \
     qjsonmodel.cpp \
@@ -30,12 +32,15 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     commandlineparser.h \
     jsonsyntaxhighlighter.h \
+    preferences/preferences.h \
+    preferences/preferencesdialog.h \
     qjsoncontainer.h \
     qjsondiff.h \
     qjsonitem.h \
     qjsonmodel.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    preferences/preferencesdialog.ui
 
 LIBS += -lz
 

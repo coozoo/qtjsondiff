@@ -26,7 +26,6 @@ public:
     ~MainWindow() override;
     QJsonContainer *messageJsonCont;
     QJsonDiff *differ;
-    QSettings s;
 
     void setDisplayMode(const QStringList &files);
 
@@ -45,12 +44,8 @@ private:
 
     void loadLastPaths();
 
-    const QString json_container_path="Saved_Paths/json_container_path";
-    const QString differ_left_path="Saved_Paths/differ_left_path";
-    const QString differ_right_path="Saved_Paths/differ_right_path";
-    const QString restore_on_start="Saved_Paths/restore_on_start";
-    const QString active_tab_index="active_tab_index";
-
+private slots:
+    void actionPreferences_triggered();
 };
 
 #endif // MAINWINDOW_H
