@@ -23,6 +23,7 @@ public:
 
     void load();
     void save();
+    void restoreDefaults();
 
     int activeTabIndex;
     bool restoreOnStart;

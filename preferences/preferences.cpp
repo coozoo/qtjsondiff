@@ -1,5 +1,16 @@
 #include "preferences.h"
 
+#define DEF_IDENTICAL_DIFF_COLOR QColor(0, 100, 0, 150)
+#define DEF_MODERATE_DIFF_COLOR QColor(Qt::yellow)
+#define DEF_HUGE_DIFF_COLOR QColor(Qt::red)
+#define DEF_NOT_PRESENT_DIFF_COLOR QColor(Qt::lightGray)
+
+#define DEF_DIFF_ALPHA 75
+
+#define DEF_SYNTAX_KW_COLOR QColor(Qt::blue)
+#define DEF_SYNTAX_VAL_COLOR QColor(Qt::green)
+
+
 Preferences * Preferences::m_instance = nullptr;
 
 
@@ -27,15 +38,14 @@ void Preferences::load()
     differLeftPath = s.value("Saved_Paths/differ_left_path").toString();
     differRightPath = s.value("Saved_Paths/differ_right_path").toString();
 
-    identicalDiffColor = s.value("identical_diff_color", QColor(0, 100, 0, 150)).value<QColor>();
-    moderateDiffColor = s.value("moderate_diff_color", QColor(Qt::yellow)).value<QColor>();
-    hugeDiffColor = s.value("huge_diff_color", QColor(Qt::red)).value<QColor>();
-    notPresentDiffColor = s.value("not_present_diff_color", QColor(Qt::lightGray)).value<QColor>();
-    diffColorsAlpha = s.value("diff_colors_alpha", 75).toInt();
+    identicalDiffColor = s.value("identical_diff_color",DEF_IDENTICAL_DIFF_COLOR).value<QColor>();
+    moderateDiffColor = s.value("moderate_diff_color", DEF_MODERATE_DIFF_COLOR).value<QColor>();
+    hugeDiffColor = s.value("huge_diff_color", DEF_HUGE_DIFF_COLOR).value<QColor>();
+    notPresentDiffColor = s.value("not_present_diff_color", DEF_NOT_PRESENT_DIFF_COLOR).value<QColor>();
+    diffColorsAlpha = s.value("diff_colors_alpha", DEF_DIFF_ALPHA).toInt();
 
-    syntaxKeywordColor = s.value("syntax_keyword_color", QColor(Qt::blue)).value<QColor>();
-    syntaxValueColor = s.value("syntax_value_color", QColor(Qt::green)).value<QColor>();
-
+    syntaxKeywordColor = s.value("syntax_keyword_color", DEF_SYNTAX_KW_COLOR).value<QColor>();
+    syntaxValueColor = s.value("syntax_value_color", DEF_SYNTAX_VAL_COLOR).value<QColor>();
 }
 
 void Preferences::save()
@@ -58,6 +68,19 @@ void Preferences::save()
 
     s.setValue("syntax_keyword_color", syntaxKeywordColor);
     s.setValue("syntax_value_color", syntaxValueColor);
+}
+
+void Preferences::restoreDefaults()
+{
+    identicalDiffColor = DEF_IDENTICAL_DIFF_COLOR;
+    moderateDiffColor = DEF_MODERATE_DIFF_COLOR;
+    hugeDiffColor = DEF_HUGE_DIFF_COLOR;
+    notPresentDiffColor = DEF_NOT_PRESENT_DIFF_COLOR;
+
+    diffColorsAlpha = DEF_DIFF_ALPHA;
+
+    syntaxKeywordColor = DEF_SYNTAX_KW_COLOR;
+    syntaxValueColor = DEF_SYNTAX_VAL_COLOR;
 }
 
 QColor Preferences::diffColor(DiffColorType colorType)

@@ -20,6 +20,8 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     //        this, &PreferencesDialog::alphaSpinBox_valueChanged);
     connect(ui->alphaSpinBox, SIGNAL(valueChanged(int)),
             this, SLOT(alphaSpinBox_valueChanged(int)));
+    connect(ui->restoreDefaultsPushButton, &QPushButton::clicked,
+            this, &PreferencesDialog::restoreDefaultsPushButton_clicked);
 
     ui->listWidget->setCurrentRow(0);
 
@@ -48,10 +50,12 @@ PreferencesDialog::~PreferencesDialog()
 
 void PreferencesDialog::setupButton(QPushButton *b, const QColor &c)
 {
-    QPixmap pm(64, 64);
+    QSize s(64, 32);
+    QPixmap pm(s);
     pm.fill(c);
     QIcon icon(pm);
     b->setIcon(icon);
+    b->setIconSize(s);
 }
 
 void PreferencesDialog::openColorDialog()
@@ -71,4 +75,17 @@ void PreferencesDialog::openColorDialog()
 void PreferencesDialog::alphaSpinBox_valueChanged(int val)
 {
     P->diffColorsAlpha = val;
+}
+
+void PreferencesDialog::restoreDefaultsPushButton_clicked()
+{
+    P->restoreDefaults();
+
+    ui->alphaSpinBox->setValue(P->diffColorsAlpha);
+
+    QMap<QPushButton*, QColor*>::iterator i = m_colorMap.begin();
+    while (i != m_colorMap.end()) {
+        setupButton(i.key(), *i.value());
+        ++i;
+    }
 }
