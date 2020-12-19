@@ -132,7 +132,7 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::BackgroundColorRole)
     {
-        if(!item->color().isValid())
+        if(item->colorType() == DiffColorType::None)
         {
             // Let's not use white color. It breaks dark themes
             // and alternating background row colors too.

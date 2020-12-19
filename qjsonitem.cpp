@@ -24,6 +24,8 @@
  */
 
 #include "qjsonitem.h"
+#include "preferences/preferences.h"
+
 
 QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)
 {
@@ -94,13 +96,9 @@ void QJsonTreeItem::setIdxRelation(QModelIndex idxPointer)
 
 /* set color of an item
  */
-void QJsonTreeItem::setColor(const QColor &color)
+void QJsonTreeItem::setColorType(DiffColorType colorType)
 {
-        mColor = color;
-        // alpha helps with readability in case of alternating
-        // background row colors and in dark-ish themes
-        // disable temporary because using alpha affects to "fast" comparison logic and needs some handling there
-        // mColor.setAlpha(100);
+    mColorType = colorType;
 }
 
 /* Get index of relation from another model
@@ -130,7 +128,7 @@ QString QJsonTreeItem::toolTip() const
  */
 QColor QJsonTreeItem::color() const
 {
-    return mColor;
+    return P->diffColor(mColorType);
 }
 
 QJsonValue::Type QJsonTreeItem::type() const

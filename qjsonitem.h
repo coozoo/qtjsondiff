@@ -14,6 +14,10 @@
 #include <QVariant>
 #include <QStyleOptionViewItem>
 #include <QPainter>
+
+#include "preferences/preferences.h"
+
+
 class QJsonTreeItem
 {
 public:
@@ -28,7 +32,7 @@ public:
     void setValue(const QString& value);
     void setToolTip(const QString& toolTip);
     void setType(const QJsonValue::Type& type);
-    void setColor(const QColor& color);
+    void setColorType(DiffColorType colorType);
     void setIdxRelation(QModelIndex idxPointer);
     QString key() const;
     QString value() const;
@@ -37,6 +41,7 @@ public:
     QString text() const;
     QString toolTip() const;
     QColor color() const;
+    DiffColorType colorType() const { return mColorType; }
     QModelIndex idxRelation();
 
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);
@@ -50,7 +55,7 @@ private:
     QString mValue;
     QString mToolTip;
     QJsonValue::Type mType;
-    QColor mColor;
+    DiffColorType mColorType = DiffColorType::None;
     QModelIndex mIdxRelation;
 
     QList<QJsonTreeItem*> mChilds;
