@@ -325,7 +325,7 @@ void QJsonDiff::compareModels(QJsonModel *modelLeft, const QModelIndex &parentLe
              qDebug()<<"Childs:"<<item->childCount()<<item->color();
              qDebug()<<"test: "<<item->childCount();*/
             //item->setColor(QColor(Qt::green));
-            if(!item->color().isValid())
+            if(item->colorType() == DiffColorType::None)
                 {
                     int res=findIndexInModel(modelLeft,item,idx2,modelRight,QModelIndex());
                     Q_UNUSED(res)
@@ -371,7 +371,10 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
             //that have matched in type, key name and parent name
             if(itemLeft->type()==item->type())
                 {
-                    if(!itemLeft->color().isValid() && !item->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
+                    if(itemLeft->colorType() == DiffColorType::None
+                            && item->colorType() == DiffColorType::None
+                            && itemLeft->parent()->key()==item->parent()->key()
+                            && itemLeft->key()==item->key())
                         {
                             if(itemLeft->type()==QJsonValue::Array && item->type()==QJsonValue::Array)
                                 //       && !item->color().isValid() && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
@@ -498,7 +501,9 @@ int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, 
                     //Second level - find any values that where not matched in previous step
                     //but ignore type of value (for example if some value equal to null)
 
-                    if(!itemLeft->color().isValid() && !item->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
+                    if (itemLeft->colorType() == DiffColorType::None
+                            && item->colorType() == DiffColorType::None
+                            && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
                         {
                             leftColor=DiffColorType::Huge;
                             rightColor=DiffColorType::Huge;
@@ -547,7 +552,7 @@ int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
             QJsonTreeItem *item=model->itemFromIndex(idx0);
 
             if(item->colorType()!= DiffColorType::Identical
-                    && item->color().isValid()
+                    && item->colorType() != DiffColorType::None
                     && item->colorType()!=DiffColorType::NotPresent
                     && item->parent()->colorType()!=DiffColorType::Huge
                     && item->parent()->colorType()!=DiffColorType::NotPresent)
@@ -555,7 +560,7 @@ int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
                     item->parent()->setColorType(DiffColorType::Moderate);
                 }
 
-            if(!item->color().isValid())
+            if(item->colorType() == DiffColorType::None)
                 {
                     item->setColorType(DiffColorType::NotPresent);
 
