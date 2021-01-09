@@ -29,6 +29,8 @@ Preferences::Preferences()
 void Preferences::load()
 {
     activeTabIndex = s.value("active_tab_index", 0).toInt();
+    tabsPosition = s.value("tabs_position",QTabWidget::East).toInt();
+    showJsonButtonPosition= s.value("show_json_button_position",-2).toInt();
     restoreOnStart = s.value("Saved_Paths/restore_on_start", false).toBool();
 
     mainWindowGeometry = s.value("MainWindow/geometry").toByteArray();
@@ -51,6 +53,8 @@ void Preferences::load()
 void Preferences::save()
 {
     s.setValue("active_tab_index", activeTabIndex);
+    s.setValue("tabs_position",tabsPosition);
+    s.setValue("show_json_button_position",showJsonButtonPosition);
     s.setValue("Saved_Paths/restore_on_start", restoreOnStart);
 
     s.setValue("MainWindow/geometry", mainWindowGeometry);
@@ -110,3 +114,5 @@ QColor Preferences::diffColor(DiffColorType colorType)
 
     return c;
 }
+
+

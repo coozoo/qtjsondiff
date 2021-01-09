@@ -58,6 +58,7 @@ public:
     int prevRightScroll;
     void startComparison();
     void setBrowseVisible(bool state);
+    void showJsonButtonPosition();
 
 signals:
     void sLoadRightJsonFile(const QString &target);

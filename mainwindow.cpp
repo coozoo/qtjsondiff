@@ -12,8 +12,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
     ui->tabWidget->setCurrentIndex(P->activeTabIndex);
+    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(P->tabsPosition));
+    //ui->tabWidget->setTabPosition(QTabWidget::TabPosition::East);
     ui->openLast_action->setChecked(P->restoreOnStart);
 
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
@@ -111,4 +112,7 @@ void MainWindow::actionPreferences_triggered()
 {
     PreferencesDialog d;
     d.exec();
+    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(P->tabsPosition));
+    messageJsonCont->showJsonButtonPosition();
+    differ->showJsonButtonPosition();
 }

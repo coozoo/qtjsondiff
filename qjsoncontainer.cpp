@@ -52,10 +52,6 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     viewjson_plaintext->document()->setDefaultFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     viewJsonSyntaxHighlighter = new JsonSyntaxHighlighter(viewjson_plaintext->document());
 
-    showjson_pushbutton = new QPushButton(treeview_groupbox);
-    showjson_pushbutton->setText(tr("Show Json Text"));
-    showjson_pushbutton->setCheckable(true);
-
     //QJsonDocument data1=QJsonDocument::fromJson("{\"subscription\":[{\"action\":0,\"event\":{\"GroupId\":0,\"Id\":0,\"IdType\":1},\"league\":{\"GroupId\":10001,\"Id\":1,\"IdType\":0},\"scores\":[1,3,2],\"sportId\":4},{\"action\":0,\"event\":{\"GroupId\":0,\"Id\":0,\"IdType\":1},\"league\":{\"GroupId\":1000,\"Id\":1,\"IdType\":0},\"scores\":[1,2],\"sportId\":4}]}");
     //QString datastr=data1.toJson();
     QString datastr = "";
@@ -84,6 +80,11 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     sortObj_toolButton->setText(tr("Sort"));
     sortObj_toolButton->setToolTip(tr("Sort objects inside array\nmaybe helpful when order does not relevant"));
     sortObj_toolButton->setHidden(true);
+
+    //showjson_pushbutton = new QPushButton(treeview_groupbox);
+    showjson_pushbutton = new QPushButton(this);
+    showjson_pushbutton->setText(tr("Show Json Text"));
+    showjson_pushbutton->setCheckable(true);
 
     tools_layout = new QGridLayout(toolbar);
     tools_layout->setContentsMargins(0, 0, 0, 0);
@@ -151,6 +152,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     treeview_layout->addWidget(viewjson_plaintext);
     treeview_layout->addWidget(showjson_pushbutton);
 
+    showJsonButtonPosition();
 
     qDebug() << "treeview size";
     treeview->resizeColumnToContents(0);
@@ -1129,4 +1131,32 @@ void QJsonContainer::expandRecursively(const QModelIndex &index, QTreeView *tree
         {
             treeview->collapse(index);
         }
+}
+
+void QJsonContainer::showJsonButtonPosition()
+{
+    //-2 bottom
+    //-3 top inline
+    switch (P->showJsonButtonPosition)
+    {
+        case -2:
+            qDebug()<<"bottom";
+            if(toolbarbutton)
+            {
+                toolbar->removeAction(toolbarbutton);
+            }
+            showjson_pushbutton->setParent(treeview_groupbox);
+            treeview_layout->addWidget(showjson_pushbutton);
+            showjson_pushbutton->show();
+            break;
+        case -3:
+            qDebug()<<"top inline";
+            treeview_layout->removeWidget(showjson_pushbutton);
+            showjson_pushbutton->setParent(toolbar);
+            toolbarbutton=toolbar->addWidget(showjson_pushbutton);
+            showjson_pushbutton->show();
+            break;
+        default:
+            qDebug()<<"default";
+    }
 }

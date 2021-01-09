@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en">
 <context>
+    <name>CommandLineParser</name>
+    <message>
+        <source>JSON files display and diff tool.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>File(s) to open. One file for tree view, two files for the diff. No file opens plain gui.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Wrong count of arguments used. See help:</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <source>MainWindow</source>
@@ -21,6 +36,97 @@
     </message>
     <message>
         <source>Open last state on application start</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>PreferencesDialog</name>
+    <message>
+        <source>Preferences</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Layout</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Tree View</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Identical Diff:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Moderate Diff:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Huge Diff:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Not Present Diff:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Transparency:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Text View</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>JSON Keys:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Tabs Position</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>North</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>South</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>West</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>East</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Show Json Button Position</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Top Inline</source>
         <translation></translation>
     </message>
 </context>

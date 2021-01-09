@@ -32,6 +32,8 @@ private slots:
     void openColorDialog();
     void alphaSpinBox_valueChanged(int val);
     void restoreDefaultsPushButton_clicked();
+    void on_tabpos_button_clicked(int id);
+    void on_showJsonButtonPosition_clicked(int id);
 };
 
 #endif // PREFERENCESDIALOG_H

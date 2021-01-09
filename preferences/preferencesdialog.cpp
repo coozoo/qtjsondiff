@@ -1,4 +1,5 @@
 #include <QColorDialog>
+#include <QDebug>
 
 #include "preferencesdialog.h"
 #include "ui_preferencesdialog.h"
@@ -22,8 +23,15 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
             this, SLOT(alphaSpinBox_valueChanged(int)));
     connect(ui->restoreDefaultsPushButton, &QPushButton::clicked,
             this, &PreferencesDialog::restoreDefaultsPushButton_clicked);
+    connect(ui->tabsPosition_buttonGroup,SIGNAL(buttonClicked(int)),
+            this,SLOT(on_tabpos_button_clicked(int)));
+    connect(ui->showJson_buttonGroup,SIGNAL(buttonClicked(int)),
+            this,SLOT(on_showJsonButtonPosition_clicked(int)));
 
     ui->listWidget->setCurrentRow(0);
+
+
+
 
     m_colorMap[ui->hugeDiffPushButton] = &P->hugeDiffColor;
     m_colorMap[ui->identicalDiffPushButton] = &P->identicalDiffColor;
@@ -41,6 +49,27 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     }
 
     ui->alphaSpinBox->setValue(P->diffColorsAlpha);
+
+    //QTabWidget enums starts from zero, defult radiobox group enum -2
+    if(ui->tabsPosition_buttonGroup->button((P->tabsPosition)*(-1)-2))
+    {
+        ui->tabsPosition_buttonGroup->button((P->tabsPosition)*(-1)-2)->setChecked(true);
+    }
+    else
+    {
+        P->tabsPosition=0;
+        ui->tabsPosition_buttonGroup->button(-2)->setChecked(true);
+    }
+
+    if(ui->showJson_buttonGroup->button(P->showJsonButtonPosition))
+    {
+        ui->showJson_buttonGroup->button(P->showJsonButtonPosition)->setChecked(true);
+    }
+    else
+    {
+        P->showJsonButtonPosition=-2;
+        ui->showJson_buttonGroup->button(-2)->setChecked(true);
+    }
 }
 
 PreferencesDialog::~PreferencesDialog()
@@ -88,4 +117,14 @@ void PreferencesDialog::restoreDefaultsPushButton_clicked()
         setupButton(i.key(), *i.value());
         ++i;
     }
+}
+
+void PreferencesDialog::on_tabpos_button_clicked(int id)
+{
+       P->tabsPosition=id*-1-2;
+}
+
+void PreferencesDialog::on_showJsonButtonPosition_clicked(int id)
+{
+       P->showJsonButtonPosition=id;
 }

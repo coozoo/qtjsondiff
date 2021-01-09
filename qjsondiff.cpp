@@ -34,6 +34,8 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     qDebug()<<"$cont2=new QJsonContainer(container_groupbox1)";
     right_cont=new QJsonContainer(container_right_groupbox);
 
+    showJsonButtonPosition();
+
 
     qDebug()<<"$qjsoncontainer_layout->addWidget";
     qjsoncontainer_layout->addWidget(container_left_groupbox,2,0,1,2);
@@ -673,5 +675,11 @@ void QJsonDiff::rightJsonFileLoaded(const QString &path)
 void QJsonDiff::leftJsonFileLoaded(const QString &path)
 {
     emit sLeftJsonFileLoaded(path);
+}
+
+void QJsonDiff::showJsonButtonPosition()
+{
+    left_cont->showJsonButtonPosition();
+    right_cont->showJsonButtonPosition();
 }
 

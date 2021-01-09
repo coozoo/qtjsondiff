@@ -3,6 +3,7 @@
 
 #include <QSettings>
 #include <QColor>
+#include <QTabWidget>
 
 #define P Preferences::Instance()
 
@@ -26,6 +27,8 @@ public:
     void restoreDefaults();
 
     int activeTabIndex;
+    int tabsPosition;
+    int showJsonButtonPosition;
     bool restoreOnStart;
 
     QByteArray mainWindowGeometry;
@@ -45,6 +48,7 @@ public:
 
     QColor syntaxKeywordColor;
     QColor syntaxValueColor;
+
 
 private:
     explicit Preferences();
