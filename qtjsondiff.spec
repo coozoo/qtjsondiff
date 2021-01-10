@@ -21,7 +21,7 @@ BuildRequires: qt5-qtbase-devel >= 5.12
 BuildRequires: qt5-linguist >= 5.12
 BuildRequires: zlib-devel
 %endif
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} || 0%{?sle_version}
 Group:          Development/Tools/Other
 BuildRequires:  pkgconfig(Qt5Widgets)
 BuildRequires:  libqt5-qtbase-devel
@@ -59,7 +59,7 @@ of json file, url or simply copy-paste. And some more features.
     qmake-qt5
     make
 %endif
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} || 0%{?sle_version}
     %qmake5
     %make_build
     %qmake5
@@ -70,7 +70,7 @@ of json file, url or simply copy-paste. And some more features.
 %if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
     make INSTALL_ROOT=%{buildroot} -j$(nproc) install
 %endif
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} || 0%{?sle_version}
     %qmake5_install
 #    mkdir -p %{buildroot}%{_datadir}/pixmaps
 #    mv %{buildroot}%{_datadir}/icons/diff.png %{buildroot}%{_datadir}/pixmaps/diff.png
@@ -78,12 +78,12 @@ of json file, url or simply copy-paste. And some more features.
 %endif
 
 %post
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} ||  0%{?sle_version}
     %desktop_database_post
 %endif
 
 %postun
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} || 0%{?sle_version}
     %desktop_database_postun
 %endif
 
@@ -93,12 +93,12 @@ of json file, url or simply copy-paste. And some more features.
     %{_bindir}/*
     %{_datadir}/*
 %endif
-%if 0%{?mageia} || 0%{?suse_version}
+%if 0%{?mageia} || 0%{?suse_version} || 0%{?sle_version}
     %license LICENSE
     %doc README.md
     %{_bindir}/*
     %{_datadir}/*
     %{_datadir}/applications/qtjsondiff.desktop
-%endif    
+%endif
 
 %changelog
