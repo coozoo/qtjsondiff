@@ -14,6 +14,7 @@ Source0: https://github.com/coozoo/qtjsondiff/archive/master.zip#/%{name}-%{vers
 
 
 License: MIT
+Url: https://github.com/coozoo/qtjsondiff
 
 %if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
 BuildRequires: qt5-qtbase-devel >= 5.12
@@ -22,7 +23,6 @@ BuildRequires: zlib-devel
 %endif
 %if 0%{?mageia} || 0%{?suse_version}
 Group:          Development/Tools/Other
-Url:            https://github.com/coozoo/qtjsondiff
 BuildRequires:  pkgconfig(Qt5Widgets)
 BuildRequires:  libqt5-qtbase-devel
 BuildRequires:  libqt5-linguist
@@ -34,10 +34,9 @@ Requires(postun): update-desktop-files
 
 # Requires: qt5 >= 5.11
 
-Url: https://github.com/coozoo/qtjsondiff
+
 
 %description
-
 Some kind of diff viewer for Json that consists of two json viewer widgets.
 There is two modes to view:
 json and text, search text inside json. Use different sources
