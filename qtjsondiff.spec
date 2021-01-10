@@ -71,8 +71,9 @@ of json file, url or simply copy-paste. And some more features.
     make INSTALL_ROOT=%{buildroot} -j$(nproc) install
 %endif
 %if 0%{?mageia} || 0%{?suse_version}
+    %qmake5_install
 #    mkdir -p %{buildroot}%{_datadir}/pixmaps
-#    mv %{buildroot}/%{_datadir}/icons/diff.png %{buildroot}/%{_datadir}/pixmaps/diff.png
+#    mv %{buildroot}%{_datadir}/icons/diff.png %{buildroot}%{_datadir}/pixmaps/diff.png
     %suse_update_desktop_file -G "JSON Diff Tool" -r qtjsondiff Utility TextEditor
 %endif
 
