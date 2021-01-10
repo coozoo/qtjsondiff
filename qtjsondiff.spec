@@ -15,9 +15,20 @@ Source0: https://github.com/coozoo/qtjsondiff/archive/master.zip#/%{name}-%{vers
 
 License: MIT
 
-BuildRequires: qt5-qtbase-devel >= 5.11
-BuildRequires: qt5-linguist >= 5.11
+%if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
+BuildRequires: qt5-qtbase-devel >= 5.12
+BuildRequires: qt5-linguist >= 5.12
 BuildRequires: zlib-devel
+%endif
+%if 0%{?mageia} || 0%{?suse_version}
+BuildRequires:  pkgconfig(Qt5Widgets)
+BuildRequires:  libqt5-qtbase-devel
+BuildRequires:  libqt5-linguist
+BuildRequires:  update-desktop-files
+BuildRequires:  zlib-devel
+Requires(post): update-desktop-files
+Requires(postun): update-desktop-files
+%endif
 
 # Requires: qt5 >= 5.11
 
@@ -25,33 +36,67 @@ Url: https://github.com/coozoo/qtjsondiff
 
 %description
 
-Some kind of diff viewer for Json (based on tree like json container/viewer widget).
-Actually I've created this widget for myself. As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs.
-Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
-For example I'm using this in my SignalR, cometD clients to visualize responses or simply to show http response and compare them from other sources. And found this example app pretty handy as well.
+Some kind of diff viewer for Json that consists of two json viewer widgets.
+There is two modes to view:
+json and text, search text inside json. Use different sources
+of json file, url or simply copy-paste. And some more features.
 
 %global debug_package %{nil}
 
 %prep
-%setup -q -n %{name}-%{version}
+#copr build
+#%setup -q -n %{name}-%{version}
+#local build
+%setup -q -n qtjsondiff-master
 
 %build
 # don't know maybe it's stupid me but lrelease in qt looks like runs after make file generation as result automatic file list inside qmake doesn't work
 # so what I need just run it twice...
-qmake-qt5
-make
-qmake-qt5
-make
+%if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
+    qmake-qt5
+    make
+    qmake-qt5
+    make
+%endif
+%if 0%{?mageia} || 0%{?suse_version}
+    %qmake5
+    %make_build
+    %qmake5
+    %make_build
+%endif
 
 %install
-make INSTALL_ROOT=%{buildroot} -j$(nproc) install
+%if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
+    make INSTALL_ROOT=%{buildroot} -j$(nproc) install
+%endif
+%if 0%{?mageia} || 0%{?suse_version}
+    mkdir %{buildroot}/%{_datadir}/pixmaps
+    mv %{buildroot}/%{_datadir}/icons/diff.png %{buildroot}/%{_datadir}/pixmaps/diff.png
+    %suse_update_desktop_file -G "JSON Diff Tool" -r qtjsondiff Utility TextEditor
+%endif
 
 %post
+%if 0%{?mageia} || 0%{?suse_version}
+    %desktop_database_post
+%endif
 
 %postun
+%if 0%{?mageia} || 0%{?suse_version}
+    %desktop_database_postun
+%endif
+
 
 %files
-%{_bindir}/*
-%{_datadir}/*
+%if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
+    %{_bindir}/*
+    %{_datadir}/*
+%endif
+%if 0%{?mageia} || 0%{?suse_version}
+    %license LICENSE
+    %doc README.md
+    %{_bindir}/%{name}
+    %{_datadir}/pixmaps/diff.png
+    %{_datadir}/applications/qtjsondiff.desktop
+%endif    
 
 %changelog
