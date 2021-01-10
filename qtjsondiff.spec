@@ -1,11 +1,9 @@
 # spectool -g -R qtjsondiff.spec
 # rpmbuild -ba qtjsondiff.spec
 
-%(echo "$(ls -l ~/rpmbuild/)")
-
 %define name QTjsonDiff
 %define reponame qtjsondiff
-%define version %(echo "$(/usr/bin/GET 'https://raw.githubusercontent.com/coozoo/qtjsondiff/master/main.cpp'|grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')")
+%define version %(echo "$(curl --silent  'https://raw.githubusercontent.com/coozoo/qtjsondiff/master/main.cpp'|grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')")
 %define build_timestamp %{lua: print(os.date("%Y%m%d"))}
 
 Summary: QT json diff UI viwer
