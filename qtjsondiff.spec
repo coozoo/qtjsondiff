@@ -1,6 +1,7 @@
 # spectool -g -R qtjsondiff.spec
 # rpmbuild -ba qtjsondiff.spec
-tree ~/rpmbuild/
+
+%(echo "$(tree ~/rpmbuild/)")
 
 %define name QTjsonDiff
 %define reponame qtjsondiff
