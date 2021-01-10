@@ -67,13 +67,11 @@ of json file, url or simply copy-paste. And some more features.
 %endif
 
 %install
-%if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
-    make INSTALL_ROOT=%{buildroot} -j$(nproc) install
-%endif
+make INSTALL_ROOT=%{buildroot} -j$(nproc) install
 %if 0%{?mageia} || 0%{?suse_version}
-    mkdir -p %{buildroot}%{_datadir}/pixmaps
-    mv %{buildroot}/%{_datadir}/icons/diff.png %{buildroot}/%{_datadir}/pixmaps/diff.png
-    %suse_update_desktop_file -G "JSON Diff Tool" -r qtjsondiff Utility TextEditor
+#    mkdir -p %{buildroot}%{_datadir}/pixmaps
+#    mv %{buildroot}/%{_datadir}/icons/diff.png %{buildroot}/%{_datadir}/pixmaps/diff.png
+%suse_update_desktop_file -G "JSON Diff Tool" -r qtjsondiff Utility TextEditor
 %endif
 
 %post
