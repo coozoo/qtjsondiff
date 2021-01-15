@@ -118,15 +118,15 @@
         <translation></translation>
     </message>
     <message>
-        <source>Show Json Button Position</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>Bottom</source>
         <translation></translation>
     </message>
     <message>
         <source>Top Inline</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>View Button Position</source>
         <translation></translation>
     </message>
 </context>

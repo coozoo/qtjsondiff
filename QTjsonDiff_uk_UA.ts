@@ -119,7 +119,7 @@
     </message>
     <message>
         <source>Show Json Button Position</source>
-        <translation>Позиція кнопки Показати JSON</translation>
+        <translation type="vanished">Позиція кнопки Показати JSON</translation>
     </message>
     <message>
         <source>Bottom</source>
@@ -128,6 +128,10 @@
     <message>
         <source>Top Inline</source>
         <translation>Вгорі</translation>
+    </message>
+    <message>
+        <source>View Button Position</source>
+        <translation>Позиція кнопки перегляду</translation>
     </message>
 </context>
 <context>
