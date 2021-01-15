@@ -16,7 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(P->tabsPosition));
     //ui->tabWidget->setTabPosition(QTabWidget::TabPosition::East);
     ui->openLast_action->setChecked(P->restoreOnStart);
-
+    //hide statusbar I'm not using it :)
+    ui->statusBar->hide();
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
 
     messageJsonCont = new QJsonContainer(ui->jsonview_tab);

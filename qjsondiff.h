@@ -11,6 +11,7 @@
 #include <QModelIndex>
 #include <QScrollBar>
 #include <QSpacerItem>
+#include <QShortcut>
 
 #include "qjsoncontainer.h"
 #include"qjsonitem.h"
@@ -40,7 +41,12 @@ public:
     QGroupBox *container_right_groupbox;
     QGroupBox * common_groupbox;
     QVBoxLayout *common_layout;
+    QGroupBox *button_groupbox;
+    QGridLayout *button_layout;
+    QGroupBox *compare_groupbox;
+    QGridLayout *compare_layout;
     QPushButton *compare_pushbutton;
+    QShortcut *compare_shortcut;
     void expandIt();
     QCheckBox *syncScroll_checkbox;
     QCheckBox *useFullPath_checkbox;

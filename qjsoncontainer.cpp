@@ -34,7 +34,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     qDebug() << "obj_layout parent";
     obj_layout = new QVBoxLayout(parent);
-    obj_layout->setContentsMargins(QMargins(5, 5, 5, 5));
+    obj_layout->setContentsMargins(QMargins(0, 0, 0, 0));
 
 
     qDebug() << "treeview_groupbox parent";
