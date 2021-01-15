@@ -583,7 +583,7 @@ QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
     QString json = "{}";
     QJsonDocument jsonDoc = QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8());
     QJsonValue tempValue = QJsonValue();
-    QJsonValue tempValuePrev = QJsonValue();
+    //QJsonValue tempValuePrev = QJsonValue();
     if (jsonDoc.isObject())
         {
             tempValue = jsonDoc.object();
@@ -771,7 +771,7 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1, const QJsonValue &v2)
             //qDebug()<<v1<<" "<<v2;
             return v1.toDouble() < v2.toDouble();
         }
-    return -1;
+    return true;
 }
 //sort array
 //need to apply patch to qt https://codereview.qt-project.org/#/c/108352/
