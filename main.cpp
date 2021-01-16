@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
     QLoggingCategory::setFilterRules("*.debug=true\nqt.*.debug=false");
 
-    qDebug() << QLocale::system().name();
+    qInfo() << QLocale::system().name();
     QStringList translations;
     QDir dir(a.applicationDirPath());
     if (dir.cdUp() && dir.cd("share"))
@@ -61,21 +61,21 @@ int main(int argc, char *argv[])
     translations.append(a.applicationDirPath() + "/.qm");
     translations.append(a.applicationDirPath() + "/lang");
     QString translationFilePath = "";
-    qDebug() << "Search for translations";
+    qInfo() << "Search for translations";
     foreach (const QString &str, translations)
         {
             QFileInfo fileinfo(str + "/" + a.applicationName() + "_" + QLocale::system().name() + ".qm");
-            qDebug() << fileinfo.filePath();
+            qInfo() << fileinfo.filePath();
             if (fileinfo.exists() && fileinfo.isFile())
                 {
                     translationFilePath = fileinfo.filePath();
-                    qDebug() << "Translation found in: " + translationFilePath;
+                    qInfo() << "Translation found in: " + translationFilePath;
                     break;
                 }
         }
 
     QTranslator translator;
-    qDebug() << translator.load(translationFilePath);
+    qInfo() << translator.load(translationFilePath);
     a.installTranslator(&translator);
 
     QString platform = "";
