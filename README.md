@@ -62,7 +62,7 @@ Windows zip archives available.
 
 Mac OS zip and DMG.
 
-You can find all of them on in release section.
+You can find all of them in release section.
 
 [<img src="https://github.com/coozoo/qtjsondiff/workflows/Release_Version/badge.svg"></img>](https://github.com/coozoo/qtjsondiff/releases/latest)
 
@@ -71,7 +71,7 @@ If you prefer to compile it by yourself then see below.
 
 ## Build from sources
 
-You should have preinstalled QT5 (version 5.11 if you want to use older one you need to modify few lines).
+You should have preinstalled QT5 (version 5.12 if you want to use older one you need to modify few lines).
 Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something).
 
 ### MAC OS
