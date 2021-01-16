@@ -35,9 +35,9 @@ QJsonModel::QJsonModel(QObject *parent) :
     QAbstractItemModel(parent)
 {
     mRootItem = new QJsonTreeItem;
-    mHeaders.append("Name");
-    mHeaders.append("Type");
-    mHeaders.append("Value");
+    mHeaders.append(tr("Name"));
+    mHeaders.append(tr("Type"));
+    mHeaders.append(tr("Value"));
 
 
 }

@@ -281,4 +281,19 @@ maybe helpful when order does not relevant</source>
         <translation></translation>
     </message>
 </context>
+<context>
+    <name>QJsonModel</name>
+    <message>
+        <source>Name</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation></translation>
+    </message>
+</context>
 </TS>

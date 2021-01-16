@@ -285,4 +285,19 @@ maybe helpful when order does not relevant</source>
         <translation>Розпочати порівняння (ALT+C)</translation>
     </message>
 </context>
+<context>
+    <name>QJsonModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Ім&apos;я</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значення</translation>
+    </message>
+</context>
 </TS>
