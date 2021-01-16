@@ -48,21 +48,23 @@ JSON Tree View
 
 JSON Compare View
 
-<img src="https://user-images.githubusercontent.com/25594311/72466616-ea855f80-37e1-11ea-9fb5-5106b20916aa.png" width="60%"></img> 
+<img src="https://user-images.githubusercontent.com/25594311/104792301-9b805a80-57a6-11eb-8cd5-eae3e7ceb78d.png" width="60%"></img> 
 
 ## Installation
 
-Precompiled RPMs (Fedora,RHEL etc) can be found in COPR click below:
+Precompiled RPMs (Fedora,RHEL,Centos, OpenSuse) can be found in COPR click below:
 
 [<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/)
 
-Debian, Ubuntu and some others distros may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable:
+Debian, Ubuntu and some other distros may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable.
 
-[![Build Status](https://travis-ci.com/coozoo/qtjsondiff.svg?branch=master)](https://travis-ci.com/coozoo/qtjsondiff)
+Windows zip archives available. 
 
-You can find some precompiled packages for your OS here:
+Mac OS zip and DMG.
 
-https://github.com/coozoo/qtjsondiff/releases
+You can find all of them on in release section.
+
+[<img src="https://github.com/coozoo/qtjsondiff/workflows/Release_Version/badge.svg"></img>](https://github.com/coozoo/qtjsondiff/releases/latest)
 
 If you prefer to compile it by yourself then see below. 
 
@@ -124,6 +126,10 @@ You need to include those files:
 #include "qjsonmodel.h"
 #include "qjsoncontainer.h"
 #include "qjsondiff.h"
+
+#include "preferences/preferences.h"
+#include "preferences/preferencesdialog.h"
+
 ```
 If you need just json tree view you can ignore qjsondiff.h
 
@@ -160,9 +166,9 @@ That's all pretty simple.
 
 ## Comparison modes
 
-Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different.
+Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
 
-Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different.
+Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
 
 
 ## Special thanks to this projects:
