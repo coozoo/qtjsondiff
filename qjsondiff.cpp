@@ -5,8 +5,6 @@
 #include "qjsondiff.h"
 #include <QGroupBox>
 #include <QTime>
-#include <QtConcurrent/QtConcurrent>
-#include <QThread>
 #include "qjsonitem.h"
 #include "preferences/preferences.h"
 
@@ -22,45 +20,60 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     container_left_groupbox=new QGroupBox(parent);
     container_left_groupbox->setContentsMargins(QMargins(0,0,0,0));
-    //container_left_groupbox->setStyleSheet("border:0;");
 
     qDebug()<<"$cont1=new QJsonContainer(container_groupbox)";
     left_cont=new QJsonContainer(container_left_groupbox);
 
     container_right_groupbox=new QGroupBox(parent);
     container_right_groupbox->setContentsMargins(QMargins(0,0,0,0));
-    //container_right_groupbox->setStyleSheet("border:0;");
 
     qDebug()<<"$cont2=new QJsonContainer(container_groupbox1)";
     right_cont=new QJsonContainer(container_right_groupbox);
 
+    showJsonButtonPosition();
 
-    qDebug()<<"$qjsoncontainer_layout->addWidget";
-    qjsoncontainer_layout->addWidget(container_left_groupbox,2,0,1,2);
-    qjsoncontainer_layout->addWidget(container_right_groupbox,2,2,1,2);
-    qDebug()<<"$container_groupbox->setLayout(qjsoncontainer_layout)";
-    //parent->setLayout(qjsoncontainer_layout);
+    button_groupbox=new QGroupBox(parent);
+    button_groupbox->setContentsMargins(QMargins(0,0,0,0));
+    button_groupbox->setStyleSheet("QGroupBox{border:0;}");
+    button_layout=new QGridLayout();
+    compare_groupbox=new QGroupBox(parent);
+    compare_groupbox->setContentsMargins(QMargins(0,0,0,0));
+    compare_groupbox->setStyleSheet("QGroupBox{border:0;}");
+    compare_layout=new QGridLayout();
+
+    compare_layout->addWidget(container_left_groupbox,0,0,1,1);
+    compare_layout->addWidget(container_right_groupbox,0,1,1,1);
+    compare_groupbox->setLayout(compare_layout);
+
+    qjsoncontainer_layout->addWidget(compare_groupbox,1,0);
 
     common_groupbox=new QGroupBox(parent);
     common_groupbox->setLayout(qjsoncontainer_layout);
+    common_groupbox->setContentsMargins(QMargins(0,0,0,0));
     common_layout=new QVBoxLayout();
     parent->setLayout(common_layout);
 
-    compare_pushbutton=new QPushButton(common_groupbox);
+    compare_pushbutton=new QPushButton(button_groupbox);
     compare_pushbutton->setText(tr("Compare"));
-    qjsoncontainer_layout->addWidget(compare_pushbutton,0,0,1,4);
-    syncScroll_checkbox=new QCheckBox(common_groupbox);
+    compare_pushbutton->setToolTip(tr("Start somparison (ALT+C)"));
+    compare_shortcut = new QShortcut(QKeySequence("ALT+C"), compare_pushbutton);
+    button_layout->addWidget(compare_pushbutton,0,0,1,1);
+    syncScroll_checkbox=new QCheckBox(button_groupbox);
     syncScroll_checkbox->setText(tr("Sync Scrolls"));
-    qjsoncontainer_layout->addWidget(syncScroll_checkbox,1,0);
-    useFullPath_checkbox=new QCheckBox(common_groupbox);
+    syncScroll_checkbox->setToolTip(tr("Try to sync left and right scrolling areas"));
+    button_layout->addWidget(syncScroll_checkbox,0,1);
+    useFullPath_checkbox=new QCheckBox(button_groupbox);
     useFullPath_checkbox->setText(tr("Use Full Path"));
     useFullPath_checkbox->setChecked(true);
     useFullPath_checkbox->setToolTip(tr("Otherwise try to find child+parent pair anywhere in JSON tree"));
-    qjsoncontainer_layout->addWidget(useFullPath_checkbox,1,1);
+    button_layout->addWidget(useFullPath_checkbox,0,2);
     checkboxSpacer=new QSpacerItem(5, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-    qjsoncontainer_layout->addItem(checkboxSpacer,1,2,1,2);
+    button_layout->addItem(checkboxSpacer,0,0,1,1);
+    button_groupbox->setLayout(button_layout);
+    common_layout->addWidget(button_groupbox);
     common_layout->addWidget(common_groupbox);
     connect(compare_pushbutton,SIGNAL(clicked()),this,SLOT(on_compare_pushbutton_clicked()));
+    connect(compare_shortcut,SIGNAL(activated()),this,SLOT(on_compare_pushbutton_clicked()));
     connect(left_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_lefttreeview_clicked(QModelIndex)));
     connect(right_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_righttreeview_clicked(QModelIndex)));
     connect(right_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::reinitLeftModel);
@@ -88,10 +101,15 @@ QJsonDiff::~QJsonDiff()
 {
     left_cont->deleteLater();
     right_cont->deleteLater();
+    compare_groupbox->deleteLater();
+    compare_layout->deleteLater();
     qjsoncontainer_layout->deleteLater();
     container_left_groupbox->deleteLater();
     container_right_groupbox->deleteLater();
+    button_groupbox->deleteLater();
+    button_layout->deleteLater();
     common_groupbox->deleteLater();
+    compare_shortcut->deleteLater();
     compare_pushbutton->deleteLater();
     syncScroll_checkbox->deleteLater();
 }
@@ -673,5 +691,11 @@ void QJsonDiff::rightJsonFileLoaded(const QString &path)
 void QJsonDiff::leftJsonFileLoaded(const QString &path)
 {
     emit sLeftJsonFileLoaded(path);
+}
+
+void QJsonDiff::showJsonButtonPosition()
+{
+    left_cont->showJsonButtonPosition();
+    right_cont->showJsonButtonPosition();
 }
 

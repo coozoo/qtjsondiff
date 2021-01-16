@@ -106,6 +106,7 @@ private:
     QAction *expandSelectedRecursively;
     QAction *collapseSelectedRecursively;
     void expandRecursively(const QModelIndex &index, QTreeView *view,bool expand);
+    QAction* toolbarbutton=nullptr;
 
 signals:
     void sJsonFileLoaded(QString path);
@@ -130,6 +131,7 @@ private slots:
 public slots:
     void findText();
     void loadJsonFile(QString target);
+    void showJsonButtonPosition();
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event) override;

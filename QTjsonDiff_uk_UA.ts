@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="uk_UA">
 <context>
+    <name>CommandLineParser</name>
+    <message>
+        <source>JSON files display and diff tool.</source>
+        <translation>Утиліта для відображення і читання JSON файлів.</translation>
+    </message>
+    <message>
+        <source>File(s) to open. One file for tree view, two files for the diff. No file opens plain gui.</source>
+        <translation>Відкрити файли. Один файл для перегляду JSON, два файла для порівняння. Жодного - GUI.</translation>
+    </message>
+    <message>
+        <source>Wrong count of arguments used. See help:</source>
+        <translation>Неправильна кількість аргументів. Дивіться допомогу:</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <source>MainWindow</source>
@@ -22,6 +37,101 @@
     <message>
         <source>Open last state on application start</source>
         <translation>Відкрити останній стан програми під час запуску</translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation>Налаштування</translation>
+    </message>
+</context>
+<context>
+    <name>PreferencesDialog</name>
+    <message>
+        <source>Preferences</source>
+        <translation>Налаштування</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Кольори</translation>
+    </message>
+    <message>
+        <source>Layout</source>
+        <translation>Вигляд</translation>
+    </message>
+    <message>
+        <source>Tree View</source>
+        <translation>Дерево</translation>
+    </message>
+    <message>
+        <source>Identical Diff:</source>
+        <translation>Однаковий:</translation>
+    </message>
+    <message>
+        <source>Moderate Diff:</source>
+        <translation>Посередній:</translation>
+    </message>
+    <message>
+        <source>Huge Diff:</source>
+        <translation>Істотно різні:</translation>
+    </message>
+    <message>
+        <source>Not Present Diff:</source>
+        <translation>Відсутній:</translation>
+    </message>
+    <message>
+        <source>Transparency:</source>
+        <translation>Прозорість:</translation>
+    </message>
+    <message>
+        <source>Text View</source>
+        <translation>Текстовий вигляд</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>Ключові слова:</translation>
+    </message>
+    <message>
+        <source>JSON Keys:</source>
+        <translation>JSON ключі:</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Скинути</translation>
+    </message>
+    <message>
+        <source>Tabs Position</source>
+        <translation>Розташування вкладок</translation>
+    </message>
+    <message>
+        <source>North</source>
+        <translation>Північ</translation>
+    </message>
+    <message>
+        <source>South</source>
+        <translation>Південь</translation>
+    </message>
+    <message>
+        <source>West</source>
+        <translation>Захід</translation>
+    </message>
+    <message>
+        <source>East</source>
+        <translation>Схід</translation>
+    </message>
+    <message>
+        <source>Show Json Button Position</source>
+        <translation type="vanished">Позиція кнопки Показати JSON</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Внизу</translation>
+    </message>
+    <message>
+        <source>Top Inline</source>
+        <translation>Вгорі</translation>
+    </message>
+    <message>
+        <source>View Button Position</source>
+        <translation>Позиція кнопки перегляду</translation>
     </message>
 </context>
 <context>
@@ -143,6 +253,10 @@ maybe helpful when order does not relevant</source>
         <source>Open file</source>
         <translation>Відкрити файл</translation>
     </message>
+    <message>
+        <source>Switch between view modes</source>
+        <translation>Перемкнути режим перегляду</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
@@ -161,6 +275,14 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Otherwise try to find child+parent pair anywhere in JSON tree</source>
         <translation>Інакше намагатись знайти пари син+батько незважаючи на те, як глибоко вони в json дереві</translation>
+    </message>
+    <message>
+        <source>Try to sync left and right scrolling areas</source>
+        <translation>Намагатись синхронізувати прокручування лівої і правої панелей</translation>
+    </message>
+    <message>
+        <source>Start somparison (ALT+C)</source>
+        <translation>Розпочати порівняння (ALT+C)</translation>
     </message>
 </context>
 </TS>

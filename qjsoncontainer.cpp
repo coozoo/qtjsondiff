@@ -34,7 +34,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     qDebug() << "obj_layout parent";
     obj_layout = new QVBoxLayout(parent);
-    obj_layout->setContentsMargins(QMargins(5, 5, 5, 5));
+    obj_layout->setContentsMargins(QMargins(0, 0, 0, 0));
 
 
     qDebug() << "treeview_groupbox parent";
@@ -51,10 +51,6 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     viewjson_plaintext->setVisible(false);
     viewjson_plaintext->document()->setDefaultFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     viewJsonSyntaxHighlighter = new JsonSyntaxHighlighter(viewjson_plaintext->document());
-
-    showjson_pushbutton = new QPushButton(treeview_groupbox);
-    showjson_pushbutton->setText(tr("Show Json Text"));
-    showjson_pushbutton->setCheckable(true);
 
     //QJsonDocument data1=QJsonDocument::fromJson("{\"subscription\":[{\"action\":0,\"event\":{\"GroupId\":0,\"Id\":0,\"IdType\":1},\"league\":{\"GroupId\":10001,\"Id\":1,\"IdType\":0},\"scores\":[1,3,2],\"sportId\":4},{\"action\":0,\"event\":{\"GroupId\":0,\"Id\":0,\"IdType\":1},\"league\":{\"GroupId\":1000,\"Id\":1,\"IdType\":0},\"scores\":[1,2],\"sportId\":4}]}");
     //QString datastr=data1.toJson();
@@ -84,6 +80,12 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     sortObj_toolButton->setText(tr("Sort"));
     sortObj_toolButton->setToolTip(tr("Sort objects inside array\nmaybe helpful when order does not relevant"));
     sortObj_toolButton->setHidden(true);
+
+    //showjson_pushbutton = new QPushButton(treeview_groupbox);
+    showjson_pushbutton = new QPushButton(this);
+    showjson_pushbutton->setText(tr("Show Json Text"));
+    showjson_pushbutton->setToolTip(tr("Switch between view modes"));
+    showjson_pushbutton->setCheckable(true);
 
     tools_layout = new QGridLayout(toolbar);
     tools_layout->setContentsMargins(0, 0, 0, 0);
@@ -151,6 +153,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     treeview_layout->addWidget(viewjson_plaintext);
     treeview_layout->addWidget(showjson_pushbutton);
 
+    showJsonButtonPosition();
 
     qDebug() << "treeview size";
     treeview->resizeColumnToContents(0);
@@ -581,7 +584,7 @@ QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
     QString json = "{}";
     QJsonDocument jsonDoc = QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8());
     QJsonValue tempValue = QJsonValue();
-    QJsonValue tempValuePrev = QJsonValue();
+    //QJsonValue tempValuePrev = QJsonValue();
     if (jsonDoc.isObject())
         {
             tempValue = jsonDoc.object();
@@ -769,7 +772,7 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1, const QJsonValue &v2)
             //qDebug()<<v1<<" "<<v2;
             return v1.toDouble() < v2.toDouble();
         }
-    return -1;
+    return true;
 }
 //sort array
 //need to apply patch to qt https://codereview.qt-project.org/#/c/108352/
@@ -1129,4 +1132,32 @@ void QJsonContainer::expandRecursively(const QModelIndex &index, QTreeView *tree
         {
             treeview->collapse(index);
         }
+}
+
+void QJsonContainer::showJsonButtonPosition()
+{
+    //-2 bottom
+    //-3 top inline
+    switch (P->showJsonButtonPosition)
+    {
+        case -2:
+            qDebug()<<"bottom";
+            if(toolbarbutton)
+            {
+                toolbar->removeAction(toolbarbutton);
+            }
+            showjson_pushbutton->setParent(treeview_groupbox);
+            treeview_layout->addWidget(showjson_pushbutton);
+            showjson_pushbutton->show();
+            break;
+        case -3:
+            qDebug()<<"top inline";
+            treeview_layout->removeWidget(showjson_pushbutton);
+            showjson_pushbutton->setParent(toolbar);
+            toolbarbutton=toolbar->addWidget(showjson_pushbutton);
+            showjson_pushbutton->show();
+            break;
+        default:
+            qDebug()<<"default";
+    }
 }
