@@ -249,6 +249,10 @@ maybe helpful when order does not relevant</source>
         <source>Open file</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Switch between view modes</source>
+        <translation></translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
@@ -266,6 +270,14 @@ maybe helpful when order does not relevant</source>
     </message>
     <message>
         <source>Otherwise try to find child+parent pair anywhere in JSON tree</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Try to sync left and right scrolling areas</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Start somparison (ALT+C)</source>
         <translation></translation>
     </message>
 </context>

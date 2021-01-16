@@ -253,6 +253,10 @@ maybe helpful when order does not relevant</source>
         <source>Open file</source>
         <translation>Відкрити файл</translation>
     </message>
+    <message>
+        <source>Switch between view modes</source>
+        <translation>Перемкнути режим перегляду</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
@@ -271,6 +275,14 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Otherwise try to find child+parent pair anywhere in JSON tree</source>
         <translation>Інакше намагатись знайти пари син+батько незважаючи на те, як глибоко вони в json дереві</translation>
+    </message>
+    <message>
+        <source>Try to sync left and right scrolling areas</source>
+        <translation>Намагатись синхронізувати прокручування лівої і правої панелей</translation>
+    </message>
+    <message>
+        <source>Start somparison (ALT+C)</source>
+        <translation>Розпочати порівняння (ALT+C)</translation>
     </message>
 </context>
 </TS>

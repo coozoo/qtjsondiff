@@ -30,9 +30,9 @@ public:
     void setDisplayMode(const QStringList &files);
 
 public slots:
-    void containerFileLoaded(QString path);
-    void differLeftFileLoaded(QString path);
-    void differRightFileLoaded(QString path);
+    void containerFileLoaded(const QString &path);
+    void differLeftFileLoaded(const QString &path);
+    void differRightFileLoaded(const QString &path);
 
     void openLast_action_toggled(bool state);
 

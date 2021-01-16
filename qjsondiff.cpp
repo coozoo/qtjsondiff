@@ -55,11 +55,12 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     compare_pushbutton=new QPushButton(button_groupbox);
     compare_pushbutton->setText(tr("Compare"));
-    compare_pushbutton->setToolTip(tr("Start somparison ALT+C"));
+    compare_pushbutton->setToolTip(tr("Start somparison (ALT+C)"));
     compare_shortcut = new QShortcut(QKeySequence("ALT+C"), compare_pushbutton);
     button_layout->addWidget(compare_pushbutton,0,0,1,1);
     syncScroll_checkbox=new QCheckBox(button_groupbox);
     syncScroll_checkbox->setText(tr("Sync Scrolls"));
+    syncScroll_checkbox->setToolTip(tr("Try to sync left and right scrolling areas"));
     button_layout->addWidget(syncScroll_checkbox,0,1);
     useFullPath_checkbox=new QCheckBox(button_groupbox);
     useFullPath_checkbox->setText(tr("Use Full Path"));

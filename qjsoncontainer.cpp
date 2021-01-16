@@ -84,6 +84,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     //showjson_pushbutton = new QPushButton(treeview_groupbox);
     showjson_pushbutton = new QPushButton(this);
     showjson_pushbutton->setText(tr("Show Json Text"));
+    showjson_pushbutton->setToolTip(tr("Switch between view modes"));
     showjson_pushbutton->setCheckable(true);
 
     tools_layout = new QGridLayout(toolbar);
