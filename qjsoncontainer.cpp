@@ -212,15 +212,44 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
 QJsonContainer::~QJsonContainer()
 {
+    find_lineEdit->deleteLater();
+    refresh_toolButton->deleteLater();
+    sortObj_toolButton->deleteLater();
+    findNext_toolbutton->deleteLater();
+    findPrevious_toolbutton->deleteLater();
+    findCaseSensitivity_toolbutton->deleteLater();
+    spacer->deleteLater();
+    if(goToNextDiff_toolbutton) goToNextDiff_toolbutton->deleteLater();
+    if(goToPreviousDiff_toolbutton) goToPreviousDiff_toolbutton->deleteLater();
+    if(diffAmount_lineEdit) diffAmount_lineEdit->deleteLater();
+    tools_layout->deleteLater();
+    toolbar->deleteLater();
     model->deleteLater();
     treeview->deleteLater();
+    showjson_pushbutton->deleteLater();
     expandAll_Checkbox->deleteLater();
     browse_groupBox->deleteLater();
     filePath_lineEdit->deleteLater();
     browse_toolButton->deleteLater();
     browse_layout->deleteLater();
+    copyRow->deleteLater();
+    copyRows->deleteLater();
+    copyPath->deleteLater();
+    copyJsonPlainText->deleteLater();
+    copyJsonPrettyText->deleteLater();
+    copyJsonByPath->deleteLater();
+    singleExpandSelectedRecursively->deleteLater();
+    singleCollapseSelectedRecursively->deleteLater();
+    expandSelected->deleteLater();
+    collapseSelected->deleteLater();
+    expandSelectedRecursively->deleteLater();
+    collapseSelectedRecursively->deleteLater();
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
+    viewJsonSyntaxHighlighter->deleteLater();
+    viewjson_plaintext->deleteLater();
+    obj_layout->deleteLater();
+
 }
 
 void QJsonContainer::showGoto(bool show)
