@@ -251,7 +251,9 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     double temp=QTime::currentTime().msecsSinceStartOfDay();
     qDebug()<<"started:"<<temp;
     startComparison();
-
+    //a bit worried about performance but will test it later with big jsons
+    left_cont->gotoIndexHandler(true);
+    right_cont->gotoIndexHandler(true);
     qDebug()<<(QTime::currentTime().msecsSinceStartOfDay()-temp)/1000;
 }
 

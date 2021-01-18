@@ -234,7 +234,16 @@ void QJsonContainer::showGoto(bool show)
         goToPreviousDiff_toolbutton=new QToolButton(toolbar);
         goToPreviousDiff_toolbutton->setText(tr("|<-"));
         goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
+        diffAmount_lineEdit=new QLineEdit(toolbar);
+        diffAmount_lineEdit->setText("0");
+        diffAmount_lineEdit->setToolTip(tr("Amount of Differences (including recursive objects)"));
+        diffAmount_lineEdit->setReadOnly(true);
+        diffAmount_lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+        diffAmount_lineEdit->setFixedWidth(QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
+        diffAmount_lineEdit->setAlignment(Qt::AlignCenter);
+        gotDefaultPalette=diffAmount_lineEdit->palette();
         toolbar->addSeparator();
+        toolbar->addWidget(diffAmount_lineEdit);
         toolbar->addWidget(goToPreviousDiff_toolbutton);
         toolbar->addWidget(goToNextDiff_toolbutton);
         toolbar->addSeparator();
@@ -1224,6 +1233,7 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
     if (gotoIndexes_list.isEmpty())
         {
             gotoIndexes_list = fillGotoList(model, QModelIndex());
+            diffAmountUpdate();
             currentGotoIndexId = -1;
             qDebug() << "##################indexes updates";
         }
@@ -1290,6 +1300,30 @@ void QJsonContainer::resetGoto()
 {
     gotoIndexes_list.clear();
     currentGotoIndexId=-1;
+}
+
+void QJsonContainer::diffAmountUpdate()
+{
+    if(gotoIndexes_list.count()>0)
+    {
+        QPalette palette;
+        palette.setColor(QPalette::Base,P->diffColor(DiffColorType::Huge));
+        diffAmount_lineEdit->setPalette(palette);
+        diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
+    }
+    else if(gotoIndexes_list.count()==0 && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
+    {
+        QPalette palette;
+        palette.setColor(QPalette::Base,P->diffColor(DiffColorType::Identical));
+        diffAmount_lineEdit->setPalette(palette);
+        diffAmount_lineEdit->setText("0");
+    }
+    else
+    {
+        diffAmount_lineEdit->setPalette(gotDefaultPalette);
+        diffAmount_lineEdit->setText("0");
+    }
+    diffAmount_lineEdit->setFixedWidth(diffAmount_lineEdit->text().size()*QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
 }
 
 QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelIndex &parent)

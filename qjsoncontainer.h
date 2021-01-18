@@ -73,6 +73,7 @@ public:
     QToolButton *findCaseSensitivity_toolbutton;
     QToolButton *goToNextDiff_toolbutton;
     QToolButton *goToPreviousDiff_toolbutton;
+    QLineEdit *diffAmount_lineEdit;
     QList<QModelIndex> fillGotoList(QJsonModel *model, const QModelIndex &parent);
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
@@ -86,6 +87,8 @@ public:
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
     void showGoto(bool show);
+    void diffAmountUpdate();
+    void gotoIndexHandler(bool directionForward);
 
 private:
     JsonSyntaxHighlighter *viewJsonSyntaxHighlighter;
@@ -96,7 +99,6 @@ private:
     int currentFindIndexId;
     void resetCurrentFind();
     void findTextJsonIndexHandler(bool direction);
-    void gotoIndexHandler(bool directionForward);
     int currentGotoIndexId;
     QMenu myMenu;
     QAction *copyRow;
@@ -116,6 +118,7 @@ private:
     QAction* toolbarbutton=nullptr;
     QList<QModelIndex> gotoIndexes_list;
     void resetGoto();
+    QPalette gotDefaultPalette;
 
 signals:
     void sJsonFileLoaded(QString path);
