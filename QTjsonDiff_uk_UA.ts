@@ -292,6 +292,10 @@ maybe helpful when order does not relevant</source>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
         <translation>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Запустіть порівняння!&lt;/font&gt;&lt;/b&gt;</translation>
     </message>
+    <message>
+        <source>Amount of Differences (including recursive objects)</source>
+        <translation>Кількість різниць (число включає рекурсивні елементи)</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>

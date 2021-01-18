@@ -286,6 +286,10 @@ maybe helpful when order does not relevant</source>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Amount of Differences (including recursive objects)</source>
+        <translation></translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
