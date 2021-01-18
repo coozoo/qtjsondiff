@@ -52,17 +52,24 @@ JSON Compare View
 
 ## Installation
 
-Precompiled RPMs (Fedora,RHEL,Centos, OpenSuse) can be found in COPR click below:
+Precompiled RPMs (**Fedora**, **RHEL**, **Centos**, **OpenSuse**) can be found in COPR:
+
+```bash
+$ sudo dnf copr enable yura/QTjsonDiff
+$ sudo dnf install QTjsonDiff
+
+```
 
 [<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/)
 
-Debian, Ubuntu and some other distros may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable.
 
-Windows zip archives available. 
+**Debian**, **Ubuntu** and **some other Linux distros** may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable.
 
-Mac OS zip and DMG.
+**Windows** zip archives available just extract and run exe file.
 
-You can find all of them in release section.
+**Mac OS** zip and DMG as well available. Don't forget mac prevents app from untrusted Dev (me not deserve trust :) ). so at first attempt it will be blocked. Go to Apple menu > System Preferences, click Security & Privacy, then click General and click open anyway..
+
+You can find all of above in release section.
 
 [<img src="https://github.com/coozoo/qtjsondiff/workflows/Release_Version/badge.svg"></img>](https://github.com/coozoo/qtjsondiff/releases/latest)
 
