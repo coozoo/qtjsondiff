@@ -1125,6 +1125,10 @@ void QJsonContainer::on_model_dataUpdated()
     qDebug() << "model has been changed";
     resetCurrentFind();
     resetGoto();
+    if(diffAmount_lineEdit)
+    {
+        diffAmountUpdate();
+    }
 }
 
 bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)

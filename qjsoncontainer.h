@@ -71,9 +71,9 @@ public:
     QToolButton *findNext_toolbutton;
     QToolButton *findPrevious_toolbutton;
     QToolButton *findCaseSensitivity_toolbutton;
-    QToolButton *goToNextDiff_toolbutton;
-    QToolButton *goToPreviousDiff_toolbutton;
-    QLineEdit *diffAmount_lineEdit;
+    QToolButton *goToNextDiff_toolbutton=nullptr;
+    QToolButton *goToPreviousDiff_toolbutton=nullptr;
+    QLineEdit *diffAmount_lineEdit=nullptr;
     QList<QModelIndex> fillGotoList(QJsonModel *model, const QModelIndex &parent);
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
