@@ -31,6 +31,8 @@
 #include <QSsl>
 #include <zlib.h>
 
+typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
+
 class JsonSyntaxHighlighter;
 
 
@@ -69,6 +71,9 @@ public:
     QToolButton *findNext_toolbutton;
     QToolButton *findPrevious_toolbutton;
     QToolButton *findCaseSensitivity_toolbutton;
+    QToolButton *goToNextDiff_toolbutton;
+    QToolButton *goToPreviousDiff_toolbutton;
+    QList<QModelIndex> fillGotoList(QJsonModel *model, const QModelIndex &parent);
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
     QStringList extractItemTextFromModel(const QModelIndex &parent);
@@ -80,10 +85,10 @@ public:
     static int countStringWeight(QString inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
+    void showGoto(bool show);
 
 private:
     JsonSyntaxHighlighter *viewJsonSyntaxHighlighter;
-
     QByteArray gUncompress(const QByteArray &data);
     //variables to handle serach nodes in tree
     QList<QModelIndex> currentFindIndexesList;
@@ -91,6 +96,8 @@ private:
     int currentFindIndexId;
     void resetCurrentFind();
     void findTextJsonIndexHandler(bool direction);
+    void gotoIndexHandler(bool directionForward);
+    int currentGotoIndexId;
     QMenu myMenu;
     QAction *copyRow;
     QAction *copyRows;
@@ -107,10 +114,13 @@ private:
     QAction *collapseSelectedRecursively;
     void expandRecursively(const QModelIndex &index, QTreeView *view,bool expand);
     QAction* toolbarbutton=nullptr;
+    QList<QModelIndex> gotoIndexes_list;
+    void resetGoto();
 
 signals:
     void sJsonFileLoaded(QString path);
     void jsonUpdated();
+    void diffSelected(QModelIndex &index);
 
 private slots:
     void on_expandAll_checkbox_marked();
@@ -122,6 +132,8 @@ private slots:
     void on_findNext_toolbutton_clicked();
     void on_findPrevious_toolbutton_clicked();
     void on_findCaseSensitivity_toolbutton_clicked();
+    void on_GoToNextDiff_toolbutton_clicked();
+    void on_GoToPreviousDiff_toolbutton_clicked();
     void openJsonFile();
     void serviceGetDataRequestFinished(QNetworkReply* reply);
     void on_find_lineEdit_textChanged(const QString &text);

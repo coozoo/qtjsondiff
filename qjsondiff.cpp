@@ -30,6 +30,9 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     qDebug()<<"$cont2=new QJsonContainer(container_groupbox1)";
     right_cont=new QJsonContainer(container_right_groupbox);
 
+    left_cont->showGoto(true);
+    right_cont->showGoto(true);
+
     showJsonButtonPosition();
 
     button_groupbox=new QGroupBox(parent);
@@ -102,6 +105,9 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(this,&QJsonDiff::sLoadRightJsonFile,right_cont,&QJsonContainer::loadJsonFile);
     connect(right_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::rightJsonFileLoaded);
     connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::leftJsonFileLoaded);
+
+    connect(left_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_lefttreeview_clicked);
+    connect(right_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_righttreeview_clicked);
 }
 
 QJsonDiff::~QJsonDiff()

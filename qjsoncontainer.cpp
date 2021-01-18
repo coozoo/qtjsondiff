@@ -9,6 +9,8 @@
 
 #include <QFileIconProvider>
 
+#include "preferences/preferences.h"
+
 QJsonContainer::QJsonContainer(QWidget *parent):
     QWidget(parent)
 {
@@ -103,6 +105,8 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     findCaseSensitivity_toolbutton->setCheckable(true);
     findCaseSensitivity_toolbutton->setIcon(QIcon(QPixmap(":/images/casesensitivity.png")));
     findCaseSensitivity_toolbutton->setToolTip(tr("Check to make case sensitive"));
+
+
     //findCaseSensitivity_toolbutton->setChecked(true);
     //tools_layout->addWidget(expandAll_Checkbox,0,Qt::AlignLeft);
     toolbar->addWidget(expandAll_Checkbox);
@@ -112,6 +116,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->addWidget(findNext_toolbutton);
     toolbar->addWidget(findCaseSensitivity_toolbutton);
     toolbar->addSeparator();
+
 
     spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -202,6 +207,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
 
+
 }
 
 QJsonContainer::~QJsonContainer()
@@ -215,6 +221,26 @@ QJsonContainer::~QJsonContainer()
     browse_layout->deleteLater();
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
+}
+
+void QJsonContainer::showGoto(bool show)
+{
+    //no way to hide :)
+    if(show)
+    {
+        goToNextDiff_toolbutton=new QToolButton(toolbar);
+        goToNextDiff_toolbutton->setText(tr("->|"));
+        goToNextDiff_toolbutton->setToolTip(tr("Go to Next Diff"));
+        goToPreviousDiff_toolbutton=new QToolButton(toolbar);
+        goToPreviousDiff_toolbutton->setText(tr("|<-"));
+        goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
+        toolbar->addSeparator();
+        toolbar->addWidget(goToPreviousDiff_toolbutton);
+        toolbar->addWidget(goToNextDiff_toolbutton);
+        toolbar->addSeparator();
+        connect(goToPreviousDiff_toolbutton,&QToolButton::clicked,this,&QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked);
+        connect(goToNextDiff_toolbutton,&QToolButton::clicked,this,&QJsonContainer::on_GoToNextDiff_toolbutton_clicked);
+    }
 }
 
 void QJsonContainer::showContextMenu(const QPoint &point)
@@ -1032,7 +1058,7 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
 }
 
 int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &parent,
-                                       QList<QModelIndex> *currentFindIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid)
+                                       QList<QModelIndex> *currentIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid)
 {
     int rowCount = model->rowCount(parent);
 
@@ -1045,7 +1071,7 @@ int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &par
                     //qDebug()<<"row"<<i;
 
 
-                    if (currentFindIndexesList->contains(idx0))
+                    if (currentIndexesList->contains(idx0))
                         {
                             //qDebug()<<"hit in find map"<<currentFindIndexesList->count();
                             ++indexid;
@@ -1060,7 +1086,7 @@ int QJsonContainer::currentIndexFinder(QJsonModel *model, const QModelIndex &par
                         }
                     QString state = (matchedSelectedIndex) ? QString("matched") : QString("notmatched");
                     //qDebug()<<state;
-                    currentIndexFinder(model, idx0, currentFindIndexesList, selectedIndex, matchedSelectedIndex, indexid);
+                    currentIndexFinder(model, idx0, currentIndexesList, selectedIndex, matchedSelectedIndex, indexid);
                     if (matchedSelectedIndex)
                         {
                             break;
@@ -1089,6 +1115,7 @@ void QJsonContainer::on_model_dataUpdated()
 {
     qDebug() << "model has been changed";
     resetCurrentFind();
+    resetGoto();
 }
 
 bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)
@@ -1160,4 +1187,130 @@ void QJsonContainer::showJsonButtonPosition()
         default:
             qDebug()<<"default";
     }
+}
+
+void QJsonContainer::on_GoToNextDiff_toolbutton_clicked()
+{
+
+    qDebug()<<gotoIndexes_list;
+    gotoIndexHandler(true);
+
+}
+
+void QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked()
+{
+
+    qDebug()<<gotoIndexes_list;
+    gotoIndexHandler(false);
+}
+
+//another one crap handler :)
+
+void QJsonContainer::gotoIndexHandler(bool directionForward)
+{
+    QModelIndex idx = treeview->currentIndex();
+    if (idx.isValid())
+        {
+            if(idx.column() != 0)
+                {
+                    idx = idx.siblingAtColumn(0);
+                }
+        }
+    else
+        {
+            idx = model->index(idx.row(), 0);
+        }
+
+    if (gotoIndexes_list.isEmpty())
+        {
+            gotoIndexes_list = fillGotoList(model, QModelIndex());
+            currentGotoIndexId = -1;
+            qDebug() << "##################indexes updates";
+        }
+    //qDebug()<<"before"<<currentFindIndexId;
+    if (!gotoIndexes_list.contains(idx))
+        {
+            int indexid = -1;
+            bool matchselectedbool = false;
+            currentIndexFinder(model, QModelIndex(), &gotoIndexes_list, idx, matchselectedbool, indexid);
+            qDebug() << "Found index at:" << indexid;
+            if (currentGotoIndexId != -1 && indexid != gotoIndexes_list.count() - 1 && indexid != 0)
+                {
+                    currentGotoIndexId = indexid;
+                }
+            else if (((indexid == gotoIndexes_list.count() - 1) || (indexid == 0)) && !directionForward)
+                {
+                    currentGotoIndexId = indexid + 1;
+                }
+        }
+    else
+        {
+            if (currentGotoIndexId != -1 && currentGotoIndexId != gotoIndexes_list.count() - 1)
+                {
+                    currentGotoIndexId = gotoIndexes_list.indexOf(idx);
+                }
+        }
+    if (gotoIndexes_list.count() > 0 && currentGotoIndexId < gotoIndexes_list.count() - 1 && directionForward)
+        {
+             currentGotoIndexId++;
+        }
+    else if (gotoIndexes_list.count() > 0 && currentGotoIndexId > 0 && currentGotoIndexId <= gotoIndexes_list.count() - 1 && !directionForward)
+        {
+             currentGotoIndexId--;
+        }
+
+    else if (gotoIndexes_list.count() > 0 && (currentGotoIndexId == gotoIndexes_list.count() - 1 || currentGotoIndexId == 0))
+        {
+            QRect widgetRect = treeview->visualRect(gotoIndexes_list[currentGotoIndexId]);
+            QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!directionForward) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, QRect(100, 200, 11, 16), 3000);
+            currentGotoIndexId = -1;
+        }
+    else if (((gotoIndexes_list.count() > 0 && currentGotoIndexId == -1) || (currentGotoIndexId > gotoIndexes_list.count() - 1)) && !directionForward)
+        {
+            currentGotoIndexId = gotoIndexes_list.count() - 1;
+        }
+    if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
+        {
+            QRect widgetRect = find_lineEdit->contentsRect();
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=green>Documents identical!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
+        }
+    else if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()==DiffColorType::None)
+        {
+            QRect widgetRect = find_lineEdit->contentsRect();
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=yellow>Start Comparison!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
+        }
+    if (currentGotoIndexId >= 0)
+        {
+            treeview->setCurrentIndex(gotoIndexes_list[currentGotoIndexId]);
+            emit diffSelected(gotoIndexes_list[currentGotoIndexId]);
+        }
+}
+
+void QJsonContainer::resetGoto()
+{
+    gotoIndexes_list.clear();
+    currentGotoIndexId=-1;
+}
+
+QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelIndex &parent)
+{
+    QList<QModelIndex> retindex;
+    int rowCount = model->rowCount(parent);
+
+    for (int i = 0; i < rowCount; ++i)
+        {
+            QModelIndex idx0 = model->index(i, 0, parent);
+            if (idx0.isValid())
+                {
+                    QJsonTreeItem *item=model->itemFromIndex(idx0);
+                    DiffColorType bg=item->colorType();
+                    if (bg!=DiffColorType::None && bg!=DiffColorType::Identical)
+                        {
+                            retindex << idx0;
+                        }
+                    retindex << fillGotoList(model, idx0);
+                }
+        }
+
+    return retindex;
 }
