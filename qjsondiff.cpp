@@ -30,6 +30,9 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     qDebug()<<"$cont2=new QJsonContainer(container_groupbox1)";
     right_cont=new QJsonContainer(container_right_groupbox);
 
+    left_cont->showGoto(true);
+    right_cont->showGoto(true);
+
     showJsonButtonPosition();
 
     button_groupbox=new QGroupBox(parent);
@@ -39,10 +42,12 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     compare_groupbox=new QGroupBox(parent);
     compare_groupbox->setContentsMargins(QMargins(0,0,0,0));
     compare_groupbox->setStyleSheet("QGroupBox{border:0;}");
+
     compare_layout=new QGridLayout();
 
     compare_layout->addWidget(container_left_groupbox,0,0,1,1);
     compare_layout->addWidget(container_right_groupbox,0,1,1,1);
+
     compare_groupbox->setLayout(compare_layout);
 
     qjsoncontainer_layout->addWidget(compare_groupbox,1,0);
@@ -72,6 +77,11 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     button_groupbox->setLayout(button_layout);
     common_layout->addWidget(button_groupbox);
     common_layout->addWidget(common_groupbox);
+
+    compare_groupbox->layout()->setContentsMargins(QMargins(0,0,0,0));
+    common_groupbox->layout()->setContentsMargins(QMargins(0,0,0,0));
+    button_groupbox->layout()->setContentsMargins(QMargins(0,0,0,0));
+
     connect(compare_pushbutton,SIGNAL(clicked()),this,SLOT(on_compare_pushbutton_clicked()));
     connect(compare_shortcut,SIGNAL(activated()),this,SLOT(on_compare_pushbutton_clicked()));
     connect(left_cont->getTreeView(),SIGNAL(clicked(QModelIndex)),this,SLOT(on_lefttreeview_clicked(QModelIndex)));
@@ -95,6 +105,9 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(this,&QJsonDiff::sLoadRightJsonFile,right_cont,&QJsonContainer::loadJsonFile);
     connect(right_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::rightJsonFileLoaded);
     connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::leftJsonFileLoaded);
+
+    connect(left_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_lefttreeview_clicked);
+    connect(right_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_righttreeview_clicked);
 }
 
 QJsonDiff::~QJsonDiff()
@@ -238,7 +251,9 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     double temp=QTime::currentTime().msecsSinceStartOfDay();
     qDebug()<<"started:"<<temp;
     startComparison();
-
+    //a bit worried about performance but will test it later with big jsons
+    left_cont->gotoIndexHandler(true);
+    right_cont->gotoIndexHandler(true);
     qDebug()<<(QTime::currentTime().msecsSinceStartOfDay()-temp)/1000;
 }
 

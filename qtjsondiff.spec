@@ -3,7 +3,7 @@
 
 %define name QTjsonDiff
 %define reponame qtjsondiff
-%define version %(echo "$(curl --silent  'https://raw.githubusercontent.com/coozoo/qtjsondiff/master/main.cpp'|grep -oP '(?<=const QString APP_VERSION=\").*(?=\";)')")
+%define version %(echo "$(curl --silent  'https://raw.githubusercontent.com/coozoo/qtjsondiff/master/main.cpp'|grep 'QString APP_VERSION'| tr -d ' '|grep -oP '(?<=constQStringAPP_VERSION=").*(?=\";)')")
 %define build_timestamp %{lua: print(os.date("%Y%m%d"))}
 
 Summary: QT json diff UI viwer

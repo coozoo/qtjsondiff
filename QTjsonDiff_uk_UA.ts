@@ -135,6 +135,17 @@
     </message>
 </context>
 <context>
+    <name>QCoreApplication</name>
+    <message>
+        <source>overwrite application theme style &lt;style&gt;. 
+ Available styles: 
+</source>
+        <translation>форсувати стиль програми &lt;стиль&gt;. 
+ Доступні стилі: 
+</translation>
+    </message>
+</context>
+<context>
     <name>QJsonContainer</name>
     <message>
         <source>Copy Row</source>
@@ -257,6 +268,34 @@ maybe helpful when order does not relevant</source>
         <source>Switch between view modes</source>
         <translation>Перемкнути режим перегляду</translation>
     </message>
+    <message>
+        <source>-&gt;|</source>
+        <translation>-&gt;|</translation>
+    </message>
+    <message>
+        <source>Go to Next Diff</source>
+        <translation>Йти до наступної різниці</translation>
+    </message>
+    <message>
+        <source>|&lt;-</source>
+        <translation>|&lt;-</translation>
+    </message>
+    <message>
+        <source>Go to Previous Diff</source>
+        <translation>Йти до попередньої різниці</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Documents identical!&lt;/font&gt;&lt;/b&gt;</source>
+        <translation>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Документи ідентичні!&lt;/font&gt;&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
+        <translation>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Запустіть порівняння!&lt;/font&gt;&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>Amount of Differences (including recursive objects)</source>
+        <translation>Кількість різниць (число включає рекурсивні елементи)</translation>
+    </message>
 </context>
 <context>
     <name>QJsonDiff</name>
@@ -283,6 +322,28 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Start somparison (ALT+C)</source>
         <translation>Розпочати порівняння (ALT+C)</translation>
+    </message>
+</context>
+<context>
+    <name>QJsonModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Ім&apos;я</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значення</translation>
+    </message>
+</context>
+<context>
+    <name>main</name>
+    <message>
+        <source>style</source>
+        <translation>Стиль</translation>
     </message>
 </context>
 </TS>
