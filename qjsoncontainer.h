@@ -35,6 +35,12 @@ typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
 class JsonSyntaxHighlighter;
 
+inline void swap(QJsonValueRef v1, QJsonValueRef v2)
+{
+    QJsonValue temp(v1);
+    v1 = QJsonValue(v2);
+    v2 = temp;
+}
 
 class QJsonContainer : public QWidget
 {
@@ -80,9 +86,9 @@ public:
     QStringList extractItemTextFromModel(const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
     int currentIndexFinder(QJsonModel *model, const QModelIndex &parent, QList<QModelIndex> *currentFindIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid);
-    //QJsonDocument sortObjectArrays(QJsonDocument data);
-    //QJsonArray sortObjectArraysGrabArray(QJsonArray data);
-    //QJsonObject sortObjectArraysGrabObject(QJsonObject data);
+    QJsonDocument sortObjectArrays(QJsonDocument data);
+    QJsonArray sortObjectArraysGrabArray(QJsonArray data);
+    QJsonObject sortObjectArraysGrabObject(QJsonObject data);
     static int countStringWeight(QString inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
@@ -131,7 +137,7 @@ private slots:
     void on_browse_toolButton_clicked();
     void on_refresh_toolButton_clicked();
     void on_showjson_pushbutton_clicked();
-    //void on_sortObj_toolButton_clicked();
+    void on_sortObj_toolButton_clicked();
     void on_findNext_toolbutton_clicked();
     void on_findPrevious_toolbutton_clicked();
     void on_findCaseSensitivity_toolbutton_clicked();
@@ -152,6 +158,8 @@ protected:
     bool eventFilter(QObject* obj, QEvent *event) override;
 
 };
+
+
 
 
 
