@@ -9,7 +9,7 @@
 #include <QSettings>
 #include <QtDebug>
 
-const QString APP_VERSION="0.55b";
+const QString APP_VERSION = "0.57b";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -19,23 +19,24 @@ void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const Q
     const char *timestamp = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate).toUtf8();
     const char *level = "n/a";
 
-    switch (type) {
-    case QtDebugMsg:
-        level = "DEBUG";
-        break;
-    case QtInfoMsg:
-        level = "INFO";
-        break;
-    case QtWarningMsg:
-        level = "WARNING";
-        break;
-    case QtCriticalMsg:
-        level = "CRITICAL";
-        break;
-    case QtFatalMsg:
-        level = "FATAL";
-        break;
-    }
+    switch (type)
+        {
+        case QtDebugMsg:
+            level = "DEBUG";
+            break;
+        case QtInfoMsg:
+            level = "INFO";
+            break;
+        case QtWarningMsg:
+            level = "WARNING";
+            break;
+        case QtCriticalMsg:
+            level = "CRITICAL";
+            break;
+        case QtFatalMsg:
+            level = "FATAL";
+            break;
+        }
 
     fprintf(stderr, "%s [%s] %s (%s:%u, %s)\n",
             timestamp, level, localMsg.constData(), file, context.line, function);
@@ -108,13 +109,15 @@ int main(int argc, char *argv[])
     // CLI options
     CommandLineParser cliParser;
     CliAppMode appMode = cliParser.parse();
-    if (appMode == Exit) {
-        return 0;
-    }
-    if (appMode == Tree || appMode == Diff) {
-        w.setDisplayMode(cliParser.files());
-    }
-  
+    if (appMode == Exit)
+        {
+            return 0;
+        }
+    if (appMode == Tree || appMode == Diff)
+        {
+            w.setDisplayMode(cliParser.files());
+        }
+
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
     w.show();
 
