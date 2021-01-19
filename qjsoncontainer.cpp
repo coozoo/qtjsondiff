@@ -79,6 +79,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     expandAll_Checkbox->setText(QString(tr("Expand")));
 
     sortObj_toolButton = new QToolButton(toolbar);
+    sortObj_toolButton->setIcon(QIcon(QPixmap(":/images/sort.png")));
     sortObj_toolButton->setText(tr("Sort"));
     sortObj_toolButton->setToolTip(tr("Sort objects inside array\nmaybe helpful when order does not relevant"));
     //sortObj_toolButton->setHidden(true);
