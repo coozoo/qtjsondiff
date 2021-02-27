@@ -31,6 +31,8 @@
 #include <QSsl>
 #include <zlib.h>
 
+#include <QWidgetAction>
+
 typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
 class JsonSyntaxHighlighter;
@@ -52,7 +54,7 @@ public:
     QJsonModel *model;
     QTreeView *treeview;
     QPlainTextEdit *viewjson_plaintext;
-    QCheckBox *expandAll_Checkbox;
+    QAction *expandAll_Checkbox;
     void loadJson(QJsonDocument data);
     void loadJson(QString data);
     QString getJson(QList<QModelIndex> jsonPath);
@@ -67,18 +69,19 @@ public:
     QLineEdit *find_lineEdit;
     QToolButton* browse_toolButton;
     QToolButton* refresh_toolButton;
-    QToolButton* sortObj_toolButton;
+    QAction *sortObj_toolButton;
+    QAction *switchview_action;
     QGridLayout* tools_layout;
     QToolBar *toolbar;
     QWidget *spacer;
     QHBoxLayout *browse_layout;
     void setBrowseVisible(bool state);
     QPushButton *showjson_pushbutton;
-    QToolButton *findNext_toolbutton;
-    QToolButton *findPrevious_toolbutton;
-    QToolButton *findCaseSensitivity_toolbutton;
-    QToolButton *goToNextDiff_toolbutton=nullptr;
-    QToolButton *goToPreviousDiff_toolbutton=nullptr;
+    QAction *findNext_toolbutton;
+    QAction *findPrevious_toolbutton;
+    QAction *findCaseSensitivity_toolbutton;
+    QAction *goToNextDiff_toolbutton=nullptr;
+    QAction *goToPreviousDiff_toolbutton=nullptr;
     QLineEdit *diffAmount_lineEdit=nullptr;
     QList<QModelIndex> fillGotoList(QJsonModel *model, const QModelIndex &parent);
     void reInitModel();
@@ -125,6 +128,7 @@ private:
     QList<QModelIndex> gotoIndexes_list;
     void resetGoto();
     QPalette gotDefaultPalette;
+    QPixmap createPixmapFromText(const QString &text);
 
 signals:
     void sJsonFileLoaded(QString path);

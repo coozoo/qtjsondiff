@@ -8,6 +8,7 @@
 #include "jsonsyntaxhighlighter.h"
 
 #include <QFileIconProvider>
+#include <QLabel>
 
 #include "preferences/preferences.h"
 
@@ -75,15 +76,22 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->setAllowedAreas(Qt::AllToolBarAreas);
 
     qDebug() << "expandAll_Checkbox treeview_groupbox";
-    expandAll_Checkbox = new QCheckBox(toolbar);
+    expandAll_Checkbox = new QAction(toolbar);
+    expandAll_Checkbox->setCheckable(true);
+    expandAll_Checkbox->setIcon(QIcon(QPixmap(":/images/tree_collapsed.png")));
     expandAll_Checkbox->setText(QString(tr("Expand")));
     expandAll_Checkbox->setToolTip(QString(tr("Expand")));
 
-    sortObj_toolButton = new QToolButton(toolbar);
+    sortObj_toolButton = new QAction(toolbar);
     sortObj_toolButton->setIcon(QIcon(QPixmap(":/images/sort.png")));
     sortObj_toolButton->setText(tr("Sort"));
-    sortObj_toolButton->setToolTip(tr("Sort objects inside array\nmaybe helpful when order does not relevant"));
+    sortObj_toolButton->setToolTip(tr("Sort objects inside array\nIt can be helpful for comparison when order does not relevant"));
     //sortObj_toolButton->setHidden(true);
+
+    switchview_action = new QAction(toolbar);
+    switchview_action->setIcon(QIcon(QPixmap(":/images/switch.png")));
+    switchview_action->setText(tr("Switch View"));
+    switchview_action->setToolTip(tr("Switch between tree/text view"));
 
     //showjson_pushbutton = new QPushButton(treeview_groupbox);
     showjson_pushbutton = new QPushButton(this);
@@ -97,36 +105,45 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     find_lineEdit->setPlaceholderText(tr("Serach for..."));
     find_lineEdit->setToolTip(tr("Enter text and press enter to search"));
     find_lineEdit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    findNext_toolbutton = new QToolButton(toolbar);
-    findNext_toolbutton->setText(">>");
+    findNext_toolbutton = new QAction(toolbar);
+    QIcon findNext_icon=QIcon(createPixmapFromText(tr(">>")));
+    findNext_toolbutton->setText(tr("Search Next"));
+    findNext_toolbutton->setIcon(findNext_icon);
     findNext_toolbutton->setToolTip(tr("Find Next"));
-    findPrevious_toolbutton = new QToolButton(toolbar);
-    findPrevious_toolbutton->setText("<<");
+    findPrevious_toolbutton = new QAction(toolbar);
+    QIcon findPrevious_icon=QIcon(createPixmapFromText(tr("<<")));
+    findPrevious_toolbutton->setText("Search Previous");
+    findPrevious_toolbutton->setIcon(findPrevious_icon);
     findPrevious_toolbutton->setToolTip(tr("Find Previous"));
-    findCaseSensitivity_toolbutton = new QToolButton(toolbar);
+    findCaseSensitivity_toolbutton = new QAction(toolbar);
     findCaseSensitivity_toolbutton->setCheckable(true);
+    findCaseSensitivity_toolbutton->setText(tr("Search case sensetive"));
     findCaseSensitivity_toolbutton->setIcon(QIcon(QPixmap(":/images/casesensitivity.png")));
     findCaseSensitivity_toolbutton->setToolTip(tr("Check to make case sensitive"));
 
 
     //findCaseSensitivity_toolbutton->setChecked(true);
     //tools_layout->addWidget(expandAll_Checkbox,0,Qt::AlignLeft);
-    toolbar->addWidget(expandAll_Checkbox);
+    toolbar->addAction(switchview_action);
+    toolbar->addAction(expandAll_Checkbox);
     toolbar->addSeparator();
     toolbar->addWidget(find_lineEdit);
-    toolbar->addWidget(findPrevious_toolbutton);
-    toolbar->addWidget(findNext_toolbutton);
-    toolbar->addWidget(findCaseSensitivity_toolbutton);
+    toolbar->addAction(findPrevious_toolbutton);
+    toolbar->addAction(findNext_toolbutton);
+    toolbar->addAction(findCaseSensitivity_toolbutton);
     toolbar->addSeparator();
 
 
     spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    toolbar->addWidget(sortObj_toolButton);
+    //toolbar->addWidget(sortObj_toolButton);
+    toolbar->addAction(sortObj_toolButton);
     toolbar->addWidget(spacer);
 
+
     tools_layout->addWidget(toolbar, 0, 0);
+    //tools_layout->setMenuBar(toolbar);
 
 
     currentFindText = find_lineEdit->text();
@@ -197,20 +214,24 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     //connect right click(context menu) signal/slot
     connect(treeview, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showContextMenu(const QPoint &)));
     connect(treeview, SIGNAL(expanded(const QModelIndex &)), this, SLOT(on_treeview_item_expanded()));
-    connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
+    //connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
+    connect(expandAll_Checkbox, &QAction::triggered, this,&QJsonContainer::on_expandAll_checkbox_marked);
     connect(browse_toolButton, SIGNAL(clicked()), this, SLOT(on_browse_toolButton_clicked()));
     connect(refresh_toolButton, &QToolButton::clicked, this, &QJsonContainer::on_refresh_toolButton_clicked);
-    connect(sortObj_toolButton, SIGNAL(clicked()), this, SLOT(on_sortObj_toolButton_clicked()));
+    //connect(sortObj_toolButton, SIGNAL(clicked()), this, SLOT(on_sortObj_toolButton_clicked()));
+    connect(sortObj_toolButton,&QAction::triggered,this,&QJsonContainer::on_sortObj_toolButton_clicked);
+    connect(switchview_action,&QAction::triggered,showjson_pushbutton,&QPushButton::click);
     connect(filePath_lineEdit, SIGNAL(returnPressed()), this, SLOT(openJsonFile()));
     connect(showjson_pushbutton, SIGNAL(clicked()), this, SLOT(on_showjson_pushbutton_clicked()));
     connect(find_lineEdit, SIGNAL(returnPressed()), this, SLOT(findText()));
     connect(find_lineEdit, SIGNAL(textChanged(QString)), this, SLOT(on_find_lineEdit_textChanged(QString)));
-    connect(findNext_toolbutton, SIGNAL(clicked()), this, SLOT(on_findNext_toolbutton_clicked()));
-    connect(findPrevious_toolbutton, SIGNAL(clicked()), this, SLOT(on_findPrevious_toolbutton_clicked()));
-    connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
+    //connect(findNext_toolbutton, SIGNAL(clicked()), this, SLOT(on_findNext_toolbutton_clicked()));
+    //connect(findPrevious_toolbutton, SIGNAL(clicked()), this, SLOT(on_findPrevious_toolbutton_clicked()));
+    connect(findNext_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findNext_toolbutton_clicked);
+    connect(findPrevious_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findPrevious_toolbutton_clicked);
+    //connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
+    connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
-
-
 }
 
 QJsonContainer::~QJsonContainer()
@@ -231,11 +252,15 @@ void QJsonContainer::showGoto(bool show)
     //no way to hide :)
     if(show)
     {
-        goToNextDiff_toolbutton=new QToolButton(toolbar);
-        goToNextDiff_toolbutton->setText(tr("->|"));
+        goToNextDiff_toolbutton=new QAction(toolbar);
+        QIcon goToNextDiff_icon=QIcon(createPixmapFromText(tr("->|")));
+        goToNextDiff_toolbutton->setIcon(goToNextDiff_icon);
+        goToNextDiff_toolbutton->setText(tr("Go to Next Diff"));
         goToNextDiff_toolbutton->setToolTip(tr("Go to Next Diff"));
-        goToPreviousDiff_toolbutton=new QToolButton(toolbar);
-        goToPreviousDiff_toolbutton->setText(tr("|<-"));
+        goToPreviousDiff_toolbutton=new QAction(toolbar);
+        QIcon goToPreviousDiff_icon=QIcon(createPixmapFromText(tr("|<-")));
+        goToPreviousDiff_toolbutton->setIcon(goToPreviousDiff_icon);
+        goToPreviousDiff_toolbutton->setText(tr("Go to Previous Diff"));
         goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
         diffAmount_lineEdit=new QLineEdit(toolbar);
         diffAmount_lineEdit->setText("0");
@@ -247,12 +272,24 @@ void QJsonContainer::showGoto(bool show)
         gotDefaultPalette=diffAmount_lineEdit->palette();
         toolbar->addSeparator();
         toolbar->addWidget(diffAmount_lineEdit);
-        toolbar->addWidget(goToPreviousDiff_toolbutton);
-        toolbar->addWidget(goToNextDiff_toolbutton);
+        toolbar->addAction(goToPreviousDiff_toolbutton);
+        toolbar->addAction(goToNextDiff_toolbutton);
         toolbar->addSeparator();
-        connect(goToPreviousDiff_toolbutton,&QToolButton::clicked,this,&QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked);
-        connect(goToNextDiff_toolbutton,&QToolButton::clicked,this,&QJsonContainer::on_GoToNextDiff_toolbutton_clicked);
+        connect(goToPreviousDiff_toolbutton,&QAction::triggered,this,&QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked);
+        connect(goToNextDiff_toolbutton,&QAction::triggered,this,&QJsonContainer::on_GoToNextDiff_toolbutton_clicked);
     }
+}
+
+QPixmap QJsonContainer::createPixmapFromText(const QString &text)
+{
+    QPixmap pix(256,256);
+    pix.fill(Qt::transparent);
+    QPainter painter(&pix);
+    painter.setPen(QPen(Qt::Dense4Pattern,Qt::black));
+    painter.setFont(QFont("Times", 220, QFont::Bold));
+    painter.drawText(QRect(0,0,256, 256),Qt::AlignHCenter, text);
+    painter.end();
+    return pix;
 }
 
 void QJsonContainer::showContextMenu(const QPoint &point)
@@ -721,6 +758,8 @@ void QJsonContainer::on_expandAll_checkbox_marked()
             treeview->resizeColumnToContents(0);
             treeview->resizeColumnToContents(1);
             treeview->resizeColumnToContents(2);
+            expandAll_Checkbox->setIcon(QIcon(QPixmap(":/images/tree_collapsed.png")));
+            expandAll_Checkbox->setToolTip(tr("Collapse"));
             //treeview->setColumnWidth(2,300);
             //treeview->viewport()->setBackgroundRole(QPalette::Dark);
             //qDebug()<<treeview->indexAt(QPoint(50,50)).;
@@ -728,6 +767,8 @@ void QJsonContainer::on_expandAll_checkbox_marked()
     else
         {
             treeview->collapseAll();
+            expandAll_Checkbox->setIcon(QIcon(QPixmap(":/images/tree_expanded.png")));
+            expandAll_Checkbox->setToolTip(tr("Expand"));
         }
 }
 
@@ -1187,20 +1228,21 @@ void QJsonContainer::showJsonButtonPosition()
     {
         case -2:
             qDebug()<<"bottom";
-            if(toolbarbutton)
-            {
-                toolbar->removeAction(toolbarbutton);
-            }
-            showjson_pushbutton->setParent(treeview_groupbox);
-            treeview_layout->addWidget(showjson_pushbutton);
+//            if(toolbarbutton)
+//            {
+//                toolbar->removeAction(toolbarbutton);
+//            }
+//            showjson_pushbutton->setParent(treeview_groupbox);
+//            treeview_layout->addWidget(showjson_pushbutton);
             showjson_pushbutton->show();
             break;
         case -3:
             qDebug()<<"top inline";
-            treeview_layout->removeWidget(showjson_pushbutton);
-            showjson_pushbutton->setParent(toolbar);
-            toolbarbutton=toolbar->addWidget(showjson_pushbutton);
-            showjson_pushbutton->show();
+            //treeview_layout->removeWidget(showjson_pushbutton);
+//            showjson_pushbutton->setParent(toolbar);
+            //toolbarbutton=toolbar->insertWidget(toolbar->actionAt(1,0),showjson_pushbutton);
+//            toolbarbutton=toolbar->addWidget(showjson_pushbutton);
+            showjson_pushbutton->hide();
             break;
         default:
             qDebug()<<"default";
@@ -1357,3 +1399,4 @@ QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelI
 
     return retindex;
 }
+
