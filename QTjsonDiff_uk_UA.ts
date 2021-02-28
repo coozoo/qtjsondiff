@@ -15,6 +15,14 @@
         <source>Wrong count of arguments used. See help:</source>
         <translation>Неправильна кількість аргументів. Дивіться допомогу:</translation>
     </message>
+    <message>
+        <source>overwrite application theme style &lt;style&gt;. 
+ Available styles: 
+</source>
+        <translation>форсувати стиль програми &lt;стиль&gt;. 
+ Доступні стилі: 
+</translation>
+    </message>
 </context>
 <context>
     <name>MainWindow</name>
@@ -119,19 +127,35 @@
     </message>
     <message>
         <source>Show Json Button Position</source>
-        <translation type="vanished">Позиція кнопки Показати JSON</translation>
+        <translation type="obsolete">Позиція кнопки Показати JSON</translation>
     </message>
     <message>
         <source>Bottom</source>
-        <translation>Внизу</translation>
+        <translation type="obsolete">Внизу</translation>
     </message>
     <message>
         <source>Top Inline</source>
-        <translation>Вгорі</translation>
+        <translation type="obsolete">Вгорі</translation>
     </message>
     <message>
         <source>View Button Position</source>
         <translation>Позиція кнопки перегляду</translation>
+    </message>
+    <message>
+        <source>Show Bottom</source>
+        <translation>Показати внизу</translation>
+    </message>
+    <message>
+        <source>showJson_buttonGroup</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Top Inline only</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tabsPosition_buttonGroup</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -140,7 +164,7 @@
         <source>overwrite application theme style &lt;style&gt;. 
  Available styles: 
 </source>
-        <translation>форсувати стиль програми &lt;стиль&gt;. 
+        <translation type="obsolete">форсувати стиль програми &lt;стиль&gt;. 
  Доступні стилі: 
 </translation>
     </message>
@@ -186,7 +210,7 @@
     <message>
         <source>Sort objects inside array
 maybe helpful when order does not relevant</source>
-        <translation>Сортувати об&apos;єкти всередині масиву</translation>
+        <translation type="obsolete">Сортувати об&apos;єкти всередині масиву</translation>
     </message>
     <message>
         <source>Serach for...</source>
@@ -295,6 +319,43 @@ maybe helpful when order does not relevant</source>
     <message>
         <source>Amount of Differences (including recursive objects)</source>
         <translation>Кількість різниць (число включає рекурсивні елементи)</translation>
+    </message>
+    <message>
+        <source>Sort objects inside array
+It can be helpful for comparison when order does not relevant</source>
+        <translation>Сортувати об&apos;єкти всередині масиву. Це може бути корисним для порівняння і коли порядок не має значення</translation>
+    </message>
+    <message>
+        <source>Switch View</source>
+        <translation>Перемкнути режим перегляду</translation>
+    </message>
+    <message>
+        <source>Switch between tree/text view</source>
+        <translation>Перемкнутись між дерево/текст режимами</translation>
+    </message>
+    <message>
+        <source>&gt;&gt;</source>
+        <translation>&gt;&gt;</translation>
+    </message>
+    <message>
+        <source>Search Next</source>
+        <translation>Шукати наступний</translation>
+    </message>
+    <message>
+        <source>&lt;&lt;</source>
+        <translation>&lt;&lt;</translation>
+    </message>
+    <message>
+        <source>Search case sensetive</source>
+        <translation>Пошук чутливий до регістру</translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <translation>Згорнути</translation>
+    </message>
+    <message>
+        <source>Search Previous</source>
+        <translation>Шукати попередній</translation>
     </message>
 </context>
 <context>

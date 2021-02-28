@@ -112,7 +112,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     findNext_toolbutton->setToolTip(tr("Find Next"));
     findPrevious_toolbutton = new QAction(toolbar);
     QIcon findPrevious_icon=QIcon(createPixmapFromText(tr("<<")));
-    findPrevious_toolbutton->setText("Search Previous");
+    findPrevious_toolbutton->setText(tr("Search Previous"));
     findPrevious_toolbutton->setIcon(findPrevious_icon);
     findPrevious_toolbutton->setToolTip(tr("Find Previous"));
     findCaseSensitivity_toolbutton = new QAction(toolbar);
