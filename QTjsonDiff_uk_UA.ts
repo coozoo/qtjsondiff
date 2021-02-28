@@ -318,7 +318,7 @@ maybe helpful when order does not relevant</source>
     </message>
     <message>
         <source>Amount of Differences (including recursive objects)</source>
-        <translation>Кількість різниць (число включає рекурсивні елементи)</translation>
+        <translation type="obsolete">Кількість різниць (число включає рекурсивні елементи)</translation>
     </message>
     <message>
         <source>Sort objects inside array
@@ -356,6 +356,10 @@ It can be helpful for comparison when order does not relevant</source>
     <message>
         <source>Search Previous</source>
         <translation>Шукати попередній</translation>
+    </message>
+    <message>
+        <source>Amount of Differences (without root objects/arrays, means values only)</source>
+        <translation>Кількість відмінностей (без кореневих об&apos;єктів/масивів, тобто тільки значення)</translation>
     </message>
 </context>
 <context>

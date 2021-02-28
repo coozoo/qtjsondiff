@@ -287,10 +287,6 @@
         <translation></translation>
     </message>
     <message>
-        <source>Amount of Differences (including recursive objects)</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>Sort objects inside array
 It can be helpful for comparison when order does not relevant</source>
         <translation></translation>
@@ -325,6 +321,10 @@ It can be helpful for comparison when order does not relevant</source>
     </message>
     <message>
         <source>Search Previous</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Amount of Differences (without root objects/arrays, means values only)</source>
         <translation></translation>
     </message>
 </context>
