@@ -264,7 +264,7 @@ void QJsonContainer::showGoto(bool show)
         goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
         diffAmount_lineEdit=new QLineEdit(toolbar);
         diffAmount_lineEdit->setText("0");
-        diffAmount_lineEdit->setToolTip(tr("Amount of Differences (including recursive objects)"));
+        diffAmount_lineEdit->setToolTip(tr("Amount of Differences (without root objects/arrays, means values only)"));
         diffAmount_lineEdit->setReadOnly(true);
         diffAmount_lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
         diffAmount_lineEdit->setFixedWidth(QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
@@ -1389,7 +1389,7 @@ QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelI
                 {
                     QJsonTreeItem *item=model->itemFromIndex(idx0);
                     DiffColorType bg=item->colorType();
-                    if (bg!=DiffColorType::None && bg!=DiffColorType::Identical)
+                    if (bg!=DiffColorType::None && bg!=DiffColorType::Identical && (item->type()!=QJsonValue::Object && item->type()!=QJsonValue::Array))
                         {
                             retindex << idx0;
                         }
