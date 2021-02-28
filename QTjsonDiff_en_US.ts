@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="en">
+<TS version="2.1" language="en_US">
 <context>
     <name>CommandLineParser</name>
     <message>
@@ -13,6 +13,12 @@
     </message>
     <message>
         <source>Wrong count of arguments used. See help:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>overwrite application theme style &lt;style&gt;. 
+ Available styles: 
+</source>
         <translation></translation>
     </message>
 </context>
@@ -118,24 +124,23 @@
         <translation></translation>
     </message>
     <message>
-        <source>Bottom</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>Top Inline</source>
-        <translation></translation>
-    </message>
-    <message>
         <source>View Button Position</source>
         <translation></translation>
     </message>
-</context>
-<context>
-    <name>QCoreApplication</name>
     <message>
-        <source>overwrite application theme style &lt;style&gt;. 
- Available styles: 
-</source>
+        <source>Show Bottom</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>showJson_buttonGroup</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Top Inline only</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>tabsPosition_buttonGroup</source>
         <translation></translation>
     </message>
 </context>
@@ -175,11 +180,6 @@
     </message>
     <message>
         <source>Sort</source>
-        <translation></translation>
-    </message>
-    <message>
-        <source>Sort objects inside array
-maybe helpful when order does not relevant</source>
         <translation></translation>
     </message>
     <message>
@@ -288,6 +288,43 @@ maybe helpful when order does not relevant</source>
     </message>
     <message>
         <source>Amount of Differences (including recursive objects)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Sort objects inside array
+It can be helpful for comparison when order does not relevant</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Switch View</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Switch between tree/text view</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&gt;&gt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Search Next</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>&lt;&lt;</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Search case sensetive</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Collapse</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Search Previous</source>
         <translation></translation>
     </message>
 </context>

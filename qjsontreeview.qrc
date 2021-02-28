@@ -8,6 +8,10 @@
    <file>images/diff.png</file>
    <file>images/casesensitivity.png</file>
    <file>images/refresh.png</file>
+   <file>images/sort.png</file>
+   <file>images/switch.png</file>
+   <file>images/tree_collapsed.png</file>
+   <file>images/tree_expanded.png</file>
    <file>qss/qjsontreeview.qss</file>
 </qresource>
 </RCC>

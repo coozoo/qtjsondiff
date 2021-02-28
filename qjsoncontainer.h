@@ -31,10 +31,18 @@
 #include <QSsl>
 #include <zlib.h>
 
+#include <QWidgetAction>
+
 typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
 class JsonSyntaxHighlighter;
 
+inline void swap(QJsonValueRef v1, QJsonValueRef v2)
+{
+    QJsonValue temp(v1);
+    v1 = QJsonValue(v2);
+    v2 = temp;
+}
 
 class QJsonContainer : public QWidget
 {
@@ -46,7 +54,7 @@ public:
     QJsonModel *model;
     QTreeView *treeview;
     QPlainTextEdit *viewjson_plaintext;
-    QCheckBox *expandAll_Checkbox;
+    QAction *expandAll_Checkbox;
     void loadJson(QJsonDocument data);
     void loadJson(QString data);
     QString getJson(QList<QModelIndex> jsonPath);
@@ -61,28 +69,29 @@ public:
     QLineEdit *find_lineEdit;
     QToolButton* browse_toolButton;
     QToolButton* refresh_toolButton;
-    QToolButton* sortObj_toolButton;
+    QAction *sortObj_toolButton;
+    QAction *switchview_action;
     QGridLayout* tools_layout;
     QToolBar *toolbar;
     QWidget *spacer;
     QHBoxLayout *browse_layout;
     void setBrowseVisible(bool state);
     QPushButton *showjson_pushbutton;
-    QToolButton *findNext_toolbutton;
-    QToolButton *findPrevious_toolbutton;
-    QToolButton *findCaseSensitivity_toolbutton;
-    QToolButton *goToNextDiff_toolbutton;
-    QToolButton *goToPreviousDiff_toolbutton;
-    QLineEdit *diffAmount_lineEdit;
+    QAction *findNext_toolbutton;
+    QAction *findPrevious_toolbutton;
+    QAction *findCaseSensitivity_toolbutton;
+    QAction *goToNextDiff_toolbutton=nullptr;
+    QAction *goToPreviousDiff_toolbutton=nullptr;
+    QLineEdit *diffAmount_lineEdit=nullptr;
     QList<QModelIndex> fillGotoList(QJsonModel *model, const QModelIndex &parent);
     void reInitModel();
     QStringList extractStringsFromModel(QJsonModel *model, const QModelIndex &parent);
     QStringList extractItemTextFromModel(const QModelIndex &parent);
     QList<QModelIndex> findModelText(QJsonModel *model, const QModelIndex &parent);
     int currentIndexFinder(QJsonModel *model, const QModelIndex &parent, QList<QModelIndex> *currentFindIndexesList, QModelIndex selectedIndex, bool &matchedSelectedIndex, int &indexid);
-    //QJsonDocument sortObjectArrays(QJsonDocument data);
-    //QJsonArray sortObjectArraysGrabArray(QJsonArray data);
-    //QJsonObject sortObjectArraysGrabObject(QJsonObject data);
+    QJsonDocument sortObjectArrays(QJsonDocument data);
+    QJsonArray sortObjectArraysGrabArray(QJsonArray data);
+    QJsonObject sortObjectArraysGrabObject(QJsonObject data);
     static int countStringWeight(QString inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
@@ -119,6 +128,7 @@ private:
     QList<QModelIndex> gotoIndexes_list;
     void resetGoto();
     QPalette gotDefaultPalette;
+    QPixmap createPixmapFromText(const QString &text);
 
 signals:
     void sJsonFileLoaded(QString path);
@@ -131,7 +141,7 @@ private slots:
     void on_browse_toolButton_clicked();
     void on_refresh_toolButton_clicked();
     void on_showjson_pushbutton_clicked();
-    //void on_sortObj_toolButton_clicked();
+    void on_sortObj_toolButton_clicked();
     void on_findNext_toolbutton_clicked();
     void on_findPrevious_toolbutton_clicked();
     void on_findCaseSensitivity_toolbutton_clicked();
@@ -152,6 +162,8 @@ protected:
     bool eventFilter(QObject* obj, QEvent *event) override;
 
 };
+
+
 
 
 

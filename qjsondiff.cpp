@@ -121,10 +121,12 @@ QJsonDiff::~QJsonDiff()
     container_right_groupbox->deleteLater();
     button_groupbox->deleteLater();
     button_layout->deleteLater();
+    common_layout->deleteLater();
     common_groupbox->deleteLater();
     compare_shortcut->deleteLater();
     compare_pushbutton->deleteLater();
     syncScroll_checkbox->deleteLater();
+    useFullPath_checkbox->deleteLater();
 }
 
 void QJsonDiff::reinitLeftModel()

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>585</width>
-    <height>426</height>
+    <width>587</width>
+    <height>428</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -311,7 +311,7 @@
                  <item>
                   <widget class="QRadioButton" name="showjson_bottom_radioButton">
                    <property name="text">
-                    <string>Bottom</string>
+                    <string>Show Bottom</string>
                    </property>
                    <property name="checked">
                     <bool>true</bool>
@@ -324,7 +324,7 @@
                  <item>
                   <widget class="QRadioButton" name="showjson_topInline_radioButton">
                    <property name="text">
-                    <string>Top Inline</string>
+                    <string>Top Inline only</string>
                    </property>
                    <attribute name="buttonGroup">
                     <string notr="true">showJson_buttonGroup</string>
