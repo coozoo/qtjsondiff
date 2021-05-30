@@ -29,6 +29,7 @@ Some features:
     - load json from file, url or copy paste (CTRL+V in treeview mode to paste JSON);
     - search through json text or json model (backward, forward, casesensitivity);
     - compare two jsons with highlightings, sync scrolling, sync item selection (only treeview mode);
+    - sort objects inside arrays;
     - two comparison modes (switched by "Use Full Path" checkbox):
       * follow by full path;
       * try to find child+parent pair anywhere inside JSON (first occurrence).
@@ -148,7 +149,7 @@ Declare pointers:
 
 You need to create some UI elements where you can put those objects.
 
-Create objects and defined their properties:
+Create objects and define their properties:
 ```cpp
     
     // create json treeview and set tab as parent
@@ -173,7 +174,7 @@ That's all pretty simple.
 
 ## Comparison modes
 
-Parent+Child pair - slow but it will find first occurance of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
+Parent+Child pair - slow but it will find first occurrence of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
 
 Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
 

@@ -9,7 +9,7 @@
 #include <QSettings>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.59b";
+const QString APP_VERSION = "0.60b";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {

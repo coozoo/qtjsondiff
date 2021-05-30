@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>804</width>
-    <height>604</height>
+    <width>812</width>
+    <height>612</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -16,13 +16,25 @@
     <height>480</height>
    </size>
   </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>
@@ -30,11 +42,17 @@
        <bool>false</bool>
       </property>
       <widget class="QWidget" name="jsonview_tab">
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
        <attribute name="title">
         <string>Json View</string>
        </attribute>
       </widget>
       <widget class="QWidget" name="compare_tab">
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
        <attribute name="title">
         <string>Compare View</string>
        </attribute>
@@ -48,12 +66,18 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>804</width>
+     <width>812</width>
      <height>24</height>
     </rect>
    </property>
+   <property name="acceptDrops">
+    <bool>false</bool>
+   </property>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
+   <property name="acceptDrops">
+    <bool>false</bool>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
