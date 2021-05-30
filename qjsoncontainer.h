@@ -19,6 +19,7 @@
 #include <QToolTip>
 #include <QToolBar>
 #include <QMenu>
+#include <QLabel>
 #include <QClipboard>
 #include <QApplication>
 
@@ -37,6 +38,10 @@ typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
 class JsonSyntaxHighlighter;
 
+QT_BEGIN_NAMESPACE
+class QMimeData;
+QT_END_NAMESPACE
+
 inline void swap(QJsonValueRef v1, QJsonValueRef v2)
 {
     QJsonValue temp(v1);
@@ -47,6 +52,7 @@ inline void swap(QJsonValueRef v1, QJsonValueRef v2)
 class QJsonContainer : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit QJsonContainer(QWidget *parent=nullptr);
     ~QJsonContainer() override;

@@ -8,7 +8,9 @@
 #include "jsonsyntaxhighlighter.h"
 
 #include <QFileIconProvider>
-#include <QLabel>
+
+#include <QDragEnterEvent>
+#include <QMimeData>
 
 #include "preferences/preferences.h"
 
@@ -141,7 +143,6 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->addAction(sortObj_toolButton);
     toolbar->addWidget(spacer);
 
-
     tools_layout->addWidget(toolbar, 0, 0);
     //tools_layout->setMenuBar(toolbar);
 
@@ -204,8 +205,13 @@ QJsonContainer::QJsonContainer(QWidget *parent):
         }
     treeview->ensurePolished();
     treeview->setContextMenuPolicy(Qt::CustomContextMenu);
-    treeview->installEventFilter(this);
 
+    //some arangments to make drag'n'drop posible
+    treeview->setAcceptDrops(false);
+    viewjson_plaintext->setAcceptDrops(false);
+    treeview_groupbox->setAcceptDrops(true);
+    treeview->installEventFilter(this);
+    treeview_groupbox->installEventFilter(this);
 
     qDebug() << "obj_layout add widget treeview_groupbox";
     obj_layout->addWidget(treeview_groupbox);
@@ -232,6 +238,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     //connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
     connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
+
 }
 
 QJsonContainer::~QJsonContainer()
@@ -1190,6 +1197,54 @@ bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)
                     emit jsonUpdated();
                 }
         }
+    if ( event->type() == QEvent::DragEnter)
+    {
+      QDragEnterEvent *dropEvent = static_cast<QDragEnterEvent*>(event);
+
+      qDebug() << "drag enter";
+      qDebug() << dropEvent->mimeData()->urls();
+      if (dropEvent->mimeData()->hasUrls())
+      {
+          QStringList pathList;
+              QList<QUrl> urlList = dropEvent->mimeData()->urls();
+
+              for (int i = 0; i < urlList.size() && i < 32;++i)
+              {
+                pathList.append(urlList.at(i).toLocalFile());
+              }
+
+          if(pathList.count()>0)
+          {
+            dropEvent->acceptProposedAction();
+            qDebug()<<pathList;
+          }
+
+      }
+    }
+    if ( event->type() == QEvent::Drop)
+    {
+      qDebug() << "drop";
+      QDropEvent *dropEvent = static_cast<QDropEvent*>(event);
+      qDebug() << dropEvent->mimeData()->hasUrls();
+      if (dropEvent->mimeData()->hasUrls())
+      {
+          QStringList pathList;
+              QList<QUrl> urlList = dropEvent->mimeData()->urls();
+
+              for (int i = 0; i < urlList.size() && i < 32;++i)
+              {
+                pathList.append(urlList.at(i).toLocalFile());
+              }
+
+          if(pathList.count()>0)
+          {
+               loadJsonFile(pathList[0]);
+          }
+
+      }
+
+    }
+    qDebug()<<event->type();
     return false;
 }
 
@@ -1399,4 +1454,3 @@ QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelI
 
     return retindex;
 }
-
