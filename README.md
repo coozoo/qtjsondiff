@@ -4,7 +4,7 @@
 
 * [Summary](#summary)
 * [Installation](#installation)
-* [Installation](#build-from-sources)
+* [Build from sources](#build-from-sources)
    * [MAC OS](#mac-os)
    * [Linux](#linux)
    * [Windows](#windows)
