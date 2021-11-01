@@ -3,6 +3,7 @@ name: Release_Version
 on:
   push:
     branches: [ master ]
+# somehow I need to find way to addsteps
 #  pull_request:
 #    branches: [ master ]
 #    tags:
