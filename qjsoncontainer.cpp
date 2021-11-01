@@ -134,6 +134,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->addAction(findNext_toolbutton);
     toolbar->addAction(findCaseSensitivity_toolbutton);
     toolbar->addSeparator();
+    toolbar->setIconSize(QSize(28,28));
 
 
     spacer = new QWidget();
