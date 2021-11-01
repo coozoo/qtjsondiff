@@ -162,7 +162,7 @@ jobs:
           ls -l
           pwd
           set MSYSTEM=MINGW64
-          ROOTMSYS=/d/a/_temp/msys/msys64/mingw64
+          ROOTMSYS=/d/a/_temp/msys64/mingw64
           export PATH=$ROOTMSYS/bin:$PATH
           qmake
           make
@@ -178,7 +178,7 @@ jobs:
         if: matrix.config.os == 'windows-2016'
         run: |
           set MSYSTEM=MINGW32
-          ROOTMSYS=/d/a/_temp/msys/msys64/mingw32
+          ROOTMSYS=/d/a/_temp/msys64/mingw32
           export PATH=$ROOTMSYS/bin:$PATH
           qmake
           make
