@@ -290,12 +290,21 @@ void QJsonContainer::showGoto(bool show)
 
 QPixmap QJsonContainer::createPixmapFromText(const QString &text)
 {
-    QPixmap pix(256,256);
+    //looks stupid? it is stupid!
+    #ifdef Q_OS_WIN
+        QPixmap pix(385,385);
+    #else
+        QPixmap pix(256,256);
+    #endif
     pix.fill(Qt::transparent);
     QPainter painter(&pix);
     painter.setPen(QPen(Qt::Dense4Pattern,Qt::black));
     painter.setFont(QFont("Times", 220, QFont::Bold));
-    painter.drawText(QRect(0,0,256, 256),Qt::AlignHCenter, text);
+    #ifdef Q_OS_WIN
+        painter.drawText(QRect(0,0,385, 385),Qt::AlignHCenter, text);
+    #else
+        painter.drawText(QRect(0,0,256, 256),Qt::AlignHCenter, text);
+    #endif
     painter.end();
     return pix;
 }
