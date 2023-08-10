@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v2
       - name: get app version
         run: |
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
         id: build
       - name: Create release
         id: create_release
