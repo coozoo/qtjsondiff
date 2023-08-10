@@ -37,27 +37,27 @@ jobs:
     strategy:
       matrix:
         config:
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
           - os: macos-latest
           - os: windows-2022
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: get app version
-        if: matrix.config.os == 'ubuntu-18.04'
+        if: matrix.config.os == 'ubuntu-latest'
         run: |
           echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
         id: build
       - name: add qt repo to linux
-        if: matrix.config.os == 'ubuntu-18.04'
+        if: matrix.config.os == 'ubuntu-latest'
         run: |
           sudo add-apt-repository ppa:beineri/opt-qt-5.12.0-bionic -y
           sudo apt-get update -qq
       - name: install qt into linux
-        if: matrix.config.os == 'ubuntu-18.04'
+        if: matrix.config.os == 'ubuntu-latest'
         run:  sudo apt-get -y install qt512base qt512tools libgl1-mesa-dev
       - name: build on linux
-        if: matrix.config.os == 'ubuntu-18.04'
+        if: matrix.config.os == 'ubuntu-latest'
         run: |
           source /opt/qt*/bin/qt*-env.sh || true
           echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
@@ -75,7 +75,7 @@ jobs:
           cp ./Qt_JSON_diff*.AppImage ./Qt_JSON_diff.AppImage
           ls -l
       - name: Upload Release Asset Linux AppImage
-        if: matrix.config.os == 'ubuntu-18.04'
+        if: matrix.config.os == 'ubuntu-latest'
         id: upload-release-asset-linux-appimage
         uses: actions/upload-release-asset@v1
         env:
