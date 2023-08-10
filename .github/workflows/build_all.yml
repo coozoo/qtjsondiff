@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v2
       - name: get app version
         run: |
-          echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
         id: build
       - name: Create release
         id: create_release
@@ -46,7 +46,7 @@ jobs:
       - name: get app version
         if: matrix.config.os == 'ubuntu-20.04'
         run: |
-          echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
         id: build
       - name: add qt repo to linux
         if: matrix.config.os == 'ubuntu-20.04'
@@ -60,7 +60,7 @@ jobs:
         if: matrix.config.os == 'ubuntu-20.04'
         run: |
           source /opt/qt*/bin/qt*-env.sh || true
-          echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
           qmake CONFIG+=release PREFIX=/usr
           make -j$(nproc)
           mkdir -p appdir/usr/bin
@@ -88,7 +88,7 @@ jobs:
       - name: get app version
         if: matrix.config.os == 'macos-latest'
         run: |
-          echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
         id: buildosx
       - name: install qt OSX
         if: matrix.config.os == 'macos-latest'
@@ -121,7 +121,7 @@ jobs:
           asset_name: QTjsonDiff_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           asset_content_type: application/zip
       - name: Setup MSYS2 env
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         uses: msys2/setup-msys2@v2
         with:
           # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
@@ -151,13 +151,13 @@ jobs:
             openssl-devel
           shell: msys2 {0}
       - name: get app version
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         run: |
-          echo "::set-output name=VER_TAG_NAME::$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"  >> $GITHUB_OUTPUT
         shell: msys2 {0}
         id: buildwin
       - name: make 64 win app
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         run: |
           ls -l
           pwd
@@ -175,7 +175,7 @@ jobs:
           ls -l
         shell: msys2 {0}
       - name: make 32 win app
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         run: |
           set MSYSTEM=MINGW32
           ROOTMSYS=/d/a/_temp/msys64/mingw32
@@ -189,7 +189,7 @@ jobs:
           mv release QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32; 7z -tzip a QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32.zip ./QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32/
         shell: msys2 {0}
       - name: Upload Release Asset Win64
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         id: upload-release-asset-win64
         uses: actions/upload-release-asset@v1
         env:
@@ -200,7 +200,7 @@ jobs:
           asset_name: QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_content_type: application/zip
       - name: Upload Release Asset Win32
-        if: matrix.config.os == 'windows-2016'
+        if: matrix.config.os == 'windows-2022'
         id: upload-release-asset-win32
         uses: actions/upload-release-asset@v1
         env:
