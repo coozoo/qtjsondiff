@@ -616,9 +616,17 @@ void QJsonContainer::on_showjson_pushbutton_clicked()
 
 void QJsonContainer::on_browse_toolButton_clicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Files (*.json *.jsn *.txt);;All Files (*)"));
-    filePath_lineEdit->setText(fileName);
-    openJsonFile();
+    QString dialogTitle = tr("Open File");
+    QString dialogFilter = tr("Files (*.json *.jsn *.txt);;All Files (*)");
+    QString dialogDir = "";
+    if (!filePath_lineEdit->text().isEmpty()) {
+        dialogDir = filePath_lineEdit->text();
+    }
+    QString fileName = QFileDialog::getOpenFileName(this, dialogTitle, dialogDir, dialogFilter);
+    if (!fileName.isEmpty()) {
+        filePath_lineEdit->setText(fileName);
+        openJsonFile();
+    }
 
 }
 
