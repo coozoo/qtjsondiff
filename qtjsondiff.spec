@@ -45,10 +45,11 @@ of json file, url or simply copy-paste. And some more features.
 %global debug_package %{nil}
 
 %prep
-#copr build
-#%setup -q -n %{name}-%{version}
-#local build
-%setup -q -n %{reponame}-master
+%if 0%{?fedora}
+    %setup -q -n %{reponame}-main
+%else
+    %setup -q -n %{name}-%{version}
+%endif
 
 %build
 # don't know maybe it's stupid me but lrelease in qt looks like runs after make file generation as result automatic file list inside qmake doesn't work
