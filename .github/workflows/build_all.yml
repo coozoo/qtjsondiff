@@ -99,7 +99,7 @@ jobs:
       - name: Upload package to Launchpad PPA
         if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         run: |
-          dput ppa:coozoo/qtrfpowermeter ../${{ steps.launchpadid.outputs.CHANGES_NAME }}
+          dput ppa:coozoo/qtjsondiff ../${{ steps.launchpadid.outputs.CHANGES_NAME }}
       - name: build on linux
         if: matrix.config.os == 'ubuntu-22.04'
         id: buildlinux
