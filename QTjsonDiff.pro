@@ -9,10 +9,10 @@ QT       += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = QTjsonDiff
-TRANSLATIONS = QTjsonDiff_en_US.ts QTjsonDiff_uk_UA.ts
+TRANSLATIONS = ./translations/$${TARGET}_en_US.ts ./translations/$${TARGET}_uk_UA.ts
 TEMPLATE = app
 
-CONFIG += c++11
+CONFIG += c++17
 CONFIG += openssl-linked
 CONFIG += lrelease
 # do not show qDebug() messages in release builds
@@ -54,10 +54,10 @@ RESOURCES += \
 
 binary.files += $$TARGET
 binary.path = /usr/bin
-translations.files += $$files(.qm/*.qm,true)
+translations.files += ./translations/$$files(*.qm/*.qm,true)
 translations.path = /usr/share/$$TARGET
 icon.files +=diff.png
-icon.path += /usr/share/icons
+icon.path += /usr/share/icons/hicolor/scalable/apps
 desktop.files += qtjsondiff.desktop
 desktop.path += /usr/share/applications/
 INSTALLS += binary translations icon desktop
