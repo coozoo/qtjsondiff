@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
         {
             translations.append(dir.absolutePath() + "/" + a.applicationName());
         }
-    translations.append(QStandardPaths::standardLocations(QStandardPaths::DataLocation));
+    translations.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
     translations.append(QCoreApplication::applicationDirPath());
     translations.append(a.applicationDirPath() + "/.qm");
     translations.append(a.applicationDirPath() + "/lang");
