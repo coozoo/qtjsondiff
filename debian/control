@@ -1,4 +1,4 @@
-Source: QTjsonDiff
+Source: qtjsondiff
 Section: devel
 Priority: optional
 Maintainer: Yuriy Kuzin <yuriykuzin@yahoo.com>
@@ -6,9 +6,9 @@ Build-Depends: debhelper (>= 9), qt6-base-dev, libqt6opengl6-dev, qt6-tools-dev,
 Standards-Version: 3.9.8
 Homepage: https://github.com/coozoo/qtjsondiff
 
-Package: QTjsonDiff
+Package: qtjsondiff
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libqt6core6, libqt6gui6, libqt6widgets6, libqt6opengl6, libgl1-mesa-dev, libssl3
 Description: Diff viewer for Json with compare possibility (based on tree like json container/viewer widget).
- Icons: images/QTjsonDiff.svg
+ Icons: images/QTjsonDiff.png
  
