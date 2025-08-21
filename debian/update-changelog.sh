@@ -12,7 +12,7 @@ DISTRO=$(lsb_release -sc)
 DATEVER=$(date +'%Y%m%d%H%M')
 
 # 3. Format changelog entry (Debian-compliant)
-CHANGELOG_ENTRY="QTjsonDiff (${VERSION}-$DATEVER) ${DISTRO}; urgency=low
+CHANGELOG_ENTRY="qtjsondiff (${VERSION}-$DATEVER) ${DISTRO}; urgency=low
 
   * Automated update: version from source, commit ${COMMIT_HASH}, author ${AUTHOR}
 
