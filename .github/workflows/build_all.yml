@@ -122,7 +122,7 @@ jobs:
           mkdir -p appdir/usr/share/icons/
           cp diff.png appdir/usr/share/icons/
           mkdir -p appdir/usr/share/applications/
-          cp ${{ steps.build.outputs.APP_NAME }}.desktop appdir/usr/share/applications/
+          cp *.desktop appdir/usr/share/applications/
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -qmake=$(command -v qmake6)
