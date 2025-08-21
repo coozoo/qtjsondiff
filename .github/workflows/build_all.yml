@@ -2,7 +2,7 @@ name: Release_Version
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 # somehow I need to find way to addsteps
 #  pull_request:
 #    branches: [ master ]
@@ -10,118 +10,195 @@ on:
 #      - "v*"
 
 jobs:
+  check-skip:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check commit message
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[skip ci]"* ]]; then
+            echo "Skipping workflow"
+            exit 1
+          fi
   create_release:
     name: Create release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
       - name: get app version
         run: |
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
       - name: Create release
+        if: github.ref == 'refs/heads/main'
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.build.outputs.VER_TAG_NAME }}_${{ github.ref }}
-          release_name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
+          name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build_release:
     name: Build release
     needs: create_release
     runs-on: ${{ matrix.config.os }}
     strategy:
+      fail-fast: false
       matrix:
         config:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
           - os: macos-latest
-          - os: windows-2019
+          - os: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: get app version
-        if: matrix.config.os == 'ubuntu-20.04'
+        if: matrix.config.os == 'ubuntu-22.04'
         run: |
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
       - name: add qt repo to linux
-        if: matrix.config.os == 'ubuntu-20.04'
+        if: matrix.config.os == 'ubuntu-22.04'
         run: |
-          sudo add-apt-repository ppa:beineri/opt-qt-5.12.9-focal -y
           sudo apt-get update -qq
+#         sudo add-apt-repository ppa:beineri/opt-qt-5.15.4-focal -y
       - name: install qt into linux
-        if: matrix.config.os == 'ubuntu-20.04'
-        run:  sudo apt-get -y install qt512base qt512tools libgl1-mesa-dev
-      - name: build on linux
-        if: matrix.config.os == 'ubuntu-20.04'
+        if: matrix.config.os == 'ubuntu-22.04'
+        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev libfuse2
+      - name: Set up GPG
+        if: matrix.config.os == 'ubuntu-22.04'
         run: |
-          source /opt/qt*/bin/qt*-env.sh || true
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
-          qmake CONFIG+=release PREFIX=/usr
+          echo "${{ secrets.LAUNCHPAD_GPG_KEY }}" | gpg --batch --import
+          echo "${{ secrets.LAUNCHPAD_GPG_KEY_ID }}:6:" | gpg --import-ownertrust
+      - name: Setup SSH for Launchpad
+        if: matrix.config.os == 'ubuntu-22.04'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LAUNCHPAD_SSH_KEY }}" > ~/.ssh/launchpad-ci_id_rsa
+          chmod 600 ~/.ssh/launchpad-ci_id_rsa
+          ssh-keyscan -t rsa git.launchpad.net >> ~/.ssh/known_hosts
+      - name: Update changelog
+        if: matrix.config.os == 'ubuntu-22.04'
+        run: bash debian/update-changelog.sh
+      - name: Prep launchpad
+        if: matrix.config.os == 'ubuntu-22.04'
+        env:
+          GPG_KEY_ID: ${{ secrets.LAUNCHPAD_GPG_KEY_ID }}
+        id: launchpadid
+        run: |
+          dpkg-buildpackage -k"$GPG_KEY_ID" -S -sa
+          echo "CHANGES_NAME=$(ls ../*.changes | head -1 | xargs -n 1 basename)" >> $GITHUB_OUTPUT
+      - name: Upload package to Launchpad PPA
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
+        run: |
+          dput ppa:coozoo/qtjsondiff ../${{ steps.launchpadid.outputs.CHANGES_NAME }}
+      - name: build on linux
+        if: matrix.config.os == 'ubuntu-22.04'
+        id: buildlinux
+        run: |
+          # source /opt/qt*/bin/qt*-env.sh || true
+          dpkg-buildpackage -us -uc
+          cp ../*.deb ./
+          echo "DEB_PACK_NAME=$(ls *.deb|head -1|xargs -n 1 basename)" >> $GITHUB_OUTPUT
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
+          qmake6 CONFIG+=release PREFIX=/usr
           make -j$(nproc)
+          # lrelease $(ls *.pro)
+          LRELEASE_BIN=$(dpkg -L qt6-l10n-tools | grep '/lrelease$' | head -n1)
+          "$LRELEASE_BIN"  $(ls *.pro)
           mkdir -p appdir/usr/bin
-          cp QTjsonDiff appdir/usr/bin/QTjsonDiff
+          ls -lR
+          cp translations/*.qm appdir/usr/bin/
+          cp ${{ steps.build.outputs.APP_NAME }} appdir/usr/bin/${{ steps.build.outputs.APP_NAME }}
           mkdir -p appdir/usr/share/icons/
           cp diff.png appdir/usr/share/icons/
           mkdir -p appdir/usr/share/applications/
-          cp qtjsondiff.desktop appdir/usr/share/applications/
+          cp ${{ steps.build.outputs.APP_NAME }}.desktop appdir/usr/share/applications/
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-          ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage
-          cp ./Qt_JSON_diff*.AppImage ./Qt_JSON_diff.AppImage
+          ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -qmake=$(command -v qmake6)
+          ls -l
+          cp ./${{ steps.build.outputs.APP_NAME }}*.AppImage ./${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
           ls -l
       - name: Upload Release Asset Linux AppImage
-        if: matrix.config.os == 'ubuntu-20.04'
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         id: upload-release-asset-linux-appimage
-        uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./Qt_JSON_diff.AppImage
-          asset_name: Qt_JSON_diff-x86_64.AppImage
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
+          asset_name: ${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
+          asset_content_type: application/octet-stream
+      - name: Upload deb to release
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
+        id: upload-release-asset-linux-deb
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
+          asset_name: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_content_type: application/octet-stream
       - name: get app version
         if: matrix.config.os == 'macos-latest'
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: buildosx
       - name: install qt OSX
         if: matrix.config.os == 'macos-latest'
-        run: brew install qt5
+        run: brew install qt
       - name: buid OSX
         if: matrix.config.os == 'macos-latest'
         run: |
+          echo 'export PATH="$(brew --prefix qt)/bin:$PATH"' >> /Users/runner/.zshrc
+          echo 'export PATH="/Users/runner/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
           chmod 777 MAC_build_RELEASE.sh
           ./MAC_build_RELEASE.sh
+          ls -l
+          ZIP_NAME="$(ls ${{ steps.buildosx.outputs.APP_NAME }}_*.zip | head -n1)"
+          DMG_NAME="$(ls ${{ steps.buildosx.outputs.APP_NAME }}_*.dmg | head -n1)"
+          echo "zip found: $ZIP_NAME"
+          echo "dmg found: $DMG_NAME"
+          echo "MAC_ZIP_NAME=$ZIP_NAME" >> $GITHUB_OUTPUT
+          echo "MAC_DMG_NAME=$DMG_NAME" >> $GITHUB_OUTPUT
+        id: bundleosx
       - name: Upload Release Asset dmg
         if: matrix.config.os == 'macos-latest'
         id: upload-release-asset-dmg
-        uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./QTjsonDiff_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
-          asset_name: QTjsonDiff_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
+          upload_url: ${{ needs.create_release.outputs.upload_url }} 
+          asset_path: ./${{ steps.bundleosx.outputs.MAC_DMG_NAME }}
+          asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
           asset_content_type: application/octet-stream
       - name: Upload Release Asset zip
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && github.ref == 'refs/heads/main'
         id: upload-release-asset-zip
-        uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./QTjsonDiff_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
-          asset_name: QTjsonDiff_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
+          asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           asset_content_type: application/zip
       - name: Setup MSYS2 env
-        if: matrix.config.os == 'windows-2019'
+        if: matrix.config.os == 'windows-latest'
         uses: msys2/setup-msys2@v2
         with:
           # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
@@ -139,10 +216,11 @@ jobs:
             git
             p7zip
             ruby
-            mingw-w64-x86_64-qt5
-            mingw-w64-i686-qt5
+            mingw-w64-x86_64-qt6
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-tools
             mingw-w64-i686-toolchain
-            mingw-w64-i686-qwt-qt5
+            mingw-w64-x86_64-qwt-qt6
             mingw-w64-x86_64-zlib
             mingw-w64-i686-zlib
             zlib-devel
@@ -152,68 +230,42 @@ jobs:
             tar
           shell: msys2 {0}
       - name: get app version
-        if: matrix.config.os == 'windows-2019'
+        if: matrix.config.os == 'windows-latest'
         run: |
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')"  >> $GITHUB_OUTPUT
+          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT          
         shell: msys2 {0}
         id: buildwin
       - name: make 64 win app
-        if: matrix.config.os == 'windows-2019'
+        if: matrix.config.os == 'windows-latest'
         run: |
           ls -l
           pwd
           set MSYSTEM=MINGW64
           ROOTMSYS=/d/a/_temp/msys64/mingw64
           export PATH=$ROOTMSYS/bin:$PATH
-          qmake
-          make
+          ls -l $ROOTMSYS/bin | grep qmake || echo "qmake not found"
+          $ROOTMSYS/bin/qmake-qt6 --version || echo "qmake failed to run"
+          qmake-qt6
+          make -j$(nproc)
           rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h
-          windeployqt.exe release/QTjsonDiff.exe
-          #looks like windeployqt fails to copy all qt libs so lets do that manually
-          cp $ROOTMSYS/bin/Qt5Core.dll release/;cp $ROOTMSYS/bin/Qt5Gui.dll release/;cp $ROOTMSYS/bin/Qt5Network.dll release/;cp $ROOTMSYS/bin/Qt5Widgets.dll release/;
-          ls -l $ROOTMSYS/bin/
-          # cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libicuin6*.dll release/; cp $ROOTMSYS/bin/libicuuc6*.dll release/; cp $ROOTMSYS/bin/libicudt6*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/
-          cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libicuin*.dll release/; cp $ROOTMSYS/bin/libicuuc*.dll release/; cp $ROOTMSYS/bin/libmd4c.dll release/; cp $ROOTMSYS/bin/libicudt*.dll release/;
-          cp $ROOTMSYS/bin/libcrypto*.dll release/; cp $ROOTMSYS/bin/libssl*.dll release/
-          mv release QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64; 7z -tzip a QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip ./QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64/
+          windeployqt6.exe release/${{ steps.buildwin.outputs.APP_NAME }}.exe
+          ls -l $ROOTMSYS/bin
+          cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libicuin*.dll release/; cp $ROOTMSYS/bin/libicuuc*.dll release/; cp $ROOTMSYS/bin/libicudt*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libb*.dll release/; cp $ROOTMSYS/bin/libdouble-conversion.dll release/; cp $ROOTMSYS/bin/libgcc_s_seh*.dll release/
+          cp $ROOTMSYS/bin/libcrypto*.dll release/; cp $ROOTMSYS/bin/libssl*.dll release/; cp $ROOTMSYS/bin/libmd4c.dll release/
+          mv release ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64; 7z -tzip a ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64/
           make clean
           ls -l
         shell: msys2 {0}
-      - name: make 32 win app
-        if: matrix.config.os == 'windows-2019'
-        run: |
-          set MSYSTEM=MINGW32
-          ROOTMSYS=/d/a/_temp/msys64/mingw32
-          export PATH=$ROOTMSYS/bin:$PATH
-          qmake
-          make
-          rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h;
-          windeployqt.exe release/QTjsonDiff.exe
-          cp $ROOTMSYS/bin/Qt5Core.dll release/;cp $ROOTMSYS/bin/Qt5Gui.dll release/;cp $ROOTMSYS/bin/Qt5Network.dll release/;cp $ROOTMSYS/bin/Qt5Widgets.dll release/;
-          # cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libicuin6*.dll release/; cp $ROOTMSYS/bin/libicuuc6*.dll release/; cp $ROOTMSYS/bin/libicudt6*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/;
-          cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libicuin*.dll release/; cp $ROOTMSYS/bin/libicuuc*.dll release/; cp $ROOTMSYS/bin/libmd4c.dll release/; cp $ROOTMSYS/bin/libicudt*.dll release/;
-          cp $ROOTMSYS/bin/libcrypto*.dll release/; cp $ROOTMSYS/bin/libssl*.dll release/
-          mv release QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32; 7z -tzip a QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32.zip ./QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32/
-        shell: msys2 {0}
       - name: Upload Release Asset Win64
-        if: matrix.config.os == 'windows-2019'
+        if: matrix.config.os == 'windows-latest' && github.ref == 'refs/heads/main'
         id: upload-release-asset-win64
-        uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
-          asset_name: QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
+          asset_name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_content_type: application/zip
-      - name: Upload Release Asset Win32
-        if: matrix.config.os == 'windows-2019'
-        id: upload-release-asset-win32
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32.zip
-          asset_name: QTjsonDiff_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN32.zip
-          asset_content_type: application/zip
+

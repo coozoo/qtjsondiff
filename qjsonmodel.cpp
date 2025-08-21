@@ -30,6 +30,7 @@
 #include <QJsonObject>
 #include <QIcon>
 #include <QFont>
+#include <algorithm>
 
 QJsonModel::QJsonModel(QObject *parent) :
     QAbstractItemModel(parent)
@@ -130,7 +131,7 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
 
     QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
 
-    if (role == Qt::BackgroundColorRole)
+    if (role == Qt::BackgroundRole)
     {
         if(item->colorType() == DiffColorType::None)
         {
@@ -282,7 +283,10 @@ QList<QModelIndex> QJsonModel::parents(QModelIndex &index) const
 QList<QModelIndex> QJsonModel::jsonIndexPath(QModelIndex &index) const
 {
     QList<QModelIndex> parents=this->parents(index);
-    for(int k = 0; k < (parents.size()/2); k++) parents.swap(k,parents.size()-(1+k));
+    for (int k = 0; k < (parents.size() / 2); ++k)
+    {
+        std::swap(parents[k], parents[parents.size() - 1 - k]);
+    }
     QJsonTreeItem *current_item = static_cast<QJsonTreeItem*>(index.internalPointer());
     parents.append(createIndex(current_item->row(), 0, current_item));
     return parents;
