@@ -10,7 +10,7 @@ Summary: QT json diff UI viwer
 Name: %{name}
 Version: %{version}
 Release: %{build_timestamp}%{?dist}
-Obsoletes: QTjsonDiff
+Obsoletes: QTjsonDiff < 99999
 Source0: https://github.com/coozoo/qtjsondiff/archive/main.zip#/%{name}-%{version}-%{release}.tar.gz
 
 
