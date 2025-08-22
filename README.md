@@ -57,7 +57,7 @@ Precompiled RPMs (**Fedora**, **RHEL**, **Centos**, **OpenSuse**) can be found i
 
 ```bash
 $ sudo dnf copr enable yura/QTjsonDiff
-$ sudo dnf install QTjsonDiff
+$ sudo dnf install qtjsondiff
 
 ```
 
@@ -79,7 +79,7 @@ If you prefer to compile it by yourself then see below.
 
 ## Build from sources
 
-You should have preinstalled QT5 (version 5.12 if you want to use older one you need to modify few lines).
+You should have preinstalled Qt6 (it can be build with latest Qt5).
 Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something).
 
 ### MAC OS
@@ -108,7 +108,7 @@ You can build it with QTcreator or execute commands:
 ```bash
 $ git clone https://github.com/coozoo/qtjsondiff
 $ cd qtjsondiff
-$ qmake-qt5 # or it can be simply qmake
+$ qmake6 # or it can be simply qmake
 $ make
 $ make install #if you wish to do that
 ```
@@ -116,7 +116,7 @@ $ make install #if you wish to do that
 
 ### Windows
 
-Qt5 should be installed.
+Qt6 should be installed.
 
 git clone https://github.com/coozoo/qtjsondiff
 
