@@ -127,7 +127,7 @@ jobs:
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -qmake=$(command -v qmake6)
           ls -l
-          cp ./${{ steps.build.outputs.APP_NAME }}*.AppImage ./${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
+          cp ./Qt_JSON_diff*.AppImage ./Qt_JSON_diff-x86_64.AppImage
           ls -l
       - name: Upload Release Asset Linux AppImage
         if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
@@ -137,8 +137,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
-          asset_name: ${{ steps.build.outputs.APP_NAME }}-x86_64.AppImage
+          asset_path: ./Qt_JSON_diff-x86_64.AppImage
+          asset_name: Qt_JSON_diff-x86_64.AppImage
           asset_content_type: application/octet-stream
       - name: Upload deb to release
         if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
