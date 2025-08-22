@@ -8,7 +8,7 @@ QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = QTjsonDiff
+TARGET = qtjsondiff
 TRANSLATIONS = ./translations/$${TARGET}_en_US.ts ./translations/$${TARGET}_uk_UA.ts
 TEMPLATE = app
 
@@ -56,7 +56,7 @@ binary.files += $$TARGET
 binary.path = /usr/bin
 translations.files += ./translations/$$files(*.qm/*.qm,true)
 translations.path = /usr/share/$$TARGET
-icon.files += images/diff.png
+icon.files += images/qtjsondiff.png
 icon.path += /usr/share/icons/hicolor/scalable/apps
 desktop.files += $${TARGET}.desktop
 desktop.path += /usr/share/applications/

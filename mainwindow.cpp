@@ -12,10 +12,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->tabWidget->setCurrentIndex(P->activeTabIndex);
-    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(P->tabsPosition));
+    ui->tabWidget->setCurrentIndex(PREF_INST->activeTabIndex);
+    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(PREF_INST->tabsPosition));
     //ui->tabWidget->setTabPosition(QTabWidget::TabPosition::East);
-    ui->openLast_action->setChecked(P->restoreOnStart);
+    ui->openLast_action->setChecked(PREF_INST->restoreOnStart);
     //hide statusbar I'm not using it :)
     ui->statusBar->hide();
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
@@ -42,8 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
             loadLastPaths();
         }
 
-    restoreGeometry(P->mainWindowGeometry);
-    restoreState(P->mainWindowState);
+    restoreGeometry(PREF_INST->mainWindowGeometry);
+    restoreState(PREF_INST->mainWindowState);
 }
 
 MainWindow::~MainWindow()
@@ -66,31 +66,31 @@ void MainWindow::setDisplayMode(const QStringList &files) {
 void MainWindow::containerFileLoaded(const QString &path)
 {
     qDebug() << "Container got new file: " << path;
-    P->jsonContainerPath = path;
+    PREF_INST->jsonContainerPath = path;
 }
 
 void MainWindow::differLeftFileLoaded(const QString &path)
 {
     qDebug() << "Differ left container got new file: " << path;
-    P->differLeftPath = path;
+    PREF_INST->differLeftPath = path;
 }
 
 void MainWindow::differRightFileLoaded(const QString &path)
 {
     qDebug() << "Differ right container got new file: " << path;
-    P->differRightPath = path;
+    PREF_INST->differRightPath = path;
 }
 
 void MainWindow::loadLastPaths()
 {
-    differ->loadLeftJsonFile(P->differLeftPath);
-    differ->loadRightJsonFile(P->differRightPath);
-    messageJsonCont->loadJsonFile(P->jsonContainerPath);
+    differ->loadLeftJsonFile(PREF_INST->differLeftPath);
+    differ->loadRightJsonFile(PREF_INST->differRightPath);
+    messageJsonCont->loadJsonFile(PREF_INST->jsonContainerPath);
 }
 
 void MainWindow::openLast_action_toggled(bool state)
 {
-    P->restoreOnStart = state;
+    PREF_INST->restoreOnStart = state;
     if (state)
         {
             loadLastPaths();
@@ -100,11 +100,11 @@ void MainWindow::openLast_action_toggled(bool state)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    P->activeTabIndex = ui->tabWidget->currentIndex();
-    P->mainWindowGeometry = saveGeometry();
-    P->mainWindowState = saveState();
+    PREF_INST->activeTabIndex = ui->tabWidget->currentIndex();
+    PREF_INST->mainWindowGeometry = saveGeometry();
+    PREF_INST->mainWindowState = saveState();
 
-    P->save();
+    PREF_INST->save();
 
     QMainWindow::closeEvent(event);
 }
@@ -113,7 +113,7 @@ void MainWindow::actionPreferences_triggered()
 {
     PreferencesDialog d;
     d.exec();
-    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(P->tabsPosition));
+    ui->tabWidget->setTabPosition(static_cast<QTabWidget::TabPosition>(PREF_INST->tabsPosition));
     messageJsonCont->showJsonButtonPosition();
     differ->showJsonButtonPosition();
 }

@@ -128,7 +128,7 @@ QString QJsonTreeItem::toolTip() const
  */
 QColor QJsonTreeItem::color() const
 {
-    return P->diffColor(mColorType);
+    return PREF_INST->diffColor(mColorType);
 }
 
 QJsonValue::Type QJsonTreeItem::type() const

@@ -33,12 +33,12 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
 
 
 
-    m_colorMap[ui->hugeDiffPushButton] = &P->hugeDiffColor;
-    m_colorMap[ui->identicalDiffPushButton] = &P->identicalDiffColor;
-    m_colorMap[ui->moderateDiffPushButton] = &P->moderateDiffColor;
-    m_colorMap[ui->notPresentDiffButton] = &P->notPresentDiffColor;
-    m_colorMap[ui->keyWordPushButton] = &P->syntaxKeywordColor;
-    m_colorMap[ui->jsonKeysPushButton] = &P->syntaxValueColor;
+    m_colorMap[ui->hugeDiffPushButton] = &PREF_INST->hugeDiffColor;
+    m_colorMap[ui->identicalDiffPushButton] = &PREF_INST->identicalDiffColor;
+    m_colorMap[ui->moderateDiffPushButton] = &PREF_INST->moderateDiffColor;
+    m_colorMap[ui->notPresentDiffButton] = &PREF_INST->notPresentDiffColor;
+    m_colorMap[ui->keyWordPushButton] = &PREF_INST->syntaxKeywordColor;
+    m_colorMap[ui->jsonKeysPushButton] = &PREF_INST->syntaxValueColor;
 
     QMap<QPushButton*, QColor*>::iterator i = m_colorMap.begin();
     while (i != m_colorMap.end()) {
@@ -48,26 +48,26 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
         ++i;
     }
 
-    ui->alphaSpinBox->setValue(P->diffColorsAlpha);
+    ui->alphaSpinBox->setValue(PREF_INST->diffColorsAlpha);
 
     //QTabWidget enums starts from zero, defult radiobox group enum -2
-    if(ui->tabsPosition_buttonGroup->button((P->tabsPosition)*(-1)-2))
+    if(ui->tabsPosition_buttonGroup->button((PREF_INST->tabsPosition)*(-1)-2))
     {
-        ui->tabsPosition_buttonGroup->button((P->tabsPosition)*(-1)-2)->setChecked(true);
+        ui->tabsPosition_buttonGroup->button((PREF_INST->tabsPosition)*(-1)-2)->setChecked(true);
     }
     else
     {
-        P->tabsPosition=0;
+        PREF_INST->tabsPosition=0;
         ui->tabsPosition_buttonGroup->button(-2)->setChecked(true);
     }
 
-    if(ui->showJson_buttonGroup->button(P->showJsonButtonPosition))
+    if(ui->showJson_buttonGroup->button(PREF_INST->showJsonButtonPosition))
     {
-        ui->showJson_buttonGroup->button(P->showJsonButtonPosition)->setChecked(true);
+        ui->showJson_buttonGroup->button(PREF_INST->showJsonButtonPosition)->setChecked(true);
     }
     else
     {
-        P->showJsonButtonPosition=-2;
+        PREF_INST->showJsonButtonPosition=-2;
         ui->showJson_buttonGroup->button(-2)->setChecked(true);
     }
 }
@@ -103,14 +103,14 @@ void PreferencesDialog::openColorDialog()
 
 void PreferencesDialog::alphaSpinBox_valueChanged(int val)
 {
-    P->diffColorsAlpha = val;
+    PREF_INST->diffColorsAlpha = val;
 }
 
 void PreferencesDialog::restoreDefaultsPushButton_clicked()
 {
-    P->restoreDefaults();
+    PREF_INST->restoreDefaults();
 
-    ui->alphaSpinBox->setValue(P->diffColorsAlpha);
+    ui->alphaSpinBox->setValue(PREF_INST->diffColorsAlpha);
 
     QMap<QPushButton*, QColor*>::iterator i = m_colorMap.begin();
     while (i != m_colorMap.end()) {
@@ -121,10 +121,10 @@ void PreferencesDialog::restoreDefaultsPushButton_clicked()
 
 void PreferencesDialog::on_tabpos_button_clicked(int id)
 {
-       P->tabsPosition=id*-1-2;
+       PREF_INST->tabsPosition=id*-1-2;
 }
 
 void PreferencesDialog::on_showJsonButtonPosition_clicked(int id)
 {
-       P->showJsonButtonPosition=id;
+       PREF_INST->showJsonButtonPosition=id;
 }

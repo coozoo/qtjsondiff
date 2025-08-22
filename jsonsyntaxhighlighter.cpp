@@ -17,14 +17,14 @@ JsonSyntaxHighlighter::JsonSyntaxHighlighter(QTextDocument *parent)
         highlightingRules.append(rule);
     }
 
-    jsonKeyFormat.setForeground(P->syntaxKeywordColor);
+    jsonKeyFormat.setForeground(PREF_INST->syntaxKeywordColor);
     jsonKeyFormat.setFontWeight(QFont::Bold);
 
     rule.pattern = QRegularExpression("\".*\"(?=:)");
     rule.format = jsonKeyFormat;
     highlightingRules.append(rule);
 
-    jsonValueKeywordFormat.setForeground(P->syntaxValueColor);
+    jsonValueKeywordFormat.setForeground(PREF_INST->syntaxValueColor);
 
     rule.pattern = QRegularExpression("(?= ?)true|false|null(?= +|,)");
     rule.format = jsonValueKeywordFormat;

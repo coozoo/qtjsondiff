@@ -72,7 +72,7 @@ jobs:
 #         sudo add-apt-repository ppa:beineri/opt-qt-5.15.4-focal -y
       - name: install qt into linux
         if: matrix.config.os == 'ubuntu-22.04'
-        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev libfuse2
+        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev zlib1g-dev libfuse2
       - name: Set up GPG
         if: matrix.config.os == 'ubuntu-22.04'
         run: |
@@ -120,7 +120,7 @@ jobs:
           cp translations/*.qm appdir/usr/bin/
           cp ${{ steps.build.outputs.APP_NAME }} appdir/usr/bin/${{ steps.build.outputs.APP_NAME }}
           mkdir -p appdir/usr/share/icons/
-          cp diff.png appdir/usr/share/icons/
+          cp qtjsondiff.png appdir/usr/share/icons/
           mkdir -p appdir/usr/share/applications/
           cp *.desktop appdir/usr/share/applications/
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"

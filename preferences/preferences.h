@@ -5,7 +5,7 @@
 #include <QColor>
 #include <QTabWidget>
 
-#define P Preferences::Instance()
+#define PREF_INST Preferences::Instance()
 
 enum DiffColorType
 {

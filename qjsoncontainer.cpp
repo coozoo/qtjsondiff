@@ -1297,7 +1297,7 @@ void QJsonContainer::showJsonButtonPosition()
 {
     //-2 bottom
     //-3 top inline
-    switch (P->showJsonButtonPosition)
+    switch (PREF_INST->showJsonButtonPosition)
     {
         case -2:
             qDebug()<<"bottom";
@@ -1431,14 +1431,14 @@ void QJsonContainer::diffAmountUpdate()
     if(gotoIndexes_list.count()>0)
     {
         QPalette palette;
-        palette.setColor(QPalette::Base,P->diffColor(DiffColorType::Huge));
+        palette.setColor(QPalette::Base,PREF_INST->diffColor(DiffColorType::Huge));
         diffAmount_lineEdit->setPalette(palette);
         diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
     }
     else if(gotoIndexes_list.count()==0 && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
     {
         QPalette palette;
-        palette.setColor(QPalette::Base,P->diffColor(DiffColorType::Identical));
+        palette.setColor(QPalette::Base,PREF_INST->diffColor(DiffColorType::Identical));
         diffAmount_lineEdit->setPalette(palette);
         diffAmount_lineEdit->setText("0");
     }

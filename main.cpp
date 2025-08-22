@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     a.setProperty("appname", "QT JSON Diff");
 
 #ifdef Q_OS_LINUX
-    a.setWindowIcon(QIcon(":/images/diff.png"));
+    a.setWindowIcon(QIcon(":/images/qtjsondiff.png"));
 #endif
 
     QString settingsDir = "";

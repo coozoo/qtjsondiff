@@ -9,6 +9,6 @@ override_dh_auto_configure:
 override_dh_auto_install:
 	dh_auto_install
 	# Create the directory structure for installing the icon file
-	install -d $(CURDIR)/debian/QTjsonDiff/usr/share/icons/hicolor/scalable/apps/
+	install -d $(CURDIR)/debian/qtjsondiff/usr/share/icons/hicolor/scalable/apps/
 	# Copy the icon file to the appropriate directory in the package
-	install -m 644 $(CURDIR)/images/QTjsonDiff.png $(CURDIR)/debian/QTjsonDiff/usr/share/icons/hicolor/scalable/apps/QTjsonDiff.png
+	install -m 644 $(CURDIR)/images/qtjsondiff.png $(CURDIR)/debian/qtjsondiff/usr/share/icons/hicolor/scalable/apps/qtjsondiff.png
