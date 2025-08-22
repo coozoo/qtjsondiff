@@ -56,13 +56,23 @@ JSON Compare View
 Precompiled RPMs (**Fedora**, **RHEL**, **Centos**, **OpenSuse**) can be found in COPR:
 
 ```bash
-$ sudo dnf copr enable yura/QTjsonDiff
-$ sudo dnf install qtjsondiff
+sudo dnf copr enable yura/QTjsonDiff
+sudo dnf install qtjsondiff
 
 ```
 
 [<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/)
 
+
+Precompiled deb
+
+You need to add repo use commands below:
+
+```bash
+sudo add-apt-repository ppa:coozoo/qtjsondiff
+sudo apt update
+sudo apt-get install qtjsondiff
+```
 
 **Debian**, **Ubuntu** and **some other Linux distros** may try precompiled and packed packages by linuxdeployqt available on releases page to use them don't forget install fuse system and make downloaded file executable.
 
