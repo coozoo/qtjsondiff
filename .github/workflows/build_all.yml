@@ -11,6 +11,7 @@ on:
 #    branches: [ master ]
 #    tags:
 #      - "v*"
+run-name: ${{ github.ref_name == 'main' && 'Release_Version' || 'Develop_Version' }}
 
 jobs:
   check-skip:
