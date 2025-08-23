@@ -5,13 +5,15 @@ on:
     branches: 
       - main
       - slave
+  pull_request:
+    branches: [ slave ]
 
 #  pull_request:
-#    branches: [ master ]
+#    branches: [ slave ]
 #    tags:
 #      - "v*"
 
-run-name: "${{ github.ref_name }} - ${{ github.event.head_commit.message }}"
+# run-name: "${{ github.ref_name }} - ${{ github.event.head_commit.message }}"
 
 jobs:
   check-skip:
