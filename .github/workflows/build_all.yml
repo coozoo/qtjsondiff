@@ -246,7 +246,6 @@ jobs:
             mingw-w64-i686-openssl
             openssl-devel
             tar
-          shell: msys2 {0}
       - name: get app version
         if: matrix.config.os == 'windows-latest'
         run: |
