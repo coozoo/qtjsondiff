@@ -290,21 +290,24 @@ void QJsonContainer::showGoto(bool show)
 
 QPixmap QJsonContainer::createPixmapFromText(const QString &text)
 {
-    //looks stupid? it is stupid!
-    #ifdef Q_OS_WIN
-        QPixmap pix(385,385);
-    #else
-        QPixmap pix(256,256);
-    #endif
+    int iconSize = toolbar->iconSize().width();
+    QPixmap pix(iconSize, iconSize);
     pix.fill(Qt::transparent);
     QPainter painter(&pix);
+
+    QFont font("Times", iconSize / 2, QFont::Bold);
+    painter.setFont(font);
+
+    QRect rect = pix.rect();
+    QFontMetrics fm(font);
+    while (fm.horizontalAdvance(text) > iconSize - 4 && font.pointSize() > 1) {
+        font.setPointSize(font.pointSize() - 1);
+        painter.setFont(font);
+        fm = QFontMetrics(font);
+    }
+
     painter.setPen(QPen(Qt::Dense4Pattern,Qt::black));
-    painter.setFont(QFont("Times", 220, QFont::Bold));
-    #ifdef Q_OS_WIN
-        painter.drawText(QRect(0,0,385, 385),Qt::AlignHCenter, text);
-    #else
-        painter.drawText(QRect(0,0,256, 256),Qt::AlignHCenter, text);
-    #endif
+    painter.drawText(rect, Qt::AlignCenter, text);
     painter.end();
     return pix;
 }

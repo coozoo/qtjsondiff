@@ -291,7 +291,7 @@ jobs:
         if: matrix.config.os == 'windows-latest' && github.ref != 'refs/heads/main'
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }_WIN64.zip
+          name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           overwrite: true
 
