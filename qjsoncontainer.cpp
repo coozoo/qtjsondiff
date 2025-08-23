@@ -882,10 +882,8 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1, const QJsonValue &v2)
     return true;
 }
 //sort array
-//need to apply patch to qt https://codereview.qt-project.org/#/c/108352/
 QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 {
-    int arrayId=0;
     QJsonArray resultData;
     if(data.at(0).isObject())
         {
@@ -905,17 +903,13 @@ QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 
         }
     resultData=data;
-    arrayId=0;
-    foreach (const QJsonValue & value, resultData)
-        {
-            if (value.isObject())
-                {
-                    //qDebug() << "Object" << value.toString();
-                    resultData.removeAt(arrayId);
-                    resultData.insert(arrayId,sortObjectArraysGrabObject(value.toObject()));
-                }
-
-            arrayId++;
+        for (int arrayId = 0; arrayId < resultData.size(); ++arrayId) {
+            const QJsonValue &value = resultData[arrayId];
+            if (value.isObject()) {
+                // qDebug() << "Object" << value.toString();
+                resultData.removeAt(arrayId);
+                resultData.insert(arrayId, sortObjectArraysGrabObject(value.toObject()));
+            }
         }
     //qDebug()<<resultData;
     return resultData;
@@ -992,7 +986,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
                 {
                 case Z_NEED_DICT:
                     ret = Z_DATA_ERROR;     // and fall through
-                    [[clang::fallthrough]];
+                    [[fallthrough]];
                 case Z_DATA_ERROR:
                 case Z_MEM_ERROR:
                     (void)inflateEnd(&strm);
