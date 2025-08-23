@@ -1435,12 +1435,18 @@ void QJsonContainer::diffAmountUpdate()
         diffAmount_lineEdit->setPalette(palette);
         diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
     }
-    else if(gotoIndexes_list.count()==0 && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
+    else if(gotoIndexes_list.count()==0)
     {
-        QPalette palette;
-        palette.setColor(QPalette::Base,PREF_INST->diffColor(DiffColorType::Identical));
-        diffAmount_lineEdit->setPalette(palette);
-        diffAmount_lineEdit->setText("0");
+        QJsonTreeItem* item = model->itemFromIndex(model->index(0,0));
+        if (item && item->colorType() != DiffColorType::None) {
+            QPalette palette;
+            palette.setColor(QPalette::Base, PREF_INST->diffColor(DiffColorType::Identical));
+            diffAmount_lineEdit->setPalette(palette);
+            diffAmount_lineEdit->setText("0");
+        } else {
+            diffAmount_lineEdit->setPalette(gotDefaultPalette);
+            diffAmount_lineEdit->setText("0");
+        }
     }
     else
     {
