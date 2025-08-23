@@ -306,7 +306,7 @@ QPixmap QJsonContainer::createPixmapFromText(const QString &text)
         fm = QFontMetrics(font);
     }
 
-    painter.setPen(QPen(Qt::Dense4Pattern,Qt::black));
+    painter.setPen(QPen(Qt::black));
     painter.drawText(rect, Qt::AlignCenter, text);
     painter.end();
     return pix;
