@@ -92,7 +92,7 @@ jobs:
         if: matrix.config.os == 'ubuntu-22.04'
         run: bash debian/update-changelog.sh
       - name: Prep launchpad
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         env:
           GPG_KEY_ID: ${{ secrets.LAUNCHPAD_GPG_KEY_ID }}
         id: launchpadid
@@ -186,7 +186,7 @@ jobs:
           echo "MAC_DMG_NAME=$DMG_NAME" >> $GITHUB_OUTPUT
         id: bundleosx
       - name: Upload Release Asset dmg
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && github.ref == 'refs/heads/main'
         id: upload-release-asset-dmg
         uses: shogo82148/actions-upload-release-asset@v1
         env:
