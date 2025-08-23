@@ -92,9 +92,7 @@ void PreferencesDialog::openColorDialog()
 
     QColorDialog dia(*c);
     if (dia.exec()) {
-        QString name(dia.selectedColor().name());
-        c->setNamedColor(name);
-
+        *c = dia.selectedColor();
         setupButton(b, *c);
     }
 }
