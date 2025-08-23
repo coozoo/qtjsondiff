@@ -18,6 +18,8 @@ CONFIG += lrelease
 # do not show qDebug() messages in release builds
 CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
+QMAKE_CXXFLAGS += -Wno-implicit-fallthrough
+
 SOURCES += main.cpp\
     commandlineparser.cpp \
     jsonsyntaxhighlighter.cpp \

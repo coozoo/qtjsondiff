@@ -90,7 +90,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::reinitRightModel);
     connect(right_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitLeftModel()));
     connect(left_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitRightModel()));
-    connect(useFullPath_checkbox,&QCheckBox::stateChanged,this,&QJsonDiff::on_useFullPath_checkbox_stateChanged);
+    connect(useFullPath_checkbox, &QCheckBox::checkStateChanged, this, &QJsonDiff::on_useFullPath_checkbox_checkStateChanged);
     /*//good but not enough for this case
     connect(left_cont->getTreeView()->verticalScrollBar(), SIGNAL(valueChanged(int)),
             right_cont->getTreeView()->verticalScrollBar(), SLOT(setValue(int)));
@@ -682,36 +682,42 @@ void QJsonDiff::compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndex
         }
 }
 
-void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
+void QJsonDiff::on_useFullPath_checkbox_checkStateChanged(Qt::CheckState)
 {
+    qDebug()<<"on_useFullPath_checkbox_checkStateChanged";
     reinitLeftModel();
 }
 
 // load json file
 void QJsonDiff::loadRightJsonFile(const QString &target)
 {
+    qDebug()<<"loadRightJsonFile";
     emit sLoadRightJsonFile(target);
 }
 
 // load json file
 void QJsonDiff::loadLeftJsonFile(const QString &target)
 {
+    qDebug()<<"loadLeftJsonFile";
     emit sLoadLeftJsonFile(target);
 }
 
 //emit signal whn new file or url loaded
 void QJsonDiff::rightJsonFileLoaded(const QString &path)
 {
+    qDebug()<<"rightJsonFileLoaded";
     emit sRightJsonFileLoaded(path);
 }
 //emit signal whn new file or url loaded
 void QJsonDiff::leftJsonFileLoaded(const QString &path)
 {
+    qDebug()<<"leftJsonFileLoaded";
     emit sLeftJsonFileLoaded(path);
 }
 
 void QJsonDiff::showJsonButtonPosition()
 {
+    qDebug()<<"showJsonButtonPosition";
     left_cont->showJsonButtonPosition();
     right_cont->showJsonButtonPosition();
 }

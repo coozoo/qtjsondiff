@@ -209,7 +209,7 @@ QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* paren
     {
         //Get all QJsonValue childs
         int index = 0;
-        foreach (QJsonValue v , value.toArray()){
+        for (const QJsonValue &v : value.toArray()){
 
             QJsonTreeItem * child = load(v,rootItem);
             child->setKey(QString::number(index));
