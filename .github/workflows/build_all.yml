@@ -6,12 +6,12 @@ on:
       - main
       - slave
 
-# somehow I need to find way to addsteps
 #  pull_request:
 #    branches: [ master ]
 #    tags:
 #      - "v*"
-run-name: ${{ github.ref_name == 'main' && 'Release_Version' || 'Develop_Version' }}
+
+run-name: "${{ github.ref_name }} - ${{ github.event.head_commit.message }}"
 
 jobs:
   check-skip:
