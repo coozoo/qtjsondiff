@@ -136,6 +136,9 @@ private:
     QPalette gotDefaultPalette;
     QPixmap createPixmapFromText(const QString &text);
 
+    QString lastErrorMessage;
+    bool modelHasError = false;
+
 signals:
     void sJsonFileLoaded(QString path);
     void jsonUpdated();

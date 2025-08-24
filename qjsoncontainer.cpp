@@ -613,6 +613,13 @@ void QJsonContainer::on_showjson_pushbutton_clicked()
             viewjson_plaintext->setVisible(true);
             treeview->setVisible(false);
             showjson_pushbutton->setText(tr("Show Json View"));
+            if (model->hasParseError()) {
+                int errorOffset = model->lastErrorOffset();
+                QTextCursor cursor = viewjson_plaintext->textCursor();
+                cursor.setPosition(errorOffset);
+                viewjson_plaintext->setTextCursor(cursor);
+                viewjson_plaintext->setFocus();
+            }
         }
     emit jsonUpdated();
 }
@@ -668,16 +675,22 @@ void QJsonContainer::openJsonFile()
 void QJsonContainer::loadJson(QJsonDocument data)
 {
     QString datastr = data.toJson();
-    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(datastr.toUtf8())).toJson(QJsonDocument::Indented));
-    model->loadJson(datastr.toUtf8());
-    on_expandAll_checkbox_marked();
-    //treeview->setColumnWidth(2,300);
+    loadJson(datastr);
 }
 
 void QJsonContainer::loadJson(QString data)
 {
-    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(data.toUtf8())).toJson(QJsonDocument::Indented));
     model->loadJson(data.toUtf8());
+    if (model->hasParseError()) {
+        // Do not update text view if error
+        QTimer::singleShot(100, [this]() {
+        QToolTip::showText(this->mapToGlobal(QPoint(0,0)),
+                               tr("<b><font color='red'>JSON parse error:</font></b> ") + model->lastErrorMessage(),
+                               this, QRect(100, 200, 11, 16), 3000);
+        });
+        return;
+    }
+    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(data.toUtf8())).toJson(QJsonDocument::Indented));
     on_expandAll_checkbox_marked();
     //treeview->setColumnWidth(2,300);
 }
