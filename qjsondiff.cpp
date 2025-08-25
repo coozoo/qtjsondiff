@@ -194,7 +194,7 @@ void QJsonDiff::loadJsonLeft(QJsonDocument data)
     left_cont->loadJson(data);
 }
 
-void QJsonDiff::loadJsonLeft(QString data)
+void QJsonDiff::loadJsonLeft(const QString &data)
 {
     left_cont->loadJson(data);
 }
@@ -204,7 +204,7 @@ void QJsonDiff::loadJsonRight(QJsonDocument data)
     right_cont->loadJson(data);
 }
 
-void QJsonDiff::loadJsonRight(QString data)
+void QJsonDiff::loadJsonRight(const QString& data)
 {
     right_cont->loadJson(data);
 }
