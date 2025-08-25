@@ -2,12 +2,18 @@ name: Release_Version
 
 on:
   push:
-    branches: [ main ]
-# somehow I need to find way to addsteps
+    branches: 
+      - main
+      - slave
+  pull_request:
+    branches: [ slave ]
+
 #  pull_request:
-#    branches: [ master ]
+#    branches: [ slave ]
 #    tags:
 #      - "v*"
+
+# run-name: "${{ github.ref_name }} - ${{ github.event.head_commit.message }}"
 
 jobs:
   check-skip:
@@ -89,7 +95,7 @@ jobs:
         if: matrix.config.os == 'ubuntu-22.04'
         run: bash debian/update-changelog.sh
       - name: Prep launchpad
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         env:
           GPG_KEY_ID: ${{ secrets.LAUNCHPAD_GPG_KEY_ID }}
         id: launchpadid
@@ -151,6 +157,13 @@ jobs:
           asset_path: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_name: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_content_type: application/octet-stream
+      - name: Archive code coverage results
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: Qt_JSON_diff-x86_64.AppImage
+          path: ./Qt_JSON_diff-x86_64.AppImage
+          overwrite: true
       - name: get app version
         if: matrix.config.os == 'macos-latest'
         run: |
@@ -176,7 +189,7 @@ jobs:
           echo "MAC_DMG_NAME=$DMG_NAME" >> $GITHUB_OUTPUT
         id: bundleosx
       - name: Upload Release Asset dmg
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && github.ref == 'refs/heads/main'
         id: upload-release-asset-dmg
         uses: shogo82148/actions-upload-release-asset@v1
         env:
@@ -197,6 +210,13 @@ jobs:
           asset_path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
           asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           asset_content_type: application/zip
+      - name: Archive code coverage results
+        if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
+          path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
+          overwrite: true
       - name: Setup MSYS2 env
         if: matrix.config.os == 'windows-latest'
         uses: msys2/setup-msys2@v2
@@ -228,7 +248,6 @@ jobs:
             mingw-w64-i686-openssl
             openssl-devel
             tar
-          shell: msys2 {0}
       - name: get app version
         if: matrix.config.os == 'windows-latest'
         run: |
@@ -268,4 +287,11 @@ jobs:
           asset_path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_content_type: application/zip
+      - name: Archive code coverage results
+        if: matrix.config.os == 'windows-latest' && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
+          path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
+          overwrite: true
 

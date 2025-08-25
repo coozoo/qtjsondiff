@@ -23,10 +23,8 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
             this, SLOT(alphaSpinBox_valueChanged(int)));
     connect(ui->restoreDefaultsPushButton, &QPushButton::clicked,
             this, &PreferencesDialog::restoreDefaultsPushButton_clicked);
-    connect(ui->tabsPosition_buttonGroup,SIGNAL(buttonClicked(int)),
-            this,SLOT(on_tabpos_button_clicked(int)));
-    connect(ui->showJson_buttonGroup,SIGNAL(buttonClicked(int)),
-            this,SLOT(on_showJsonButtonPosition_clicked(int)));
+    connect(ui->tabsPosition_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::on_tabpos_button_clicked);
+    connect(ui->showJson_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::on_showJsonButtonPosition_clicked);
 
     ui->listWidget->setCurrentRow(0);
 
@@ -94,9 +92,7 @@ void PreferencesDialog::openColorDialog()
 
     QColorDialog dia(*c);
     if (dia.exec()) {
-        QString name(dia.selectedColor().name());
-        c->setNamedColor(name);
-
+        *c = dia.selectedColor();
         setupButton(b, *c);
     }
 }
@@ -119,12 +115,16 @@ void PreferencesDialog::restoreDefaultsPushButton_clicked()
     }
 }
 
-void PreferencesDialog::on_tabpos_button_clicked(int id)
+void PreferencesDialog::on_tabpos_button_clicked(QAbstractButton* button)
 {
+       int id = ui->tabsPosition_buttonGroup->id(button);
        PREF_INST->tabsPosition=id*-1-2;
+       PREF_INST->save();
 }
 
-void PreferencesDialog::on_showJsonButtonPosition_clicked(int id)
+void PreferencesDialog::on_showJsonButtonPosition_clicked(QAbstractButton* button)
 {
+       int id = ui->showJson_buttonGroup->id(button);
        PREF_INST->showJsonButtonPosition=id;
+       PREF_INST->save();
 }

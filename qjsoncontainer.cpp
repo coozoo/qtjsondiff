@@ -14,6 +14,9 @@
 
 #include "preferences/preferences.h"
 
+static const QRect kTooltipRect(100, 200, 11, 16);
+static const int kTooltipDuration = 3000;
+
 QJsonContainer::QJsonContainer(QWidget *parent):
     QWidget(parent)
 {
@@ -24,6 +27,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     copyRow = myMenu.addAction(tr("Copy Row"));
     copyRows = myMenu.addAction(tr("Copy Rows"));
     copyPath = myMenu.addAction(tr("Copy Path"));
+    copyJqPath = myMenu.addAction(tr("Copy jq Path"));
     copyJsonPlainText = myMenu.addAction(tr("Copy Plain Json"));
     copyJsonPrettyText = myMenu.addAction(tr("Copy Pretty Json"));
     copyJsonByPath = myMenu.addAction(tr("Copy Selected Json Value"));
@@ -290,21 +294,24 @@ void QJsonContainer::showGoto(bool show)
 
 QPixmap QJsonContainer::createPixmapFromText(const QString &text)
 {
-    //looks stupid? it is stupid!
-    #ifdef Q_OS_WIN
-        QPixmap pix(385,385);
-    #else
-        QPixmap pix(256,256);
-    #endif
+    int iconSize = toolbar->iconSize().width();
+    QPixmap pix(iconSize, iconSize);
     pix.fill(Qt::transparent);
     QPainter painter(&pix);
-    painter.setPen(QPen(Qt::Dense4Pattern,Qt::black));
-    painter.setFont(QFont("Times", 220, QFont::Bold));
-    #ifdef Q_OS_WIN
-        painter.drawText(QRect(0,0,385, 385),Qt::AlignHCenter, text);
-    #else
-        painter.drawText(QRect(0,0,256, 256),Qt::AlignHCenter, text);
-    #endif
+
+    QFont font("Times", iconSize / 2, QFont::Bold);
+    painter.setFont(font);
+
+    QRect rect = pix.rect();
+    QFontMetrics fm(font);
+    while (fm.horizontalAdvance(text) > iconSize - 4 && font.pointSize() > 1) {
+        font.setPointSize(font.pointSize() - 1);
+        painter.setFont(font);
+        fm = QFontMetrics(font);
+    }
+
+    painter.setPen(QPen(Qt::black));
+    painter.drawText(rect, Qt::AlignCenter, text);
     painter.end();
     return pix;
 }
@@ -357,6 +364,13 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                 {
                     QModelIndex idx = treeview->indexAt(point);
                     QString string = model->jsonPath(idx);
+                    qDebug() << string;
+                    clip->setText(string);
+                }
+            else if (selectedItem == copyJqPath)
+                {
+                    QModelIndex idx = treeview->indexAt(point);
+                    QString string = this->JsonPathToJq(model->jsonPath(idx));
                     qDebug() << string;
                     clip->setText(string);
                 }
@@ -443,6 +457,38 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                 }
 
         }
+}
+
+QString QJsonContainer::JsonPathToJq(const QString& qtPath) const
+{
+    QString jqPath = ".";
+    QStringList parts = qtPath.split("->");
+    QString prevType;
+    QRegularExpression validKey("^[A-Za-z_][A-Za-z0-9_]*$");
+
+    for (const QString& part : parts)
+    {
+        int p = part.indexOf('(');
+        QString key = p > 0 ? part.left(p) : part;
+        QString type = p > 0 ? part.mid(p + 1, part.size() - p - 2) : "";
+
+        if (key == "root" || key.isEmpty()) { prevType = type; continue; }
+
+        bool isInt = false;
+        int idx = key.toInt(&isInt);
+
+        if (prevType == "Array" && isInt && key == QString::number(idx)) {
+            jqPath += "[" + key + "]";
+        }
+        else if (validKey.match(key).hasMatch()) {
+            jqPath += (jqPath == "." ? "" : ".") + key;
+        }
+        else {
+            jqPath += "[\"" + key + "\"]";
+        }
+        prevType = type;
+    }
+    return "'" + jqPath + "'";
 }
 
 
@@ -573,7 +619,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
     else if (currentFindIndexesList.count() > 0 && (currentFindIndexId == currentFindIndexesList.count() - 1 || currentFindIndexId == 0))
         {
             QRect widgetRect = treeview->visualRect(currentFindIndexesList[currentFindIndexId]);
-            QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!direction) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!direction) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, kTooltipRect, kTooltipDuration);
             currentFindIndexId = -1;
         }
     else if (((currentFindIndexesList.count() > 0 && currentFindIndexId == -1) || (currentFindIndexId > currentFindIndexesList.count() - 1)) && !direction)
@@ -583,7 +629,7 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
     if (currentFindIndexesList.count() == 0)
         {
             QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=red>Text Not Found!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=red>Text Not Found!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
         }
     if (currentFindIndexId >= 0)
         {
@@ -610,6 +656,13 @@ void QJsonContainer::on_showjson_pushbutton_clicked()
             viewjson_plaintext->setVisible(true);
             treeview->setVisible(false);
             showjson_pushbutton->setText(tr("Show Json View"));
+            if (model->hasParseError()) {
+                int errorOffset = model->lastErrorOffset();
+                QTextCursor cursor = viewjson_plaintext->textCursor();
+                cursor.setPosition(errorOffset);
+                viewjson_plaintext->setTextCursor(cursor);
+                viewjson_plaintext->setFocus();
+            }
         }
     emit jsonUpdated();
 }
@@ -665,19 +718,26 @@ void QJsonContainer::openJsonFile()
 void QJsonContainer::loadJson(QJsonDocument data)
 {
     QString datastr = data.toJson();
-    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(datastr.toUtf8())).toJson(QJsonDocument::Indented));
-    model->loadJson(datastr.toUtf8());
-    on_expandAll_checkbox_marked();
-    //treeview->setColumnWidth(2,300);
+    loadJson(datastr);
 }
 
-void QJsonContainer::loadJson(QString data)
+void QJsonContainer::loadJson(const QString& data)
 {
-    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(data.toUtf8())).toJson(QJsonDocument::Indented));
-    model->loadJson(data.toUtf8());
+    QByteArray utf8Data = data.toUtf8();
+    model->loadJson(utf8Data);
+    if (model->hasParseError()) {
+        // Do not update text view if error
+        QTimer::singleShot(100, [this]() {
+            QToolTip::showText(this->mapToGlobal(QPoint(0,0)),
+                               tr("<b><font color='red'>JSON parse error:</font></b> ") + model->lastErrorMessage(),
+                               this, kTooltipRect, kTooltipDuration);
+        });
+        return;
+    }
+    viewjson_plaintext->setPlainText((QJsonDocument::fromJson(utf8Data)).toJson(QJsonDocument::Indented));
     on_expandAll_checkbox_marked();
-    //treeview->setColumnWidth(2,300);
 }
+
 
 QString QJsonContainer::getJson(QList<QModelIndex> jsonPath)
 {
@@ -850,7 +910,7 @@ QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
 //Count "weight of string" or it's rather some kind of hashcode
 //from my point of view it's almost unique and possible to recognize identical string
 //"weight of string"="sum charachters code numbers" * "string length"
-int QJsonContainer::countStringWeight(QString inStr)
+int QJsonContainer::countStringWeight(const QString& inStr)
 {
     int total = 0;
     for (int i = 0; i <= inStr.length() - 1; i++)
@@ -879,10 +939,8 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1, const QJsonValue &v2)
     return true;
 }
 //sort array
-//need to apply patch to qt https://codereview.qt-project.org/#/c/108352/
 QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 {
-    int arrayId=0;
     QJsonArray resultData;
     if(data.at(0).isObject())
         {
@@ -902,17 +960,13 @@ QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 
         }
     resultData=data;
-    arrayId=0;
-    foreach (const QJsonValue & value, resultData)
-        {
-            if (value.isObject())
-                {
-                    //qDebug() << "Object" << value.toString();
-                    resultData.removeAt(arrayId);
-                    resultData.insert(arrayId,sortObjectArraysGrabObject(value.toObject()));
-                }
-
-            arrayId++;
+        for (int arrayId = 0; arrayId < resultData.size(); ++arrayId) {
+            const QJsonValue &value = resultData[arrayId];
+            if (value.isObject()) {
+                // qDebug() << "Object" << value.toString();
+                resultData.removeAt(arrayId);
+                resultData.insert(arrayId, sortObjectArraysGrabObject(value.toObject()));
+            }
         }
     //qDebug()<<resultData;
     return resultData;
@@ -989,7 +1043,7 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
                 {
                 case Z_NEED_DICT:
                     ret = Z_DATA_ERROR;     // and fall through
-                    [[clang::fallthrough]];
+                    [[fallthrough]];
                 case Z_DATA_ERROR:
                 case Z_MEM_ERROR:
                     (void)inflateEnd(&strm);
@@ -1396,23 +1450,27 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
     else if (gotoIndexes_list.count() > 0 && (currentGotoIndexId == gotoIndexes_list.count() - 1 || currentGotoIndexId == 0))
         {
             QRect widgetRect = treeview->visualRect(gotoIndexes_list[currentGotoIndexId]);
-            QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!directionForward) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(treeview->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), (!directionForward) ? tr("Start of json has been reached! Next item will be from the end") : tr("End of json has been reached! Next item will be from the start"), treeview, kTooltipRect, kTooltipDuration);
             currentGotoIndexId = -1;
         }
     else if (((gotoIndexes_list.count() > 0 && currentGotoIndexId == -1) || (currentGotoIndexId > gotoIndexes_list.count() - 1)) && !directionForward)
         {
             currentGotoIndexId = gotoIndexes_list.count() - 1;
         }
+    const QJsonTreeItem* item = model->itemFromIndex(model->index(0,0));
+    if(item)
+    {
     if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
         {
             QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=green>Documents identical!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=green>Documents identical!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
         }
     else if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()==DiffColorType::None)
         {
             QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=yellow>Start Comparison!</font></b>"), nullptr, QRect(100, 200, 11, 16), 3000);
+            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=yellow>Start Comparison!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
         }
+    }
     if (currentGotoIndexId >= 0)
         {
             treeview->setCurrentIndex(gotoIndexes_list[currentGotoIndexId]);
@@ -1435,12 +1493,18 @@ void QJsonContainer::diffAmountUpdate()
         diffAmount_lineEdit->setPalette(palette);
         diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
     }
-    else if(gotoIndexes_list.count()==0 && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
+    else if(gotoIndexes_list.count()==0)
     {
-        QPalette palette;
-        palette.setColor(QPalette::Base,PREF_INST->diffColor(DiffColorType::Identical));
-        diffAmount_lineEdit->setPalette(palette);
-        diffAmount_lineEdit->setText("0");
+        QJsonTreeItem* item = model->itemFromIndex(model->index(0,0));
+        if (item && item->colorType() != DiffColorType::None) {
+            QPalette palette;
+            palette.setColor(QPalette::Base, PREF_INST->diffColor(DiffColorType::Identical));
+            diffAmount_lineEdit->setPalette(palette);
+            diffAmount_lineEdit->setText("0");
+        } else {
+            diffAmount_lineEdit->setPalette(gotDefaultPalette);
+            diffAmount_lineEdit->setText("0");
+        }
     }
     else
     {

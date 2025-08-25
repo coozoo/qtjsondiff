@@ -29,9 +29,9 @@ public:
     QJsonContainer *left_cont;
     QJsonContainer *right_cont;
     void loadJsonLeft(QJsonDocument data);
-    void loadJsonLeft(QString data);
+    void loadJsonLeft(const QString& data);
     void loadJsonRight(QJsonDocument data);
-    void loadJsonRight(QString data);
+    void loadJsonRight(const QString &data);
     QTreeView* getLeftTreeView();
     QTreeView* getRightTreeView();
     QJsonModel* getLeftJsonModel();

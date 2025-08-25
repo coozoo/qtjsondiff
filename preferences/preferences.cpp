@@ -109,7 +109,7 @@ QColor Preferences::diffColor(DiffColorType colorType)
     }
 
     if (c.isValid() && c.alpha() != diffColorsAlpha) {
-        c.setAlpha(diffColorsAlpha);
+        c.setAlpha((100 - diffColorsAlpha) * 255 / 100);
     }
 
     return c;

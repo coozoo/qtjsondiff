@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QMap>
+#include <QAbstractButton>
 
 namespace Ui {
 class PreferencesDialog;
@@ -32,8 +33,8 @@ private slots:
     void openColorDialog();
     void alphaSpinBox_valueChanged(int val);
     void restoreDefaultsPushButton_clicked();
-    void on_tabpos_button_clicked(int id);
-    void on_showJsonButtonPosition_clicked(int id);
+    void on_tabpos_button_clicked(QAbstractButton* button);
+    void on_showJsonButtonPosition_clicked(QAbstractButton* button);
 };
 
 #endif // PREFERENCESDIALOG_H

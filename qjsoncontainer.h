@@ -62,7 +62,7 @@ public:
     QPlainTextEdit *viewjson_plaintext;
     QAction *expandAll_Checkbox;
     void loadJson(QJsonDocument data);
-    void loadJson(QString data);
+    void loadJson(const QString& data);
     QString getJson(QList<QModelIndex> jsonPath);
     QTreeView* getTreeView();
     QJsonModel* getJsonModel();
@@ -98,7 +98,7 @@ public:
     QJsonDocument sortObjectArrays(QJsonDocument data);
     QJsonArray sortObjectArraysGrabArray(QJsonArray data);
     QJsonObject sortObjectArraysGrabObject(QJsonObject data);
-    static int countStringWeight(QString inStr);
+    static int countStringWeight(const QString &inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
     void showGoto(bool show);
@@ -119,6 +119,7 @@ private:
     QAction *copyRow;
     QAction *copyRows;
     QAction *copyPath;
+    QAction *copyJqPath;
     QAction *copyJsonPlainText;
     QAction *copyJsonPrettyText;
     QAction *copyJsonByPath;
@@ -135,6 +136,7 @@ private:
     void resetGoto();
     QPalette gotDefaultPalette;
     QPixmap createPixmapFromText(const QString &text);
+    QString JsonPathToJq(const QString& qtPath) const;
 
 signals:
     void sJsonFileLoaded(QString path);
