@@ -39,8 +39,9 @@ QJsonModel::QJsonModel(QObject *parent) :
     mHeaders.append(tr("Name"));
     mHeaders.append(tr("Type"));
     mHeaders.append(tr("Value"));
-
-
+    mHasParseError = false;
+    mLastErrorMessage.clear();
+    mLastErrorOffset = 0;
 }
 
 QJsonModel::~QJsonModel()
@@ -80,45 +81,63 @@ bool QJsonModel::loadJson(const QByteArray &json)
 {
 
     QJsonParseError parseError;
-        QJsonDocument mDocument=QJsonDocument::fromJson(json,&parseError);
-        if (parseError.error != QJsonParseError::NoError)
+    QJsonDocument mDocument=QJsonDocument::fromJson(json,&parseError);
+
+
+    if (parseError.error != QJsonParseError::NoError)
+    {
+        setParseError(true, parseError.errorString(), parseError.offset);
+        beginResetModel();
+        delete mRootItem;
+        mRootItem = QJsonTreeItem::load(QJsonValue(QJsonDocument::fromJson((QString(
+                                                                            "{\"Error\":\"") + QString(parseError.errorString() +
+                                                                            "\",\"offset\":")+ QString::number(parseError.offset) +
+                                                                            "}").toUtf8()).object()));
+        endResetModel();
+        emit dataUpdated();
+        return true;
+    }
+    else
+    {
+        setParseError(false, QString(), 0);
+    }
+    if(!mDocument.isNull())
+    {
+        beginResetModel();
+        delete mRootItem;
+        if(mDocument.isObject())
         {
-            beginResetModel();
-            delete mRootItem;
-            mRootItem = QJsonTreeItem::load(QJsonValue(QJsonDocument::fromJson((QString(
-                                                                                     "{\"Error\":\"") + QString(parseError.errorString() +
-                                                                                   "\",\"offset\":")+ QString::number(parseError.offset) +
-                                                                                    "}").toUtf8()).object()));
-            endResetModel();
-            emit dataUpdated();
-            return true;
-        }
-        if(!mDocument.isNull())
-        {
-            beginResetModel();
-            delete mRootItem;
-            if(mDocument.isObject())
-            {
-                mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.object()));
-                mRootItem->setType(QJsonValue::Object);
-            }
-            else
-            {
-                mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.array()));
-                mRootItem->setType(QJsonValue::Array);
-            }
-            endResetModel();
-            emit dataUpdated();
-            return true;
+            mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.object()));
+            mRootItem->setType(QJsonValue::Object);
         }
         else
         {
-            qDebug()<<"Error!! in json";
-            emit dataUpdated();
-            return false;
+            mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.array()));
+            mRootItem->setType(QJsonValue::Array);
         }
+        endResetModel();
+        emit dataUpdated();
+        return true;
+    }
+    else
+    {
+        qDebug()<<"Error!! in json";
+        emit dataUpdated();
+        return false;
+    }
     emit dataUpdated();
     return false;
+}
+
+void QJsonModel::setParseError(bool hasError, const QString& msg, int offset)
+{
+    if (mHasParseError != hasError || mLastErrorMessage != msg || mLastErrorOffset != offset)
+    {
+        mHasParseError = hasError;
+        mLastErrorMessage = msg;
+        mLastErrorOffset = offset;
+        emit parseErrorChanged();
+    }
 }
 
 
