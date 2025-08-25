@@ -461,25 +461,22 @@ void QJsonContainer::showContextMenu(const QPoint &point)
 
 QString QJsonContainer::JsonPathToJq(const QString& qtPath) const
 {
-    QString jqPath;
-    // Split by "->"
+    QString jqPath = ".";
     QStringList parts = qtPath.split("->");
     for (const QString& part : parts)
     {
-        // Remove type info (everything after '(')
         int parenIdx = part.indexOf('(');
         QString key = parenIdx > 0 ? part.left(parenIdx) : part;
+        if (key == "root" || key.isEmpty())
+            continue;
 
-        // If it's a number, treat as array index
         bool isNumber = false;
-        int idx = key.toInt(&isNumber);
-        if (isNumber)
-        {
+        key.toInt(&isNumber);
+        if (isNumber) {
             jqPath += "[" + key + "]";
-        }
-        else if (key != "root" && !key.isEmpty())
-        {
-            jqPath += "." + key;
+        } else {
+            if (jqPath != ".") jqPath += ".";
+            jqPath += key;
         }
     }
     return jqPath;

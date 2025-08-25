@@ -38,6 +38,8 @@ Some features:
       * **Copy Rows** - all items text separated by tab (tabs allow spreadsheet paste);
       * **Copy Path** - path to the item in such format "name(type)->name(type)"
            For example: root(Object)->widget(Object)->image(Object)->alignment(String);
+      * **Copy Path** - path path in jq style"
+           For example: .AppConfiguration.sportToBeDisplayedByDefault[1].body;
       * **Copy Plain Json** - copy full plain text JSON (not formatted);
       * **Copy Pretty Json** - copy full pretty print JSON;
       * **Copy Selected Json Value** - copy value, array or object.
@@ -78,7 +80,7 @@ sudo apt-get install qtjsondiff
 
 **Windows** zip archives available just extract and run exe file.
 
-**Mac OS** zip and DMG as well available. Don't forget mac prevents app from untrusted Dev (me not deserve trust :) ). so at first attempt it will be blocked. Go to Apple menu > System Preferences, click Security & Privacy, then click General and click open anyway..
+**Mac OS** zip and DMG as well available (and I don't know if they're working I don't have any mac). Don't forget mac prevents app from untrusted Dev (me not deserve trust :) ). so at first attempt it will be blocked. Go to Apple menu > System Preferences, click Security & Privacy, then click General and click open anyway..
 
 You can find all of above in release section.
 
