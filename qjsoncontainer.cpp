@@ -463,23 +463,32 @@ QString QJsonContainer::JsonPathToJq(const QString& qtPath) const
 {
     QString jqPath = ".";
     QStringList parts = qtPath.split("->");
+    QString prevType;
+    QRegularExpression validKey("^[A-Za-z_][A-Za-z0-9_]*$");
+
     for (const QString& part : parts)
     {
-        int parenIdx = part.indexOf('(');
-        QString key = parenIdx > 0 ? part.left(parenIdx) : part;
-        if (key == "root" || key.isEmpty())
-            continue;
+        int p = part.indexOf('(');
+        QString key = p > 0 ? part.left(p) : part;
+        QString type = p > 0 ? part.mid(p + 1, part.size() - p - 2) : "";
 
-        bool isNumber = false;
-        key.toInt(&isNumber);
-        if (isNumber) {
+        if (key == "root" || key.isEmpty()) { prevType = type; continue; }
+
+        bool isInt = false;
+        int idx = key.toInt(&isInt);
+
+        if (prevType == "Array" && isInt && key == QString::number(idx)) {
             jqPath += "[" + key + "]";
-        } else {
-            if (jqPath != ".") jqPath += ".";
-            jqPath += key;
         }
+        else if (validKey.match(key).hasMatch()) {
+            jqPath += (jqPath == "." ? "" : ".") + key;
+        }
+        else {
+            jqPath += "[\"" + key + "\"]";
+        }
+        prevType = type;
     }
-    return jqPath;
+    return "'" + jqPath + "'";
 }
 
 
