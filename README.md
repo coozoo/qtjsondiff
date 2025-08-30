@@ -98,7 +98,7 @@ Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something
 
 Suppose you have installed and configured:
   - xCode+command line tools
-  - QT (```brew install qt```)
+  - Qt6 (```brew install qt```)
 
 ```bash
 $ cd ~
@@ -114,7 +114,7 @@ It will build and copy libs into app. You will find ready app inside this direct
 
 ### Linux
 
-You should have QT6 if no then install it accordingly to your distro.
+You should have Qt6 if no then install it accordingly to your distro.
 
 You can build it with QTcreator or execute commands:
 ```bash
