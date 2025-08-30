@@ -51,19 +51,7 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  build_release:
-    name: Build release
-    needs: create_release
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - os: ubuntu-22.04
-          - os: macos-latest
-          - os: windows-latest
-    steps:
-      - name: Set build flags from PR tags or commit message
+            - name: Set build flags from PR tags or commit message
         id: set_flags
         run: |
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
@@ -94,6 +82,18 @@ jobs:
           echo "build_mac_zip=$BUILD_MAC_ZIP" >> $GITHUB_OUTPUT
           echo "build_win=$BUILD_WIN" >> $GITHUB_OUTPUT
           echo "build_lin=$BUILD_LIN" >> $GITHUB_OUTPUT
+  build_release:
+    name: Build release
+    needs: create_release
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: ubuntu-22.04
+          - os: macos-latest
+          - os: windows-latest
+    steps:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: get app version
