@@ -190,7 +190,23 @@ Parent+Child pair - slow but it will find first occurrence of pair and no matter
 
 Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
 
-## Build action tags
+
+### Supported Build Tags
+
+You can trigger or control specific build jobs by including one or more of these tags in your commit message or pull request title/body:
+
+| Tag                 | Effect                                                       |
+|---------------------|--------------------------------------------------------------|
+| `[build mac dmg]`   | Builds a macOS DMG package                                   |
+| `[build mac zip]`   | Builds a macOS ZIP package                                   |
+| `[build mac]`       | Builds a macOS DMG package (alias for `[build mac dmg]`)     |
+| `[build win]`       | Builds the Windows release                                   |
+| `[build linux]`     | Builds the Linux release                                     |
+| `[skip ci]`         | Skips all CI jobs for this commit or PR                      |
+
+**Note:**  
+If no build tags are present, the system will build **all platforms** by default.  
+Use `[skip ci]` to intentionally skip the build and workflow runs.
 
 
 ## Special thanks to this projects:
