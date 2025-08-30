@@ -190,6 +190,8 @@ Parent+Child pair - slow but it will find first occurrence of pair and no matter
 
 Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
 
+## Build action tags
+
 
 ## Special thanks to this projects:
     
