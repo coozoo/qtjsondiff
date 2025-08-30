@@ -98,7 +98,7 @@ Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something
 
 Suppose you have installed and configured:
   - xCode+command line tools
-  - QT (```brew install qt```)
+  - Qt6 (```brew install qt```)
 
 ```bash
 $ cd ~
@@ -114,7 +114,7 @@ It will build and copy libs into app. You will find ready app inside this direct
 
 ### Linux
 
-You should have QT5 if no then install it accordingly to your distro.
+You should have Qt6 if no then install it accordingly to your distro.
 
 You can build it with QTcreator or execute commands:
 ```bash
@@ -189,6 +189,24 @@ That's all pretty simple.
 Parent+Child pair - slow but it will find first occurrence of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
 
 Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
+
+
+### Supported Build Tags
+
+You can trigger or control specific build jobs by including one or more of these tags in your commit message or pull request title/body:
+
+| Tag                 | Effect                                                       |
+|---------------------|--------------------------------------------------------------|
+| `[build mac dmg]`   | Builds a macOS DMG package                                   |
+| `[build mac zip]`   | Builds a macOS ZIP package                                   |
+| `[build mac]`       | Builds a macOS DMG package (alias for `[build mac dmg]`)     |
+| `[build win]`       | Builds the Windows release                                   |
+| `[build linux]`     | Builds the Linux release                                     |
+| `[skip ci]`         | Skips all CI jobs for this commit or PR                      |
+
+**Note:**  
+If no build tags are present, the system will build **all platforms** by default.  
+Use `[skip ci]` to intentionally skip the build and workflow runs.
 
 
 ## Special thanks to this projects:
