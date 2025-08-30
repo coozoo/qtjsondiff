@@ -66,7 +66,7 @@ jobs:
       - name: Set build flags from PR tags or commit message
         id: set_flags
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             SRC="${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}"
           else
             SRC="${{ github.event.head_commit.message }}"
@@ -83,7 +83,7 @@ jobs:
           if echo "$SRC" | grep -iq '\[build win\]'; then BUILD_WIN=1; fi
           if echo "$SRC" | grep -iq '\[build linux\]'; then BUILD_LIN=1; fi
 
-          if [ $BUILD_MAC_DMG -eq 0 ] && [ $BUILD_MAC_ZIP -eq 0 ] && [ $BUILD_WIN -eq 0 ] && [ $BUILD_LIN -eq 0 ]; then
+          if [[ "$BUILD_MAC_DMG" -eq 0 && "$BUILD_MAC_ZIP" -eq 0 && "$BUILD_WIN" -eq 0 && "$BUILD_LIN" -eq 0 ]]; then
             BUILD_MAC_DMG=1
             BUILD_MAC_ZIP=1
             BUILD_WIN=1
@@ -260,7 +260,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
-          msystem: MSYS
+          msystem: MSYSfflags
           # Default value for MSYS2_PATH_TYPE environment variable: strict, inherit or minimal
           #path-type: # optional, default is minimal
           # Retrieve and extract base installation from upstream GitHub Releases
