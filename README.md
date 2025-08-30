@@ -114,7 +114,7 @@ It will build and copy libs into app. You will find ready app inside this direct
 
 ### Linux
 
-You should have QT5 if no then install it accordingly to your distro.
+You should have QT6 if no then install it accordingly to your distro.
 
 You can build it with QTcreator or execute commands:
 ```bash
