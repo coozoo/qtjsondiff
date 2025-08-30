@@ -51,7 +51,7 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            - name: Set build flags from PR tags or commit message
+      - name: Set build flags from PR tags or commit message
         id: set_flags
         run: |
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
