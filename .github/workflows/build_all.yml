@@ -30,10 +30,10 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-      build_mac_dmg: ${{ needs.create_release.outputs.build_mac_dmg }}
-      build_mac_zip: ${{ needs.create_release.outputs.build_mac_zip }}
-      build_win: ${{ needs.create_release.outputs.build_win }}
-      build_lin: ${{ needs.create_release.outputs.build_lin }}
+      build_mac_dmg: ${{ steps.set_flags.outputs.build_mac_dmg }}
+      build_mac_zip: ${{ steps.set_flags.outputs.build_mac_zip }}
+      build_win: ${{ steps.set_flags.outputs.build_win }}
+      build_lin: ${{ steps.set_flags.outputs.build_lin }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
