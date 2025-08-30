@@ -264,7 +264,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
-          msystem: MSYSfflags
+          msystem: MSYS
           # Default value for MSYS2_PATH_TYPE environment variable: strict, inherit or minimal
           #path-type: # optional, default is minimal
           # Retrieve and extract base installation from upstream GitHub Releases
