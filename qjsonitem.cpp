@@ -29,14 +29,18 @@
 
 QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)
 {
-
     mParent = parent;
-
 }
 
 QJsonTreeItem::~QJsonTreeItem()
 {
+    clearChildren();
+}
+
+void QJsonTreeItem::clearChildren()
+{
     qDeleteAll(mChilds);
+    mChilds.clear();
 }
 
 void QJsonTreeItem::appendChild(QJsonTreeItem *item)
@@ -184,6 +188,18 @@ QString QJsonTreeItem::typeName() const
    qDebug()<<"Fatal error wrong json type";
    return QString("Fatal");
 }
+
+QJsonValue::Type QJsonTreeItem::stringToType(const QString& typeName)
+{
+    if (typeName == "String") return QJsonValue::String;
+    if (typeName == "Double") return QJsonValue::Double;
+    if (typeName == "Bool") return QJsonValue::Bool;
+    if (typeName == "Array") return QJsonValue::Array;
+    if (typeName == "Object") return QJsonValue::Object;
+    if (typeName == "Null") return QJsonValue::Null;
+    return QJsonValue::Undefined;
+}
+
 
 QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* parent)
 {

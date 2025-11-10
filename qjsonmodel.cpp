@@ -28,6 +28,7 @@
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QIcon>
 #include <QFont>
 #include <algorithm>
@@ -47,6 +48,11 @@ QJsonModel::QJsonModel(QObject *parent) :
 QJsonModel::~QJsonModel()
 {
     delete mRootItem;
+}
+
+void QJsonModel::setEditable(bool editable)
+{
+    mIsEditable = editable;
 }
 
 /* maybe it's not really right place
@@ -81,8 +87,7 @@ bool QJsonModel::loadJson(const QByteArray &json)
 {
 
     QJsonParseError parseError;
-    QJsonDocument mDocument=QJsonDocument::fromJson(json,&parseError);
-
+    QJsonDocument doc = QJsonDocument::fromJson(json, &parseError);
 
     if (parseError.error != QJsonParseError::NoError)
     {
@@ -101,18 +106,18 @@ bool QJsonModel::loadJson(const QByteArray &json)
     {
         setParseError(false, QString(), 0);
     }
-    if(!mDocument.isNull())
+    if(!doc.isNull())
     {
         beginResetModel();
         delete mRootItem;
-        if(mDocument.isObject())
+        if(doc.isObject())
         {
-            mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.object()));
+            mRootItem = QJsonTreeItem::load(QJsonValue(doc.object()));
             mRootItem->setType(QJsonValue::Object);
         }
         else
         {
-            mRootItem = QJsonTreeItem::load(QJsonValue(mDocument.array()));
+            mRootItem = QJsonTreeItem::load(QJsonValue(doc.array()));
             mRootItem->setType(QJsonValue::Array);
         }
         endResetModel();
@@ -143,7 +148,6 @@ void QJsonModel::setParseError(bool hasError, const QString& msg, int offset)
 
 QVariant QJsonModel::data(const QModelIndex &index, int role) const
 {
-
     if (!index.isValid())
         return QVariant();
 
@@ -170,23 +174,21 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     }
 
     if ((role == Qt::DecorationRole) && (index.column() == 0)){
-
         return mTypeIcons.value(item->type());
     }
 
-    if (role == Qt::DecorationRole) {
+    if (role == Qt::ForegroundRole) {
         return QPalette::Text; // Theme color for text
     }
 
-    if (role == Qt::DisplayRole) {
-
+    if (role == Qt::DisplayRole || role == Qt::EditRole) {
         if (index.column() == 0)
             return QString("%1").arg(item->key());
         if (index.column() == 1)
         {
             if (item->type()==QJsonValue::Array)
             {
-                return QString("%1").arg(QString("Array") + QString("[") + QString::number(item->childCount()) + QString("]"));
+                return QString("Array[%1]").arg(item->childCount());
             }
             else
             {
@@ -198,10 +200,113 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
             return QString("%1").arg(item->value());
     }
 
-
-
     return QVariant();
+}
 
+bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role != Qt::EditRole || !index.isValid())
+        return false;
+
+    QJsonTreeItem *item = itemFromIndex(index);
+    const QString valStr = value.toString();
+
+    // Handle column 1: Type change
+    if (index.column() == 1)
+    {
+        const QJsonValue::Type oldType = item->type();
+        const QString& newTypeName = valStr;
+        QJsonValue::Type newType = QJsonTreeItem::stringToType(newTypeName);
+
+        if (newType == oldType) return true;
+
+        // Perform value conversion based on your rules
+        QString newValue = "";
+        switch(newType) {
+            case QJsonValue::Double:
+                newValue = QString::number(item->value().toDouble()); // toDouble is forgiving, returns 0.0 for non-numbers
+                break;
+            case QJsonValue::String:
+                if (item->type() == QJsonValue::Null) {
+                    newValue = "";
+                } else {
+                    newValue = item->value();
+                }
+                break;
+            case QJsonValue::Bool:
+                 // non-zero numbers are true, "true" is true, everything else is false
+                newValue = (item->value().toLower() == "true" || item->value().toInt() != 0) ? "true" : "false";
+                break;
+            case QJsonValue::Null:
+                newValue = "null";
+                break;
+            case QJsonValue::Object:
+            case QJsonValue::Array:
+                // If the item has children, we need to remove them
+                if(item->childCount() > 0) {
+                    beginRemoveRows(index, 0, item->childCount() - 1);
+                    item->clearChildren();
+                    endRemoveRows();
+                }
+                newValue = ""; // Value is irrelevant for containers
+                break;
+            default:
+                return false; // Should not happen
+        }
+
+        item->setType(newType);
+        item->setValue(newValue);
+
+        // Notify view that the data for the entire row might have changed
+        emit dataChanged(index.siblingAtColumn(0), index.siblingAtColumn(columnCount() - 1), {Qt::DisplayRole, Qt::EditRole});
+        emit modelChanged();
+        return true;
+    }
+
+    // Handle columns 0 (Key) and 2 (Value)
+    switch(index.column()) {
+        case 0:
+            item->setKey(valStr);
+            break;
+        case 2:
+            item->setValue(valStr);
+            break;
+        default:
+            return false;
+    }
+
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+    emit modelChanged();
+    return true;
+}
+
+Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return Qt::NoItemFlags;
+
+    Qt::ItemFlags flags = QAbstractItemModel::flags(index);
+    if (!mIsEditable)
+        return flags;
+
+    QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
+    
+    // Type is editable, but not for the root item
+    if (index.column() == 1 && item->parent()) {
+        flags |= Qt::ItemIsEditable;
+    }
+    
+    // Keys are not editable for array elements
+    if (index.column() == 0 && item->parent() && item->parent()->type() != QJsonValue::Array) {
+        flags |= Qt::ItemIsEditable;
+    }
+
+    // Values are not editable for objects and arrays
+    if (index.column() == 2 && item->type() != QJsonValue::Object && item->type() != QJsonValue::Array) {
+        flags |= Qt::ItemIsEditable;
+    }
+
+    return flags;
 }
 
 QVariant QJsonModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -210,7 +315,6 @@ QVariant QJsonModel::headerData(int section, Qt::Orientation orientation, int ro
         return QVariant();
 
     if (orientation == Qt::Horizontal) {
-
         return mHeaders.value(section);
     }
     else
@@ -252,6 +356,8 @@ QModelIndex QJsonModel::parent(const QModelIndex &index) const
 
 QJsonTreeItem* QJsonModel::itemFromIndex(const QModelIndex &index) const
 {
+    if (!index.isValid())
+        return nullptr;
     return static_cast<QJsonTreeItem*>(index.internalPointer());
 }
 
@@ -272,7 +378,7 @@ int QJsonModel::rowCount(const QModelIndex &parent) const
 int QJsonModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
-    return 3;
+    return mHeaders.count();
 }
 
 void QJsonModel::setIcon(const QJsonValue::Type &type, const QIcon &icon)
@@ -323,3 +429,58 @@ QString QJsonModel::jsonPath(QModelIndex &index) const
     return ret.left(ret.length()-2);
 }
 
+void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
+    const int childCount = item->childCount();
+    if (item->type() == QJsonValue::Object) {
+        QJsonObject obj;
+        for (int i = 0; i < childCount; ++i) {
+            QJsonTreeItem *child = item->child(i);
+            QJsonValue childValue;
+            generateJson(child, childValue);
+            obj.insert(child->key(), childValue);
+        }
+        value = obj;
+    } else if (item->type() == QJsonValue::Array) {
+        QJsonArray arr;
+        for (int i = 0; i < childCount; ++i) {
+            QJsonTreeItem *child = item->child(i);
+            QJsonValue childValue;
+            generateJson(child, childValue);
+            arr.append(childValue);
+        }
+        value = arr;
+    } else {
+        const QString &valStr = item->value();
+        switch (item->type()) {
+            case QJsonValue::Bool:
+                value = (valStr.toLower() == "true");
+                break;
+            case QJsonValue::Double:
+                value = valStr.toDouble();
+                break;
+            case QJsonValue::String:
+                value = valStr;
+                break;
+            case QJsonValue::Null:
+            default:
+                value = QJsonValue::Null;
+                break;
+        }
+    }
+}
+
+QJsonDocument QJsonModel::getJsonDocument() const {
+    if (!mRootItem)
+        return QJsonDocument();
+
+    QJsonValue rootValue;
+    generateJson(mRootItem, rootValue);
+
+    if (mRootItem->type() == QJsonValue::Object) {
+        return QJsonDocument(rootValue.toObject());
+    } else if (mRootItem->type() == QJsonValue::Array) {
+        return QJsonDocument(rootValue.toArray());
+    }
+
+    return QJsonDocument();
+}

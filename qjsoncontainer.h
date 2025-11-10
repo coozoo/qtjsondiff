@@ -82,6 +82,7 @@ public:
     QWidget *spacer;
     QHBoxLayout *browse_layout;
     void setBrowseVisible(bool state);
+    void setEditable(bool editable);
     QPushButton *showjson_pushbutton;
     QAction *findNext_toolbutton;
     QAction *findPrevious_toolbutton;
@@ -170,9 +171,5 @@ protected:
     bool eventFilter(QObject* obj, QEvent *event) override;
 
 };
-
-
-
-
 
 #endif // QJSONCONTAINER_H

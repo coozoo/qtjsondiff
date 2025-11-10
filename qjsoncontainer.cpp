@@ -6,11 +6,15 @@
  */
 #include "qjsoncontainer.h"
 #include "jsonsyntaxhighlighter.h"
+#include "jsonitemdelegate.h"
 
 #include <QFileIconProvider>
 
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include <QTimer>
+#include <QPainter>
+#include <QKeyEvent>
 
 #include "preferences/preferences.h"
 
@@ -55,6 +59,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     qDebug() << "treeview_layout treeview_groupbox";
     treeview = new QTreeView(treeview_groupbox);
+    treeview->setItemDelegateForColumn(1, new JsonItemDelegate(this));
     treeview->setSelectionMode(QAbstractItemView::ExtendedSelection);
     viewjson_plaintext = new QPlainTextEdit(treeview_groupbox);
     viewjson_plaintext->setVisible(false);
@@ -243,7 +248,6 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     //connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
     connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
-
 }
 
 QJsonContainer::~QJsonContainer()
@@ -257,6 +261,11 @@ QJsonContainer::~QJsonContainer()
     browse_layout->deleteLater();
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
+}
+
+void QJsonContainer::setEditable(bool editable)
+{
+    model->setEditable(editable);
 }
 
 void QJsonContainer::showGoto(bool show)
@@ -652,18 +661,22 @@ void QJsonContainer::on_showjson_pushbutton_clicked()
             showjson_pushbutton->setText(tr("Show Json Text"));
         }
     else
-        {
-            viewjson_plaintext->setVisible(true);
-            treeview->setVisible(false);
-            showjson_pushbutton->setText(tr("Show Json View"));
-            if (model->hasParseError()) {
-                int errorOffset = model->lastErrorOffset();
-                QTextCursor cursor = viewjson_plaintext->textCursor();
-                cursor.setPosition(errorOffset);
-                viewjson_plaintext->setTextCursor(cursor);
-                viewjson_plaintext->setFocus();
-            }
+    {
+        if (!model->hasParseError()) {
+            QJsonDocument doc = model->getJsonDocument();
+            viewjson_plaintext->setPlainText(doc.toJson(QJsonDocument::Indented));
         }
+        viewjson_plaintext->setVisible(true);
+        treeview->setVisible(false);
+        showjson_pushbutton->setText(tr("Show Json View"));
+        if (model->hasParseError()) {
+            int errorOffset = model->lastErrorOffset();
+            QTextCursor cursor = viewjson_plaintext->textCursor();
+            cursor.setPosition(errorOffset);
+            viewjson_plaintext->setTextCursor(cursor);
+            viewjson_plaintext->setFocus();
+        }
+    }
     emit jsonUpdated();
 }
 

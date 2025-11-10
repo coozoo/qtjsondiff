@@ -43,7 +43,9 @@ public:
     QColor color() const;
     DiffColorType colorType() const { return mColorType; }
     QModelIndex idxRelation();
-
+    void clearChildren();
+    
+    static QJsonValue::Type stringToType(const QString& typeName);
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);
 
 protected:

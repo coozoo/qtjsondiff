@@ -22,6 +22,7 @@ QMAKE_CXXFLAGS += -Wno-implicit-fallthrough
 
 SOURCES += main.cpp\
     commandlineparser.cpp \
+    jsonitemdelegate.cpp \
     jsonsyntaxhighlighter.cpp \
         mainwindow.cpp \
     preferences/preferences.cpp \
@@ -33,6 +34,7 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     commandlineparser.h \
+    jsonitemdelegate.h \
     jsonsyntaxhighlighter.h \
     preferences/preferences.h \
     preferences/preferencesdialog.h \
