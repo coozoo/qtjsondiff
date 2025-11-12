@@ -220,44 +220,157 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
         if (newType == oldType) return true;
 
-        // Perform value conversion based on your rules
+        // Take ownership of children before clearing them, so we can reuse them
+        QList<QJsonTreeItem*> children;
+        if(item->childCount() > 0) {
+            beginRemoveRows(index, 0, item->childCount() - 1);
+            children = item->takeChildren();
+            endRemoveRows();
+        }
+
         QString newValue = "";
         switch(newType) {
             case QJsonValue::Double:
-                newValue = QString::number(item->value().toDouble()); // toDouble is forgiving, returns 0.0 for non-numbers
+                if (oldType == QJsonValue::Bool) {
+                    newValue = (item->value().toLower() == "true") ? "1" : "0";
+                } else {
+                    newValue = QString::number(item->value().toDouble());
+                }
+                qDeleteAll(children);
+                children.clear();
                 break;
             case QJsonValue::String:
-                if (item->type() == QJsonValue::Null) {
-                    newValue = "";
-                } else {
-                    newValue = item->value();
-                }
+                newValue = (item->type() == QJsonValue::Null) ? "" : item->value();
+                qDeleteAll(children);
+                children.clear();
                 break;
             case QJsonValue::Bool:
-                 // non-zero numbers are true, "true" is true, everything else is false
                 newValue = (item->value().toLower() == "true" || item->value().toInt() != 0) ? "true" : "false";
+                qDeleteAll(children);
+                children.clear();
                 break;
             case QJsonValue::Null:
-                newValue = "null";
+                newValue = "";
+                qDeleteAll(children);
+                children.clear();
                 break;
-            case QJsonValue::Object:
-            case QJsonValue::Array:
-                // If the item has children, we need to remove them
-                if(item->childCount() > 0) {
-                    beginRemoveRows(index, 0, item->childCount() - 1);
-                    item->clearChildren();
-                    endRemoveRows();
+
+            case QJsonValue::Object: {
+                if (oldType == QJsonValue::Array) {
+                    bool isKeyValuePairs = !children.isEmpty();
+                    for(QJsonTreeItem* child : children) {
+                        if (child->type() != QJsonValue::Array || child->childCount() != 2) {
+                            isKeyValuePairs = false;
+                            break;
+                        }
+                    }
+
+                    if (isKeyValuePairs) {
+                        // Case: [["bar", "car"]] -> {"bar": "car"}
+                        if (!children.isEmpty())
+                           beginInsertRows(index, 0, children.count() - 1);
+                        for (QJsonTreeItem* pairArray : children) {
+                            QJsonTreeItem* valItem = pairArray->child(1);
+                            valItem->setKey(pairArray->child(0)->value());
+                            pairArray->takeChildren(); // Prevent valItem from being deleted with pairArray
+                            item->appendChild(valItem);
+                            delete pairArray;
+                        }
+                         if (!children.isEmpty())
+                           endInsertRows();
+
+                    } else {
+                        // Case: ["ar", "bg"] -> {"0": "ar", "1": "bg"}
+                        if (!children.isEmpty())
+                           beginInsertRows(index, 0, children.count() - 1);
+                        for (int i = 0; i < children.count(); ++i) {
+                            QJsonTreeItem* child = children.at(i);
+                            child->setKey(QString::number(i));
+                            item->appendChild(child);
+                        }
+                        if (!children.isEmpty())
+                           endInsertRows();
+                    }
+                } else if(!children.isEmpty()) {
+                    beginInsertRows(index, 0, children.count() - 1);
+                    item->setChildren(children);
+                    for (QJsonTreeItem* child : children) child->setParent(item);
+                    endInsertRows();
                 }
-                newValue = ""; // Value is irrelevant for containers
+                children.clear(); // Children have been re-parented or deleted
                 break;
+            }
+
+            case QJsonValue::Array: {
+                if (oldType == QJsonValue::Object) {
+                    bool isSequentialKeys = !children.isEmpty();
+                    for(int i = 0; i < children.count(); ++i) {
+                        bool ok;
+                        if(children.at(i)->key().toInt(&ok) != i || !ok) {
+                            isSequentialKeys = false;
+                            break;
+                        }
+                    }
+
+                    if (isSequentialKeys) {
+                        // Case: {"0": "ar", "1": "bg"} -> ["ar", "bg"]
+                        if (!children.isEmpty())
+                            beginInsertRows(index, 0, children.count() - 1);
+                        for (int i = 0; i < children.count(); ++i) {
+                            QJsonTreeItem* child = children.at(i);
+                            child->setKey(QString::number(i));
+                            item->appendChild(child);
+                        }
+                        if (!children.isEmpty())
+                            endInsertRows();
+                    } else {
+                        // Case: {"bar": "car"} -> [["bar", "car"]]
+                         if (!children.isEmpty())
+                            beginInsertRows(index, 0, children.count() - 1);
+                        for (int i=0; i < children.count(); ++i) {
+                            QJsonTreeItem* oldChild = children.at(i);
+                            auto* newParentArray = new QJsonTreeItem();
+                            newParentArray->setType(QJsonValue::Array);
+                            newParentArray->setKey(QString::number(i));
+
+                            auto* keyItem = new QJsonTreeItem();
+                            keyItem->setKey("0");
+                            keyItem->setType(QJsonValue::String);
+                            keyItem->setValue(oldChild->key());
+
+                            oldChild->setKey("1");
+                            oldChild->setParent(newParentArray);
+
+                            newParentArray->appendChild(keyItem);
+                            newParentArray->appendChild(oldChild);
+                            item->appendChild(newParentArray);
+                        }
+                         if (!children.isEmpty())
+                            endInsertRows();
+                    }
+                    // The old children are now children of the new key-value pair arrays.
+                    // We don't want to delete them.
+                    children.clear();
+
+
+                } else if (!children.isEmpty()) {
+                    beginInsertRows(index, 0, children.count() - 1);
+                    item->setChildren(children);
+                    for (QJsonTreeItem* child : children) child->setParent(item);
+                    endInsertRows();
+                    children.clear();
+                }
+                break;
+            }
             default:
-                return false; // Should not happen
+                break;
         }
 
         item->setType(newType);
         item->setValue(newValue);
 
-        // Notify view that the data for the entire row might have changed
+        qDeleteAll(children); // Delete any remaining children that were not re-parented
+
         emit dataChanged(index.siblingAtColumn(0), index.siblingAtColumn(columnCount() - 1), {Qt::DisplayRole, Qt::EditRole});
         emit modelChanged();
         return true;
@@ -301,8 +414,11 @@ Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
         flags |= Qt::ItemIsEditable;
     }
 
-    // Values are not editable for objects and arrays
-    if (index.column() == 2 && item->type() != QJsonValue::Object && item->type() != QJsonValue::Array) {
+    // Values are not editable for objects, arrays, or nulls
+    if (index.column() == 2 &&
+        item->type() != QJsonValue::Object &&
+        item->type() != QJsonValue::Array &&
+        item->type() != QJsonValue::Null) {
         flags |= Qt::ItemIsEditable;
     }
 

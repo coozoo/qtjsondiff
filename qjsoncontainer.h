@@ -160,6 +160,7 @@ private slots:
     void serviceGetDataRequestFinished(QNetworkReply* reply);
     void on_find_lineEdit_textChanged(const QString &text);
     void on_model_dataUpdated();
+    void on_model_changed();
     void showContextMenu(const QPoint &point);
 
 public slots:

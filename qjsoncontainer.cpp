@@ -248,6 +248,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     //connect(findCaseSensitivity_toolbutton, SIGNAL(clicked()), this, SLOT(on_findCaseSensitivity_toolbutton_clicked()));
     connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
+    connect(model, &QJsonModel::modelChanged, this, &QJsonContainer::on_model_changed);
 }
 
 QJsonContainer::~QJsonContainer()
@@ -261,6 +262,13 @@ QJsonContainer::~QJsonContainer()
     browse_layout->deleteLater();
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
+}
+
+void QJsonContainer::on_model_changed()
+{
+    if (model && !model->hasParseError()) {
+        viewjson_plaintext->setPlainText(model->getJsonDocument().toJson(QJsonDocument::Indented));
+    }
 }
 
 void QJsonContainer::setEditable(bool editable)

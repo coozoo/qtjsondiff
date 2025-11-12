@@ -26,6 +26,7 @@ public:
     void appendChild(QJsonTreeItem * item);
     QJsonTreeItem *child(int row);
     QJsonTreeItem *parent();
+    void setParent(QJsonTreeItem* parent);
     int childCount() const;
     int row() const;
     void setKey(const QString& key);
@@ -44,6 +45,9 @@ public:
     DiffColorType colorType() const { return mColorType; }
     QModelIndex idxRelation();
     void clearChildren();
+    
+    QList<QJsonTreeItem*> takeChildren();
+    void setChildren(const QList<QJsonTreeItem*>& children);
     
     static QJsonValue::Type stringToType(const QString& typeName);
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);

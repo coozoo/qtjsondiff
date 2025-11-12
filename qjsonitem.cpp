@@ -43,8 +43,22 @@ void QJsonTreeItem::clearChildren()
     mChilds.clear();
 }
 
+QList<QJsonTreeItem *> QJsonTreeItem::takeChildren()
+{
+    QList<QJsonTreeItem*> children = mChilds;
+    mChilds.clear();
+    return children;
+}
+
+void QJsonTreeItem::setChildren(const QList<QJsonTreeItem *> &children)
+{
+    mChilds = children;
+}
+
+
 void QJsonTreeItem::appendChild(QJsonTreeItem *item)
 {
+    item->setParent(this);
     mChilds.append(item);
 }
 
@@ -56,6 +70,11 @@ QJsonTreeItem *QJsonTreeItem::child(int row)
 QJsonTreeItem *QJsonTreeItem::parent()
 {
     return mParent;
+}
+
+void QJsonTreeItem::setParent(QJsonTreeItem *parent)
+{
+    mParent = parent;
 }
 
 int QJsonTreeItem::childCount() const
@@ -210,7 +229,7 @@ QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* paren
     {
 
         //Get all QJsonValue childs
-        foreach (QString key , value.toObject().keys()){
+        for (const QString& key : value.toObject().keys()){
             QJsonValue v = value.toObject().value(key);
             QJsonTreeItem * child = load(v,rootItem);
             child->setKey(key);
