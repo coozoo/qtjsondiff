@@ -9,7 +9,7 @@ JsonItemDelegate::JsonItemDelegate(QObject *parent) : QStyledItemDelegate(parent
 
 QWidget *JsonItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    // Only create an editor for the "Type" column
+    // create an editor for the "Type" column
     if (index.column() != 1) {
         return QStyledItemDelegate::createEditor(parent, option, index);
     }

@@ -24,7 +24,7 @@ SOURCES += main.cpp\
     commandlineparser.cpp \
     jsonitemdelegate.cpp \
     jsonsyntaxhighlighter.cpp \
-        mainwindow.cpp \
+    mainwindow.cpp \
     preferences/preferences.cpp \
     preferences/preferencesdialog.cpp \
     qjsondiff.cpp \
@@ -65,3 +65,13 @@ icon.path += /usr/share/icons/hicolor/scalable/apps
 desktop.files += $${TARGET}.desktop
 desktop.path += /usr/share/applications/
 INSTALLS += binary translations icon desktop
+
+check.commands = \
+    cd tests && \
+    $(QMAKE) && \
+    $(MAKE) && \
+    ./tst_json_conversions; \
+    cd ..
+
+# 2. Add 'check' to QMAKE_EXTRA_TARGETS.
+QMAKE_EXTRA_TARGETS += check

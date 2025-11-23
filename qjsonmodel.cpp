@@ -233,6 +233,14 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
             case QJsonValue::Double:
                 if (oldType == QJsonValue::Bool) {
                     newValue = (item->value().toLower() == "true") ? "1" : "0";
+                } else if (oldType == QJsonValue::String) {
+                    if (item->value().toLower() == "true") {
+                        newValue = "1";
+                    } else if (item->value().toLower() == "false") {
+                        newValue = "0";
+                    } else {
+                        newValue = QString::number(item->value().toDouble());
+                    }
                 } else {
                     newValue = QString::number(item->value().toDouble());
                 }
@@ -303,6 +311,16 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
             case QJsonValue::Array: {
                 if (oldType == QJsonValue::Object) {
+                    std::sort(children.begin(), children.end(), [](QJsonTreeItem* a, QJsonTreeItem* b) {
+                        bool aOk, bOk;
+                        int aKey = a->key().toInt(&aOk);
+                        int bKey = b->key().toInt(&bOk);
+                        if (aOk && bOk) {
+                            return aKey < bKey;
+                        }
+                        return a->key() < b->key(); // Fallback for non-numeric keys
+                    });
+
                     bool isSequentialKeys = !children.isEmpty();
                     for(int i = 0; i < children.count(); ++i) {
                         bool ok;
@@ -329,6 +347,8 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
                             beginInsertRows(index, 0, children.count() - 1);
                         for (int i=0; i < children.count(); ++i) {
                             QJsonTreeItem* oldChild = children.at(i);
+                            oldChild->setParent(nullptr);
+
                             auto* newParentArray = new QJsonTreeItem();
                             newParentArray->setType(QJsonValue::Array);
                             newParentArray->setKey(QString::number(i));
@@ -339,7 +359,6 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
                             keyItem->setValue(oldChild->key());
 
                             oldChild->setKey("1");
-                            oldChild->setParent(newParentArray);
 
                             newParentArray->appendChild(keyItem);
                             newParentArray->appendChild(oldChild);
@@ -348,8 +367,6 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
                          if (!children.isEmpty())
                             endInsertRows();
                     }
-                    // The old children are now children of the new key-value pair arrays.
-                    // We don't want to delete them.
                     children.clear();
 
 
