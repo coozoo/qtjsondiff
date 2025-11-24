@@ -1,9 +1,12 @@
 #include <QColorDialog>
 #include <QDebug>
+#include <QHeaderView>
+#include <QShowEvent>
 
 #include "preferencesdialog.h"
 #include "ui_preferencesdialog.h"
 #include "preferences.h"
+#include "shortcutdelegate.h"
 
 
 PreferencesDialog::PreferencesDialog(QWidget *parent) :
@@ -12,24 +15,16 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(ui->listWidget, &QListWidget::currentRowChanged,
-            ui->stackedWidget, &QStackedWidget::setCurrentIndex);
-    // There are 2 signals - int and QString - we cannot enforce
-    // int one with eg. qOverload() as it's too new. So let's
-    // use old style for signals
-    //connect(ui->alphaSpinBox, &QSpinBox::valueChanged,
-    //        this, &PreferencesDialog::alphaSpinBox_valueChanged);
-    connect(ui->alphaSpinBox, SIGNAL(valueChanged(int)),
-            this, SLOT(alphaSpinBox_valueChanged(int)));
-    connect(ui->restoreDefaultsPushButton, &QPushButton::clicked,
-            this, &PreferencesDialog::restoreDefaultsPushButton_clicked);
-    connect(ui->tabsPosition_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::on_tabpos_button_clicked);
-    connect(ui->showJson_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::on_showJsonButtonPosition_clicked);
+    connect(ui->listWidget, &QListWidget::currentRowChanged, ui->stackedWidget, &QStackedWidget::setCurrentIndex);
+    connect(ui->alphaSpinBox, SIGNAL(valueChanged(int)), this, SLOT(alphaSpinBox_valueChanged(int)));
+    connect(ui->restoreDefaultsPushButton, &QPushButton::clicked, this, &PreferencesDialog::restoreColorDefaultsPushButton_clicked);
+    connect(ui->restoreShortcutsPushButton, &QPushButton::clicked, this, &PreferencesDialog::restoreShortcutDefaultsPushButton_clicked);
+    connect(ui->tabsPosition_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::tabsPosition_button_clicked);
+    connect(ui->showJson_buttonGroup, &QButtonGroup::buttonClicked, this, &PreferencesDialog::showJsonButtonPosition_clicked);
+
+    ui->shortcutsTableView->setItemDelegateForColumn(1, new ShortcutDelegate(this));
 
     ui->listWidget->setCurrentRow(0);
-
-
-
 
     m_colorMap[ui->hugeDiffPushButton] = &PREF_INST->hugeDiffColor;
     m_colorMap[ui->identicalDiffPushButton] = &PREF_INST->identicalDiffColor;
@@ -72,7 +67,52 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
 
 PreferencesDialog::~PreferencesDialog()
 {
+    PREF_INST->save();
     delete ui;
+}
+
+void PreferencesDialog::showEvent(QShowEvent *event)
+{
+    QDialog::showEvent(event);
+    populateShortcutsTable();
+}
+
+void PreferencesDialog::populateShortcutsTable()
+{
+    qDebug() << "--- populateShortcutsTable() START ---";
+
+    QStandardItemModel *model = new QStandardItemModel(Preferences::shortcutInfos.size(), 2, this);
+
+    model->setHorizontalHeaderLabels({tr("Action"), tr("Shortcut")});
+
+    connect(model, &QStandardItemModel::itemChanged, this, &PreferencesDialog::shortcut_changed);
+
+    int row = 0;
+    for(const auto& info : Preferences::shortcutInfos)
+    {
+        QKeySequence shortcut = PREF_INST->shortcuts.value(info.key);
+        qDebug() << "Populating row" << row << "for" << info.key << "with shortcut" << shortcut.toString();
+
+        QStandardItem *actionItem = new QStandardItem(info.description);
+        actionItem->setFlags(actionItem->flags() & ~Qt::ItemIsEditable);
+        actionItem->setData(QVariant::fromValue(info.key), Qt::UserRole);
+        model->setItem(row, 0, actionItem);
+
+        // Column 1: Shortcut
+        QStandardItem *shortcutItem = new QStandardItem();
+        shortcutItem->setData(QVariant::fromValue(shortcut), Qt::EditRole);
+        shortcutItem->setData(shortcut.toString(QKeySequence::NativeText), Qt::DisplayRole);
+        shortcutItem->setData(QVariant::fromValue(info.key), Qt::UserRole);
+        model->setItem(row, 1, shortcutItem);
+
+        row++;
+    }
+
+    ui->shortcutsTableView->setModel(model);
+    ui->shortcutsTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->shortcutsTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    qDebug() << "--- populateShortcutsTable() END ---";
 }
 
 void PreferencesDialog::setupButton(QPushButton *b, const QColor &c)
@@ -102,9 +142,9 @@ void PreferencesDialog::alphaSpinBox_valueChanged(int val)
     PREF_INST->diffColorsAlpha = val;
 }
 
-void PreferencesDialog::restoreDefaultsPushButton_clicked()
+void PreferencesDialog::restoreColorDefaultsPushButton_clicked()
 {
-    PREF_INST->restoreDefaults();
+    PREF_INST->restoreColorDefaults();
 
     ui->alphaSpinBox->setValue(PREF_INST->diffColorsAlpha);
 
@@ -115,16 +155,34 @@ void PreferencesDialog::restoreDefaultsPushButton_clicked()
     }
 }
 
-void PreferencesDialog::on_tabpos_button_clicked(QAbstractButton* button)
+void PreferencesDialog::restoreShortcutDefaultsPushButton_clicked()
+{
+    PREF_INST->restoreShortcutDefaults();
+    populateShortcutsTable();
+}
+
+void PreferencesDialog::tabsPosition_button_clicked(QAbstractButton* button)
 {
        int id = ui->tabsPosition_buttonGroup->id(button);
        PREF_INST->tabsPosition=id*-1-2;
        PREF_INST->save();
 }
 
-void PreferencesDialog::on_showJsonButtonPosition_clicked(QAbstractButton* button)
+void PreferencesDialog::showJsonButtonPosition_clicked(QAbstractButton* button)
 {
        int id = ui->showJson_buttonGroup->id(button);
        PREF_INST->showJsonButtonPosition=id;
        PREF_INST->save();
+}
+
+void PreferencesDialog::shortcut_changed(QStandardItem *item)
+{
+    if (item->column() == 1) {
+        QString key = item->data(Qt::UserRole).toString();
+        QKeySequence newShortcut = item->data(Qt::EditRole).value<QKeySequence>();
+        PREF_INST->shortcuts[key] = newShortcut;
+        item->setData(newShortcut.toString(QKeySequence::NativeText), Qt::DisplayRole);
+        PREF_INST->save();
+        qDebug() << "Shortcut changed for" << key << "to" << newShortcut.toString();
+    }
 }

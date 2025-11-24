@@ -38,6 +38,7 @@ HEADERS  += mainwindow.h \
     jsonsyntaxhighlighter.h \
     preferences/preferences.h \
     preferences/preferencesdialog.h \
+    preferences/shortcutdelegate.h \
     qjsoncontainer.h \
     qjsondiff.h \
     qjsonitem.h \

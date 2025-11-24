@@ -29,12 +29,13 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     QString collapseSelectedRecursively_string = tr("Collapse Selected Tree");
 
     copyRow = myMenu.addAction(tr("Copy Row"));
-    copyRows = myMenu.addAction(tr("Copy Rows"));
+    copyRows = myMenu.addAction(tr("Copy all Rows"));
     copyPath = myMenu.addAction(tr("Copy Path"));
     copyJqPath = myMenu.addAction(tr("Copy jq Path"));
-    copyJsonPlainText = myMenu.addAction(tr("Copy Plain Json"));
-    copyJsonPrettyText = myMenu.addAction(tr("Copy Pretty Json"));
-    copyJsonByPath = myMenu.addAction(tr("Copy Selected Json Value"));
+    copyJsonPlainText = myMenu.addAction(tr("Copy Plain JSON"));
+    copyJsonPrettyText = myMenu.addAction(tr("Copy Pretty JSON"));
+    copySelectedJsonValuePlain = myMenu.addAction(tr("Copy Plain selected JSON value"));
+    copyJsonByPath = myMenu.addAction(tr("Copy Pretty selected JSON"));
     myMenu.addSeparator();
     singleExpandSelectedRecursively = myMenu.addAction(expandSelectedRecursively_string);
     singleCollapseSelectedRecursively = myMenu.addAction(collapseSelectedRecursively_string);
@@ -43,6 +44,37 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     collapseSelectedRecursively = multiSelectMenu.addAction(collapseSelectedRecursively_string);
     expandSelected = multiSelectMenu.addAction(tr("Expand Selected"));
     collapseSelected = multiSelectMenu.addAction(tr("Collapse Selected"));
+
+    copyRow->setShortcutContext(Qt::WidgetShortcut);
+    copyRows->setShortcutContext(Qt::WidgetShortcut);
+    copyPath->setShortcutContext(Qt::WidgetShortcut);
+    copyJqPath->setShortcutContext(Qt::WidgetShortcut);
+    copyJsonPlainText->setShortcutContext(Qt::WidgetShortcut);
+    copyJsonPrettyText->setShortcutContext(Qt::WidgetShortcut);
+    copySelectedJsonValuePlain->setShortcutContext(Qt::WidgetShortcut);
+    copyJsonByPath->setShortcutContext(Qt::WidgetShortcut);
+    singleExpandSelectedRecursively->setShortcutContext(Qt::WidgetShortcut);
+    singleCollapseSelectedRecursively->setShortcutContext(Qt::WidgetShortcut);
+    expandSelected->setShortcutContext(Qt::WidgetShortcut);
+    collapseSelected->setShortcutContext(Qt::WidgetShortcut);
+    expandSelectedRecursively->setShortcutContext(Qt::WidgetShortcut);
+    collapseSelectedRecursively->setShortcutContext(Qt::WidgetShortcut);
+
+
+    addAction(copyRow);
+    addAction(copyRows);
+    addAction(copyPath);
+    addAction(copyJqPath);
+    addAction(copyJsonPlainText);
+    addAction(copyJsonPrettyText);
+    addAction(copySelectedJsonValuePlain);
+    addAction(copyJsonByPath);
+    addAction(singleExpandSelectedRecursively);
+    addAction(singleCollapseSelectedRecursively);
+    addAction(expandSelected);
+    addAction(collapseSelected);
+    addAction(expandSelectedRecursively);
+    addAction(collapseSelectedRecursively);
 
 
     qDebug() << "obj_layout parent";
@@ -117,12 +149,12 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     find_lineEdit->setToolTip(tr("Enter text and press enter to search"));
     find_lineEdit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     findNext_toolbutton = new QAction(toolbar);
-    QIcon findNext_icon=QIcon(createPixmapFromText(tr(">>")));
+    QIcon findNext_icon = QIcon(createPixmapFromText(tr(">>")));
     findNext_toolbutton->setText(tr("Search Next"));
     findNext_toolbutton->setIcon(findNext_icon);
     findNext_toolbutton->setToolTip(tr("Find Next"));
     findPrevious_toolbutton = new QAction(toolbar);
-    QIcon findPrevious_icon=QIcon(createPixmapFromText(tr("<<")));
+    QIcon findPrevious_icon = QIcon(createPixmapFromText(tr("<<")));
     findPrevious_toolbutton->setText(tr("Search Previous"));
     findPrevious_toolbutton->setIcon(findPrevious_icon);
     findPrevious_toolbutton->setToolTip(tr("Find Previous"));
@@ -143,7 +175,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->addAction(findNext_toolbutton);
     toolbar->addAction(findCaseSensitivity_toolbutton);
     toolbar->addSeparator();
-    toolbar->setIconSize(QSize(28,28));
+    toolbar->setIconSize(QSize(28, 28));
 
 
     spacer = new QWidget();
@@ -227,16 +259,29 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     obj_layout->addWidget(treeview_groupbox);
     qDebug() << "parent->setLayout(obj_layout)";
     parent->setLayout(obj_layout);
+
+    // Populate the action map for ALL shortcuts
+    m_shortcutActionMap["copy_row"] = copyRow;
+    m_shortcutActionMap["copy_all_rows"] = copyRows;
+    m_shortcutActionMap["copy_path"] = copyPath;
+    m_shortcutActionMap["copy_jq_path"] = copyJqPath;
+    m_shortcutActionMap["copy_json_plain_text"] = copyJsonPlainText;
+    m_shortcutActionMap["copy_json_pretty_text"] = copyJsonPrettyText;
+    m_shortcutActionMap["copy_selected_pretty"] = copyJsonByPath;
+    m_shortcutActionMap["copy_selected_plain"] = copySelectedJsonValuePlain;
+
+    applyShortcuts(); // Apply on startup
+
     //connect right click(context menu) signal/slot
     connect(treeview, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showContextMenu(const QPoint &)));
     connect(treeview, SIGNAL(expanded(const QModelIndex &)), this, SLOT(on_treeview_item_expanded()));
     //connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
-    connect(expandAll_Checkbox, &QAction::triggered, this,&QJsonContainer::on_expandAll_checkbox_marked);
+    connect(expandAll_Checkbox, &QAction::triggered, this, &QJsonContainer::on_expandAll_checkbox_marked);
     connect(browse_toolButton, SIGNAL(clicked()), this, SLOT(on_browse_toolButton_clicked()));
     connect(refresh_toolButton, &QToolButton::clicked, this, &QJsonContainer::on_refresh_toolButton_clicked);
     //connect(sortObj_toolButton, SIGNAL(clicked()), this, SLOT(on_sortObj_toolButton_clicked()));
-    connect(sortObj_toolButton,&QAction::triggered,this,&QJsonContainer::on_sortObj_toolButton_clicked);
-    connect(switchview_action,&QAction::triggered,showjson_pushbutton,&QPushButton::click);
+    connect(sortObj_toolButton, &QAction::triggered, this, &QJsonContainer::on_sortObj_toolButton_clicked);
+    connect(switchview_action, &QAction::triggered, showjson_pushbutton, &QPushButton::click);
     connect(filePath_lineEdit, SIGNAL(returnPressed()), this, SLOT(openJsonFile()));
     connect(showjson_pushbutton, SIGNAL(clicked()), this, SLOT(on_showjson_pushbutton_clicked()));
     connect(find_lineEdit, SIGNAL(returnPressed()), this, SLOT(findText()));
@@ -249,6 +294,23 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
     connect(model, &QJsonModel::modelChanged, this, &QJsonContainer::on_model_changed);
+
+    connect(copyRow, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyRows, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyPath, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyJqPath, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyJsonPlainText, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyJsonPrettyText, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copySelectedJsonValuePlain, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(copyJsonByPath, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(singleExpandSelectedRecursively, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(singleCollapseSelectedRecursively, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(expandSelected, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(collapseSelected, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(expandSelectedRecursively, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+    connect(collapseSelectedRecursively, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
+
+    connect(PREF_INST, &Preferences::shortcutsUpdated, this, &QJsonContainer::applyShortcuts);
 }
 
 QJsonContainer::~QJsonContainer()
@@ -264,11 +326,147 @@ QJsonContainer::~QJsonContainer()
     treeview_groupbox->deleteLater();
 }
 
+// yeah it is duplicated logic for menu action basically i don't want to refactor it now
+void QJsonContainer::onActionTriggered()
+{
+    qDebug() << "onActionTriggered() called.";
+
+    QAction *action = qobject_cast<QAction *>(sender());
+    if (!action)
+        {
+            qDebug() << "  ERROR: sender() is not a QAction.";
+            return;
+        }
+
+    qDebug() << "  Action triggered:" << action->text();
+
+    QModelIndex idx = treeview->selectionModel()->currentIndex();
+    if (!idx.isValid())
+        {
+            qDebug() << "  ERROR: treeview->selectionModel()->currentIndex() is INVALID. No item selected or treeview not focused.";
+            return;
+        }
+
+    qDebug() << "  Index is VALID. Row:" << idx.row() << "Column:" << idx.column();
+
+    QClipboard *clip = QApplication::clipboard();
+
+    if (action == copyRow)
+        {
+            qDebug() << "    Executing: copyRow";
+            QStringList strings = extractItemTextFromModel(idx);
+            clip->setText(strings.join("\n"));
+            qDebug() << "    Copied to clipboard:" << clip->text();
+        }
+    else if (action == copyRows)
+        {
+            qDebug() << "    Executing: copyRows";
+            QString string = extractStringsFromModel(model, QModelIndex()).join("\n");
+            clip->setText(string);
+            qDebug() << "    Copied to clipboard:" << clip->text();
+        }
+    else if (action == copyPath)
+        {
+            qDebug() << "    Executing: copyPath";
+            QString string = model->jsonPath(idx);
+            clip->setText(string);
+            qDebug() << "    Copied to clipboard:" << clip->text();
+        }
+    else if (action == copyJqPath)
+        {
+            qDebug() << "    Executing: copyJqPath";
+            QString string = this->JsonPathToJq(model->jsonPath(idx));
+            clip->setText(string);
+            qDebug() << "    Copied to clipboard:" << clip->text();
+        }
+    else if (action == copyJsonPlainText)
+        {
+            qDebug() << "    Executing: copyJsonPlainText";
+            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Compact));
+            qDebug() << "    Copied Plain JSON to clipboard.";
+        }
+    else if (action == copyJsonPrettyText)
+        {
+            qDebug() << "    Executing: copyJsonPrettyText";
+            clip->setText(QJsonDocument::fromJson(viewjson_plaintext->toPlainText().toUtf8()).toJson(QJsonDocument::Indented));
+            qDebug() << "    Copied Pretty JSON to clipboard.";
+        }
+    else if (action == copyJsonByPath)
+        {
+            qDebug() << "    Executing: copyJsonByPath";
+            QJsonDocument doc = QJsonDocument::fromJson(getJson(model->jsonIndexPath(idx)).toUtf8());
+            clip->setText(doc.toJson(QJsonDocument::Indented));
+            qDebug() << "    Copied selected JSON to clipboard.";
+        }
+    else if (action == copySelectedJsonValuePlain)
+        {
+            qDebug() << "    Executing: copySelectedJsonValuePlain";
+            QJsonDocument doc = QJsonDocument::fromJson(getJson(model->jsonIndexPath(idx)).toUtf8());
+            clip->setText(doc.toJson(QJsonDocument::Compact));
+            qDebug() << "    Copied selected plain JSON to clipboard.";
+        }
+    else if (action == singleExpandSelectedRecursively)
+        {
+            qDebug() << "    Executing: singleExpandSelectedRecursively";
+            expandRecursively(idx, treeview, true);
+        }
+    else if (action == singleCollapseSelectedRecursively)
+        {
+            qDebug() << "    Executing: singleCollapseSelectedRecursively";
+            expandRecursively(idx, treeview, false);
+        }
+    else if (action == expandSelected)
+        {
+            qDebug() << "    Executing: expandSelected";
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for (const QModelIndex &index : selection)
+                {
+                    treeview->setExpanded(index, true);
+                }
+        }
+    else if (action == collapseSelected)
+        {
+            qDebug() << "    Executing: collapseSelected";
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for (const QModelIndex &index : selection)
+                {
+                    treeview->setExpanded(index, false);
+                }
+        }
+    else if (action == expandSelectedRecursively)
+        {
+            qDebug() << "    Executing: expandSelectedRecursively";
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for (const QModelIndex &index : selection)
+                {
+                    expandRecursively(index, treeview, true);
+                }
+        }
+    else if (action == collapseSelectedRecursively)
+        {
+            qDebug() << "    Executing: collapseSelectedRecursively";
+            QModelIndexList selection = treeview->selectionModel()->selectedRows();
+            for (const QModelIndex &index : selection)
+                {
+                    expandRecursively(index, treeview, false);
+                }
+        }
+}
+
+void QJsonContainer::applyShortcuts()
+{
+    for (auto it = m_shortcutActionMap.constBegin(); it != m_shortcutActionMap.constEnd(); ++it)
+        {
+            it.value()->setShortcut(PREF_INST->shortcuts.value(it.key()));
+        }
+}
+
 void QJsonContainer::on_model_changed()
 {
-    if (model && !model->hasParseError()) {
-        viewjson_plaintext->setPlainText(model->getJsonDocument().toJson(QJsonDocument::Indented));
-    }
+    if (model && !model->hasParseError())
+        {
+            viewjson_plaintext->setPlainText(model->getJsonDocument().toJson(QJsonDocument::Indented));
+        }
 }
 
 void QJsonContainer::setEditable(bool editable)
@@ -279,34 +477,34 @@ void QJsonContainer::setEditable(bool editable)
 void QJsonContainer::showGoto(bool show)
 {
     //no way to hide :)
-    if(show)
-    {
-        goToNextDiff_toolbutton=new QAction(toolbar);
-        QIcon goToNextDiff_icon=QIcon(createPixmapFromText(tr("->|")));
-        goToNextDiff_toolbutton->setIcon(goToNextDiff_icon);
-        goToNextDiff_toolbutton->setText(tr("Go to Next Diff"));
-        goToNextDiff_toolbutton->setToolTip(tr("Go to Next Diff"));
-        goToPreviousDiff_toolbutton=new QAction(toolbar);
-        QIcon goToPreviousDiff_icon=QIcon(createPixmapFromText(tr("|<-")));
-        goToPreviousDiff_toolbutton->setIcon(goToPreviousDiff_icon);
-        goToPreviousDiff_toolbutton->setText(tr("Go to Previous Diff"));
-        goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
-        diffAmount_lineEdit=new QLineEdit(toolbar);
-        diffAmount_lineEdit->setText("0");
-        diffAmount_lineEdit->setToolTip(tr("Amount of Differences (without root objects/arrays, means values only)"));
-        diffAmount_lineEdit->setReadOnly(true);
-        diffAmount_lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
-        diffAmount_lineEdit->setFixedWidth(QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
-        diffAmount_lineEdit->setAlignment(Qt::AlignCenter);
-        gotDefaultPalette=diffAmount_lineEdit->palette();
-        toolbar->addSeparator();
-        toolbar->addWidget(diffAmount_lineEdit);
-        toolbar->addAction(goToPreviousDiff_toolbutton);
-        toolbar->addAction(goToNextDiff_toolbutton);
-        toolbar->addSeparator();
-        connect(goToPreviousDiff_toolbutton,&QAction::triggered,this,&QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked);
-        connect(goToNextDiff_toolbutton,&QAction::triggered,this,&QJsonContainer::on_GoToNextDiff_toolbutton_clicked);
-    }
+    if (show)
+        {
+            goToNextDiff_toolbutton = new QAction(toolbar);
+            QIcon goToNextDiff_icon = QIcon(createPixmapFromText(tr("->|")));
+            goToNextDiff_toolbutton->setIcon(goToNextDiff_icon);
+            goToNextDiff_toolbutton->setText(tr("Go to Next Diff"));
+            goToNextDiff_toolbutton->setToolTip(tr("Go to Next Diff"));
+            goToPreviousDiff_toolbutton = new QAction(toolbar);
+            QIcon goToPreviousDiff_icon = QIcon(createPixmapFromText(tr("|<-")));
+            goToPreviousDiff_toolbutton->setIcon(goToPreviousDiff_icon);
+            goToPreviousDiff_toolbutton->setText(tr("Go to Previous Diff"));
+            goToPreviousDiff_toolbutton->setToolTip(tr("Go to Previous Diff"));
+            diffAmount_lineEdit = new QLineEdit(toolbar);
+            diffAmount_lineEdit->setText("0");
+            diffAmount_lineEdit->setToolTip(tr("Amount of Differences (without root objects/arrays, means values only)"));
+            diffAmount_lineEdit->setReadOnly(true);
+            diffAmount_lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+            diffAmount_lineEdit->setFixedWidth(QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
+            diffAmount_lineEdit->setAlignment(Qt::AlignCenter);
+            gotDefaultPalette = diffAmount_lineEdit->palette();
+            toolbar->addSeparator();
+            toolbar->addWidget(diffAmount_lineEdit);
+            toolbar->addAction(goToPreviousDiff_toolbutton);
+            toolbar->addAction(goToNextDiff_toolbutton);
+            toolbar->addSeparator();
+            connect(goToPreviousDiff_toolbutton, &QAction::triggered, this, &QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked);
+            connect(goToNextDiff_toolbutton, &QAction::triggered, this, &QJsonContainer::on_GoToNextDiff_toolbutton_clicked);
+        }
 }
 
 QPixmap QJsonContainer::createPixmapFromText(const QString &text)
@@ -321,11 +519,12 @@ QPixmap QJsonContainer::createPixmapFromText(const QString &text)
 
     QRect rect = pix.rect();
     QFontMetrics fm(font);
-    while (fm.horizontalAdvance(text) > iconSize - 4 && font.pointSize() > 1) {
-        font.setPointSize(font.pointSize() - 1);
-        painter.setFont(font);
-        fm = QFontMetrics(font);
-    }
+    while (fm.horizontalAdvance(text) > iconSize - 4 && font.pointSize() > 1)
+        {
+            font.setPointSize(font.pointSize() - 1);
+            painter.setFont(font);
+            fm = QFontMetrics(font);
+        }
 
     painter.setPen(QPen(Qt::black));
     painter.drawText(rect, Qt::AlignCenter, text);
@@ -344,10 +543,19 @@ void QJsonContainer::showContextMenu(const QPoint &point)
 
     //QTreeView *treeview = (QTreeView *)sender();
     QTreeView *treeview = static_cast<QTreeView *>(sender());
-    // for most widgets
-
-
     QPoint globalPos = treeview->mapToGlobal(point);
+    QModelIndex idx = treeview->indexAt(point);
+
+    bool isContainer = false;
+    if (idx.isValid())
+        {
+            QJsonTreeItem *item = static_cast<QJsonTreeItem *>(idx.internalPointer());
+            QJsonValue::Type type = item->type();
+            isContainer = (type == QJsonValue::Object || type == QJsonValue::Array);
+        }
+    copyJsonByPath->setEnabled(isContainer);
+    copySelectedJsonValuePlain->setEnabled(isContainer);
+
     // for QAbstractScrollArea and derived classes you would use:
     // QPoint globalPos = myWidget->viewport()->mapToGlobal(pos);
 
@@ -403,10 +611,17 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                 }
             else if (selectedItem == copyJsonByPath)
                 {
-                    QModelIndex idx = treeview->indexAt(point);
                     qDebug() << "copyJsonByPath";
-                    QString string = getJson(model->jsonIndexPath(idx));
-                    clip->setText(string);
+                    QModelIndex idx = treeview->indexAt(point);
+                    QJsonDocument doc = QJsonDocument::fromJson(getJson(model->jsonIndexPath(idx)).toUtf8());
+                    clip->setText(doc.toJson(QJsonDocument::Indented));
+                }
+            else if (selectedItem == copySelectedJsonValuePlain)
+                {
+                    qDebug() << "copySelectedJsonValuePlain";
+                    QModelIndex idx = treeview->indexAt(point);
+                    QJsonDocument doc = QJsonDocument::fromJson(getJson(model->jsonIndexPath(idx)).toUtf8());
+                    clip->setText(doc.toJson(QJsonDocument::Compact));
                 }
             else if (selectedItem == singleExpandSelectedRecursively)
                 {
@@ -455,9 +670,6 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                     for (int i = 0; i < selection.count(); i++)
                         {
                             QModelIndex index = selection.at(i);
-                            // From 5.13 qt provides native expandRecursively function but it acts weirdly
-                            // when calling it in loop in some reason only first one expanded completly
-                            // and I don't wanna to change qt version yet
                             expandRecursively(index, treeview, true);
 
                         }
@@ -476,35 +688,38 @@ void QJsonContainer::showContextMenu(const QPoint &point)
         }
 }
 
-QString QJsonContainer::JsonPathToJq(const QString& qtPath) const
+QString QJsonContainer::JsonPathToJq(const QString &qtPath) const
 {
     QString jqPath = ".";
     QStringList parts = qtPath.split("->");
     QString prevType;
     QRegularExpression validKey("^[A-Za-z_][A-Za-z0-9_]*$");
 
-    for (const QString& part : parts)
-    {
-        int p = part.indexOf('(');
-        QString key = p > 0 ? part.left(p) : part;
-        QString type = p > 0 ? part.mid(p + 1, part.size() - p - 2) : "";
+    for (const QString &part : parts)
+        {
+            int p = part.indexOf('(');
+            QString key = p > 0 ? part.left(p) : part;
+            QString type = p > 0 ? part.mid(p + 1, part.size() - p - 2) : "";
 
-        if (key == "root" || key.isEmpty()) { prevType = type; continue; }
+            if (key == "root" || key.isEmpty()) { prevType = type; continue; }
 
-        bool isInt = false;
-        int idx = key.toInt(&isInt);
+            bool isInt = false;
+            int idx = key.toInt(&isInt);
 
-        if (prevType == "Array" && isInt && key == QString::number(idx)) {
-            jqPath += "[" + key + "]";
+            if (prevType == "Array" && isInt && key == QString::number(idx))
+                {
+                    jqPath += "[" + key + "]";
+                }
+            else if (validKey.match(key).hasMatch())
+                {
+                    jqPath += (jqPath == "." ? "" : ".") + key;
+                }
+            else
+                {
+                    jqPath += "[\"" + key + "\"]";
+                }
+            prevType = type;
         }
-        else if (validKey.match(key).hasMatch()) {
-            jqPath += (jqPath == "." ? "" : ".") + key;
-        }
-        else {
-            jqPath += "[\"" + key + "\"]";
-        }
-        prevType = type;
-    }
     return "'" + jqPath + "'";
 }
 
@@ -669,22 +884,24 @@ void QJsonContainer::on_showjson_pushbutton_clicked()
             showjson_pushbutton->setText(tr("Show Json Text"));
         }
     else
-    {
-        if (!model->hasParseError()) {
-            QJsonDocument doc = model->getJsonDocument();
-            viewjson_plaintext->setPlainText(doc.toJson(QJsonDocument::Indented));
+        {
+            if (!model->hasParseError())
+                {
+                    QJsonDocument doc = model->getJsonDocument();
+                    viewjson_plaintext->setPlainText(doc.toJson(QJsonDocument::Indented));
+                }
+            viewjson_plaintext->setVisible(true);
+            treeview->setVisible(false);
+            showjson_pushbutton->setText(tr("Show Json View"));
+            if (model->hasParseError())
+                {
+                    int errorOffset = model->lastErrorOffset();
+                    QTextCursor cursor = viewjson_plaintext->textCursor();
+                    cursor.setPosition(errorOffset);
+                    viewjson_plaintext->setTextCursor(cursor);
+                    viewjson_plaintext->setFocus();
+                }
         }
-        viewjson_plaintext->setVisible(true);
-        treeview->setVisible(false);
-        showjson_pushbutton->setText(tr("Show Json View"));
-        if (model->hasParseError()) {
-            int errorOffset = model->lastErrorOffset();
-            QTextCursor cursor = viewjson_plaintext->textCursor();
-            cursor.setPosition(errorOffset);
-            viewjson_plaintext->setTextCursor(cursor);
-            viewjson_plaintext->setFocus();
-        }
-    }
     emit jsonUpdated();
 }
 
@@ -693,14 +910,16 @@ void QJsonContainer::on_browse_toolButton_clicked()
     QString dialogTitle = tr("Open File");
     QString dialogFilter = tr("Files (*.json *.jsn *.txt);;All Files (*)");
     QString dialogDir = "";
-    if (!filePath_lineEdit->text().isEmpty()) {
-        dialogDir = filePath_lineEdit->text();
-    }
+    if (!filePath_lineEdit->text().isEmpty())
+        {
+            dialogDir = filePath_lineEdit->text();
+        }
     QString fileName = QFileDialog::getOpenFileName(this, dialogTitle, dialogDir, dialogFilter);
-    if (!fileName.isEmpty()) {
-        filePath_lineEdit->setText(fileName);
-        openJsonFile();
-    }
+    if (!fileName.isEmpty())
+        {
+            filePath_lineEdit->setText(fileName);
+            openJsonFile();
+        }
 
 }
 
@@ -742,19 +961,21 @@ void QJsonContainer::loadJson(QJsonDocument data)
     loadJson(datastr);
 }
 
-void QJsonContainer::loadJson(const QString& data)
+void QJsonContainer::loadJson(const QString &data)
 {
     QByteArray utf8Data = data.toUtf8();
     model->loadJson(utf8Data);
-    if (model->hasParseError()) {
-        // Do not update text view if error
-        QTimer::singleShot(100, [this]() {
-            QToolTip::showText(this->mapToGlobal(QPoint(0,0)),
-                               tr("<b><font color='red'>JSON parse error:</font></b> ") + model->lastErrorMessage(),
-                               this, kTooltipRect, kTooltipDuration);
-        });
-        return;
-    }
+    if (model->hasParseError())
+        {
+            // Do not update text view if error
+            QTimer::singleShot(100, [this]()
+            {
+                QToolTip::showText(this->mapToGlobal(QPoint(0, 0)),
+                                   tr("<b><font color='red'>JSON parse error:</font></b> ") + model->lastErrorMessage(),
+                                   this, kTooltipRect, kTooltipDuration);
+            });
+            return;
+        }
     viewjson_plaintext->setPlainText((QJsonDocument::fromJson(utf8Data)).toJson(QJsonDocument::Indented));
     on_expandAll_checkbox_marked();
 }
@@ -915,23 +1136,23 @@ void QJsonContainer::reInitModel()
 //sort arrays inside of objects
 QJsonDocument QJsonContainer::sortObjectArrays(QJsonDocument data)
 {
-    QJsonDocument resultData=data;
-    if(data.isObject())
-    {
-        QJsonObject jsonObj=data.object();
-        resultData=QJsonDocument::fromVariant(sortObjectArraysGrabObject(jsonObj).toVariantMap());
-    }
+    QJsonDocument resultData = data;
+    if (data.isObject())
+        {
+            QJsonObject jsonObj = data.object();
+            resultData = QJsonDocument::fromVariant(sortObjectArraysGrabObject(jsonObj).toVariantMap());
+        }
     else
-    {
-        QJsonArray jsonArr=data.array();
-        resultData=QJsonDocument::fromVariant(sortObjectArraysGrabArray(jsonArr).toVariantList());
-    }
+        {
+            QJsonArray jsonArr = data.array();
+            resultData = QJsonDocument::fromVariant(sortObjectArraysGrabArray(jsonArr).toVariantList());
+        }
     return resultData;
 }
 //Count "weight of string" or it's rather some kind of hashcode
 //from my point of view it's almost unique and possible to recognize identical string
 //"weight of string"="sum charachters code numbers" * "string length"
-int QJsonContainer::countStringWeight(const QString& inStr)
+int QJsonContainer::countStringWeight(const QString &inStr)
 {
     int total = 0;
     for (int i = 0; i <= inStr.length() - 1; i++)
@@ -963,31 +1184,33 @@ bool QJsonContainer::wayToSort(const QJsonValue &v1, const QJsonValue &v2)
 QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 {
     QJsonArray resultData;
-    if(data.at(0).isObject())
+    if (data.at(0).isObject())
         {
             //qDebug()<<data;
             //qDebug()<<data.count();
-            std::sort(data.begin(), data.end(),wayToSort);
+            std::sort(data.begin(), data.end(), wayToSort);
 
             //qDebug()<<data;
 
         }
-    else if(data.at(0).isDouble())
+    else if (data.at(0).isDouble())
         {
             //qDebug()<<data;
             //qDebug()<<data.count();
-            std::sort(data.begin(), data.end(),wayToSort);
+            std::sort(data.begin(), data.end(), wayToSort);
             //qDebug()<<data;
 
         }
-    resultData=data;
-        for (int arrayId = 0; arrayId < resultData.size(); ++arrayId) {
+    resultData = data;
+    for (int arrayId = 0; arrayId < resultData.size(); ++arrayId)
+        {
             const QJsonValue &value = resultData[arrayId];
-            if (value.isObject()) {
-                // qDebug() << "Object" << value.toString();
-                resultData.removeAt(arrayId);
-                resultData.insert(arrayId, sortObjectArraysGrabObject(value.toObject()));
-            }
+            if (value.isObject())
+                {
+                    // qDebug() << "Object" << value.toString();
+                    resultData.removeAt(arrayId);
+                    resultData.insert(arrayId, sortObjectArraysGrabObject(value.toObject()));
+                }
         }
     //qDebug()<<resultData;
     return resultData;
@@ -995,20 +1218,20 @@ QJsonArray QJsonContainer::sortObjectArraysGrabArray(QJsonArray data)
 
 QJsonObject QJsonContainer::sortObjectArraysGrabObject(QJsonObject data)
 {
-    QJsonObject resultData=data;
-    for(QJsonObject::const_iterator iter = data.begin(); iter != data.end(); ++iter)
+    QJsonObject resultData = data;
+    for (QJsonObject::const_iterator iter = data.begin(); iter != data.end(); ++iter)
         {
             if (iter.value().isArray())
                 {
                     //qDebug() << iter.key()  << "Array" << iter.value().toString();
                     resultData.remove(iter.key());
-                    resultData.insert(iter.key(),sortObjectArraysGrabArray(iter.value().toArray()));
+                    resultData.insert(iter.key(), sortObjectArraysGrabArray(iter.value().toArray()));
                 }
             else if (iter.value().isObject())
                 {
                     //qDebug() << iter.key() << "Object" << iter.value().toString();
                     resultData.remove(iter.key());
-                    resultData.insert(iter.key(),sortObjectArraysGrabObject(iter.value().toObject()));
+                    resultData.insert(iter.key(), sortObjectArraysGrabObject(iter.value().toObject()));
 
                 }
         }
@@ -1271,15 +1494,32 @@ void QJsonContainer::on_model_dataUpdated()
     qDebug() << "model has been changed";
     resetCurrentFind();
     resetGoto();
-    if(diffAmount_lineEdit)
-    {
-        diffAmountUpdate();
-    }
+    if (diffAmount_lineEdit)
+        {
+            diffAmountUpdate();
+        }
 }
 
 bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)
 {
     Q_UNUSED(obj)
+    if (event->type() == QEvent::ShortcutOverride)
+        {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            QKeySequence sequence(keyEvent->key() | keyEvent->modifiers());
+
+            for (auto it = m_shortcutActionMap.constBegin(); it != m_shortcutActionMap.constEnd(); ++it)
+                {
+                    QAction *action = it.value();
+                    if (!action->shortcut().isEmpty() && action->shortcut() == sequence)
+                        {
+                            qDebug() << "ShortcutOverride match for action:" << action->text();
+                            action->trigger();
+                            event->accept();
+                            return true;
+                        }
+                }
+        }
     if (event->type() == QEvent::KeyPress)
         {
             QKeyEvent *keyevent = static_cast<QKeyEvent *>(event);
@@ -1290,54 +1530,54 @@ bool QJsonContainer::eventFilter(QObject *obj, QEvent *event)
                     emit jsonUpdated();
                 }
         }
-    if ( event->type() == QEvent::DragEnter)
-    {
-      QDragEnterEvent *dropEvent = static_cast<QDragEnterEvent*>(event);
+    if (event->type() == QEvent::DragEnter)
+        {
+            QDragEnterEvent *dropEvent = static_cast<QDragEnterEvent *>(event);
 
-      qDebug() << "drag enter";
-      qDebug() << dropEvent->mimeData()->urls();
-      if (dropEvent->mimeData()->hasUrls())
-      {
-          QStringList pathList;
-              QList<QUrl> urlList = dropEvent->mimeData()->urls();
+            qDebug() << "drag enter";
+            qDebug() << dropEvent->mimeData()->urls();
+            if (dropEvent->mimeData()->hasUrls())
+                {
+                    QStringList pathList;
+                    QList<QUrl> urlList = dropEvent->mimeData()->urls();
 
-              for (int i = 0; i < urlList.size() && i < 32;++i)
-              {
-                pathList.append(urlList.at(i).toLocalFile());
-              }
+                    for (int i = 0; i < urlList.size() && i < 32; ++i)
+                        {
+                            pathList.append(urlList.at(i).toLocalFile());
+                        }
 
-          if(pathList.count()>0)
-          {
-            dropEvent->acceptProposedAction();
-            qDebug()<<pathList;
-          }
+                    if (pathList.count() > 0)
+                        {
+                            dropEvent->acceptProposedAction();
+                            qDebug() << pathList;
+                        }
 
-      }
-    }
-    if ( event->type() == QEvent::Drop)
-    {
-      qDebug() << "drop";
-      QDropEvent *dropEvent = static_cast<QDropEvent*>(event);
-      qDebug() << dropEvent->mimeData()->hasUrls();
-      if (dropEvent->mimeData()->hasUrls())
-      {
-          QStringList pathList;
-              QList<QUrl> urlList = dropEvent->mimeData()->urls();
+                }
+        }
+    if (event->type() == QEvent::Drop)
+        {
+            qDebug() << "drop";
+            QDropEvent *dropEvent = static_cast<QDropEvent *>(event);
+            qDebug() << dropEvent->mimeData()->hasUrls();
+            if (dropEvent->mimeData()->hasUrls())
+                {
+                    QStringList pathList;
+                    QList<QUrl> urlList = dropEvent->mimeData()->urls();
 
-              for (int i = 0; i < urlList.size() && i < 32;++i)
-              {
-                pathList.append(urlList.at(i).toLocalFile());
-              }
+                    for (int i = 0; i < urlList.size() && i < 32; ++i)
+                        {
+                            pathList.append(urlList.at(i).toLocalFile());
+                        }
 
-          if(pathList.count()>0)
-          {
-               loadJsonFile(pathList[0]);
-          }
+                    if (pathList.count() > 0)
+                        {
+                            loadJsonFile(pathList[0]);
+                        }
 
-      }
+                }
 
-    }
-    qDebug()<<event->type();
+        }
+    qDebug() << event->type();
     return false;
 }
 
@@ -1373,9 +1613,9 @@ void QJsonContainer::showJsonButtonPosition()
     //-2 bottom
     //-3 top inline
     switch (PREF_INST->showJsonButtonPosition)
-    {
+        {
         case -2:
-            qDebug()<<"bottom";
+            qDebug() << "bottom";
 //            if(toolbarbutton)
 //            {
 //                toolbar->removeAction(toolbarbutton);
@@ -1385,7 +1625,7 @@ void QJsonContainer::showJsonButtonPosition()
             showjson_pushbutton->show();
             break;
         case -3:
-            qDebug()<<"top inline";
+            qDebug() << "top inline";
             //treeview_layout->removeWidget(showjson_pushbutton);
 //            showjson_pushbutton->setParent(toolbar);
             //toolbarbutton=toolbar->insertWidget(toolbar->actionAt(1,0),showjson_pushbutton);
@@ -1393,14 +1633,14 @@ void QJsonContainer::showJsonButtonPosition()
             showjson_pushbutton->hide();
             break;
         default:
-            qDebug()<<"default";
-    }
+            qDebug() << "default";
+        }
 }
 
 void QJsonContainer::on_GoToNextDiff_toolbutton_clicked()
 {
 
-    qDebug()<<gotoIndexes_list;
+    qDebug() << gotoIndexes_list;
     gotoIndexHandler(true);
 
 }
@@ -1408,7 +1648,7 @@ void QJsonContainer::on_GoToNextDiff_toolbutton_clicked()
 void QJsonContainer::on_GoToPreviousDiff_toolbutton_clicked()
 {
 
-    qDebug()<<gotoIndexes_list;
+    qDebug() << gotoIndexes_list;
     gotoIndexHandler(false);
 }
 
@@ -1419,7 +1659,7 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
     QModelIndex idx = treeview->currentIndex();
     if (idx.isValid())
         {
-            if(idx.column() != 0)
+            if (idx.column() != 0)
                 {
                     idx = idx.siblingAtColumn(0);
                 }
@@ -1461,11 +1701,11 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
         }
     if (gotoIndexes_list.count() > 0 && currentGotoIndexId < gotoIndexes_list.count() - 1 && directionForward)
         {
-             currentGotoIndexId++;
+            currentGotoIndexId++;
         }
     else if (gotoIndexes_list.count() > 0 && currentGotoIndexId > 0 && currentGotoIndexId <= gotoIndexes_list.count() - 1 && !directionForward)
         {
-             currentGotoIndexId--;
+            currentGotoIndexId--;
         }
 
     else if (gotoIndexes_list.count() > 0 && (currentGotoIndexId == gotoIndexes_list.count() - 1 || currentGotoIndexId == 0))
@@ -1478,20 +1718,20 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
         {
             currentGotoIndexId = gotoIndexes_list.count() - 1;
         }
-    const QJsonTreeItem* item = model->itemFromIndex(model->index(0,0));
-    if(item)
-    {
-    if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()!=DiffColorType::None)
+    const QJsonTreeItem *item = model->itemFromIndex(model->index(0, 0));
+    if (item)
         {
-            QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=green>Documents identical!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
+            if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0, 0))->colorType() != DiffColorType::None)
+                {
+                    QRect widgetRect = find_lineEdit->contentsRect();
+                    QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=green>Documents identical!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
+                }
+            else if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0, 0))->colorType() == DiffColorType::None)
+                {
+                    QRect widgetRect = find_lineEdit->contentsRect();
+                    QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=yellow>Start Comparison!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
+                }
         }
-    else if (gotoIndexes_list.count() == 0  && model->itemFromIndex(model->index(0,0))->colorType()==DiffColorType::None)
-        {
-            QRect widgetRect = find_lineEdit->contentsRect();
-            QToolTip::showText(find_lineEdit->mapToGlobal(QPoint(widgetRect.center().x(), widgetRect.center().y())), tr("<b><font \"color\"=yellow>Start Comparison!</font></b>"), nullptr, kTooltipRect, kTooltipDuration);
-        }
-    }
     if (currentGotoIndexId >= 0)
         {
             treeview->setCurrentIndex(gotoIndexes_list[currentGotoIndexId]);
@@ -1502,36 +1742,39 @@ void QJsonContainer::gotoIndexHandler(bool directionForward)
 void QJsonContainer::resetGoto()
 {
     gotoIndexes_list.clear();
-    currentGotoIndexId=-1;
+    currentGotoIndexId = -1;
 }
 
 void QJsonContainer::diffAmountUpdate()
 {
-    if(gotoIndexes_list.count()>0)
-    {
-        QPalette palette;
-        palette.setColor(QPalette::Base,PREF_INST->diffColor(DiffColorType::Huge));
-        diffAmount_lineEdit->setPalette(palette);
-        diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
-    }
-    else if(gotoIndexes_list.count()==0)
-    {
-        QJsonTreeItem* item = model->itemFromIndex(model->index(0,0));
-        if (item && item->colorType() != DiffColorType::None) {
+    if (gotoIndexes_list.count() > 0)
+        {
             QPalette palette;
-            palette.setColor(QPalette::Base, PREF_INST->diffColor(DiffColorType::Identical));
+            palette.setColor(QPalette::Base, PREF_INST->diffColor(DiffColorType::Huge));
             diffAmount_lineEdit->setPalette(palette);
-            diffAmount_lineEdit->setText("0");
-        } else {
+            diffAmount_lineEdit->setText(QString::number(gotoIndexes_list.count()));
+        }
+    else if (gotoIndexes_list.count() == 0)
+        {
+            QJsonTreeItem *item = model->itemFromIndex(model->index(0, 0));
+            if (item && item->colorType() != DiffColorType::None)
+                {
+                    QPalette palette;
+                    palette.setColor(QPalette::Base, PREF_INST->diffColor(DiffColorType::Identical));
+                    diffAmount_lineEdit->setPalette(palette);
+                    diffAmount_lineEdit->setText("0");
+                }
+            else
+                {
+                    diffAmount_lineEdit->setPalette(gotDefaultPalette);
+                    diffAmount_lineEdit->setText("0");
+                }
+        }
+    else
+        {
             diffAmount_lineEdit->setPalette(gotDefaultPalette);
             diffAmount_lineEdit->setText("0");
         }
-    }
-    else
-    {
-        diffAmount_lineEdit->setPalette(gotDefaultPalette);
-        diffAmount_lineEdit->setText("0");
-    }
     diffAmount_lineEdit->setFixedWidth(diffAmount_lineEdit->text().size()*QFontMetrics(diffAmount_lineEdit->font()).maxWidth());
 }
 
@@ -1545,9 +1788,9 @@ QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelI
             QModelIndex idx0 = model->index(i, 0, parent);
             if (idx0.isValid())
                 {
-                    QJsonTreeItem *item=model->itemFromIndex(idx0);
-                    DiffColorType bg=item->colorType();
-                    if (bg!=DiffColorType::None && bg!=DiffColorType::Identical && (item->type()!=QJsonValue::Object && item->type()!=QJsonValue::Array))
+                    QJsonTreeItem *item = model->itemFromIndex(idx0);
+                    DiffColorType bg = item->colorType();
+                    if (bg != DiffColorType::None && bg != DiffColorType::Identical && (item->type() != QJsonValue::Object && item->type() != QJsonValue::Array))
                         {
                             retindex << idx0;
                         }
