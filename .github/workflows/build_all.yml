@@ -36,19 +36,43 @@ jobs:
       build_lin: ${{ steps.set_flags.outputs.build_lin }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
+          fetch-depth: 0
       - name: get app version
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating notes since last tag: $LAST_TAG"
+            COMMIT_LOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"* %s (%h)")
+          else
+            echo "No previous tag found. Generating notes for all commits."
+            COMMIT_LOG=$(git log --pretty=format:"* %s (%h)")
+          fi
+
+          {
+            echo "changelog_body<<EOF"
+            echo "$COMMIT_LOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Debug changelog body
+        run: |
+          echo "--- Start of Changelog Body ---"
+          echo "${{ steps.generate_notes.outputs.changelog_body }}"
+          echo "--- End of Changelog Body ---"
       - name: Create release
         if: github.ref == 'refs/heads/main'
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
+          body: ${{ steps.generate_notes.outputs.changelog_body }}
           tag_name: ${{ steps.build.outputs.VER_TAG_NAME }}_${{ github.ref }}
           name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
           draft: false
@@ -306,8 +330,8 @@ jobs:
           ROOTMSYS=/d/a/_temp/msys64/mingw64
           export PATH=$ROOTMSYS/bin:$PATH
           ls -l $ROOTMSYS/bin | grep qmake || echo "qmake not found"
-          $ROOTMSYS/bin/qmake-qt6 --version || echo "qmake failed to run"
-          qmake-qt6
+          $ROOTMSYS/bin/qmake6 --version || echo "qmake failed to run"
+          qmake6
           make -j$(nproc)
           rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h
           windeployqt6.exe release/${{ steps.buildwin.outputs.APP_NAME }}.exe
