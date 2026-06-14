@@ -67,17 +67,22 @@ desktop.files += $${TARGET}.desktop
 desktop.path += /usr/share/applications/
 INSTALLS += binary translations icon desktop
 
-# Tests are built into a shadow subdir under the current Makefile dir
+# Tests are opt-in: pass `CONFIG+=tests` to qmake to add the `check`
+# target. Release builds (build_all.yml) never set it, so the generated
+# Makefile has no check rule and no tests/-related references at all.
+#
+# Tests build into a shadow subdir under the current Makefile dir
 # ($$OUT_PWD). For a shadow build like build/Desktopqt6-Debug that puts
 # them under build/Desktopqt6-Debug/tests-shadow. Source path comes from
 # $$PWD (the directory of this .pro file).
-check.commands = \
-    mkdir -p $$OUT_PWD/tests-shadow && \
-    cd $$OUT_PWD/tests-shadow && \
-    $(QMAKE) $$PWD/tests/tests.pro && \
-    $(MAKE) && \
-    QT_QPA_PLATFORM=offscreen ./conversions/tst_json_conversions && \
-    QT_QPA_PLATFORM=offscreen ./compare/tst_compare
+tests {
+    check.commands = \
+        mkdir -p $$OUT_PWD/tests-shadow && \
+        cd $$OUT_PWD/tests-shadow && \
+        $(QMAKE) $$PWD/tests/tests.pro && \
+        $(MAKE) && \
+        QT_QPA_PLATFORM=offscreen ./conversions/tst_json_conversions && \
+        QT_QPA_PLATFORM=offscreen ./compare/tst_compare
 
-# 2. Add 'check' to QMAKE_EXTRA_TARGETS.
-QMAKE_EXTRA_TARGETS += check
+    QMAKE_EXTRA_TARGETS += check
+}

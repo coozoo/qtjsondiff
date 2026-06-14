@@ -98,19 +98,31 @@ of the build (`CONFIG += lrelease`). Release builds suppress
 `build/` and the usual qmake droppings (`*.o`, `moc_*.cpp`, `Makefile*`,
 …) are in `.gitignore`.
 
-## Tests — same shadow-build convention
+## Tests — opt-in, same shadow-build convention
 
-From the shadow build dir:
+Tests are **opt-in** via `CONFIG+=tests` at qmake time. Without it,
+the generated Makefile contains only the qmake-builtin no-op `check`
+target — release builds (`build_all.yml`) never reference any test
+code or build the test tree.
+
+To build and run tests, pass the flag:
 
 ```bash
+mkdir -p build/Desktopqt6-Debug
 cd build/Desktopqt6-Debug
+qmake6 ../../qtjsondiff.pro CONFIG+=debug CONFIG+=tests
+make -j$(nproc)
 make check         # builds tests under tests-shadow/ and runs them
 ```
 
-`make check` is defined in `qtjsondiff.pro` and:
+`make check` (only registered when `CONFIG+=tests`) is defined in
+`qtjsondiff.pro` and:
 1. Creates `$OUT_PWD/tests-shadow/` (a subdir of the current build dir).
 2. Runs `qmake6 <src>/tests/tests.pro` in there.
 3. Builds and runs both test binaries under `QT_QPA_PLATFORM=offscreen`.
+
+The CI workflow that exercises tests is `.github/workflows/tests.yml`
+(ubuntu-latest, separate from `build_all.yml`).
 
 To build tests by hand into their own shadow dir instead:
 
