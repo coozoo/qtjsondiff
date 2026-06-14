@@ -1,4 +1,5 @@
 #include "preferences.h"
+#include <QDebug>
 
 #define DEF_IDENTICAL_DIFF_COLOR QColor(0, 100, 0, 150)
 #define DEF_MODERATE_DIFF_COLOR QColor(Qt::yellow)
@@ -11,6 +12,17 @@
 #define DEF_SYNTAX_VAL_COLOR QColor(Qt::green)
 
 
+const QList<ShortcutInfo> Preferences::shortcutInfos = {
+    {"copy_row",                 "Copy Row",                       QKeySequence("Ctrl+Alt+1")},
+    {"copy_all_rows",            "Copy all Rows",                  QKeySequence("Ctrl+Alt+2")},
+    {"copy_path",                "Copy Path",                      QKeySequence("Ctrl+Alt+3")},
+    {"copy_jq_path",             "Copy jq Path",                   QKeySequence("Ctrl+Alt+4")},
+    {"copy_json_plain_text",     "Copy Plain JSON",                QKeySequence("Ctrl+Alt+5")},
+    {"copy_json_pretty_text",    "Copy Pretty JSON",               QKeySequence("Ctrl+Alt+6")},
+    {"copy_selected_plain",      "Copy Plain selected JSON value", QKeySequence("Ctrl+Alt+7")},
+    {"copy_selected_pretty",     "Copy Pretty selected JSON",      QKeySequence("Ctrl+Alt+8")}
+};
+
 Preferences * Preferences::m_instance = nullptr;
 
 
@@ -21,13 +33,16 @@ Preferences * Preferences::Instance()
     return m_instance;
 }
 
-Preferences::Preferences()
+Preferences::Preferences(QObject *parent) : QObject(parent)
 {
     load();
 }
 
+Preferences::~Preferences() = default;
+
 void Preferences::load()
 {
+    qDebug() << "--- Preferences::load() START ---";
     activeTabIndex = s.value("active_tab_index", 0).toInt();
     tabsPosition = s.value("tabs_position",QTabWidget::East).toInt();
     showJsonButtonPosition= s.value("show_json_button_position",-2).toInt();
@@ -48,10 +63,25 @@ void Preferences::load()
 
     syntaxKeywordColor = s.value("syntax_keyword_color", DEF_SYNTAX_KW_COLOR).value<QColor>();
     syntaxValueColor = s.value("syntax_value_color", DEF_SYNTAX_VAL_COLOR).value<QColor>();
+
+    bool needToSaveDefaults = !s.contains("Shortcuts/copy_row");
+
+    for (const auto &info : shortcutInfos) {
+        QVariant loadedShortcut = s.value("Shortcuts/" + info.key, QVariant::fromValue(info.defaultSequence));
+        shortcuts[info.key] = loadedShortcut.value<QKeySequence>();
+        qDebug() << "Loaded shortcut for" << info.key << ":" << shortcuts[info.key].toString();
+    }
+
+    if (needToSaveDefaults) {
+        qDebug() << "Shortcuts not found in settings, saving defaults.";
+        save();
+    }
+    qDebug() << "--- Preferences::load() END ---";
 }
 
 void Preferences::save()
 {
+    qDebug() << "--- Preferences::save() ---";
     s.setValue("active_tab_index", activeTabIndex);
     s.setValue("tabs_position",tabsPosition);
     s.setValue("show_json_button_position",showJsonButtonPosition);
@@ -72,10 +102,18 @@ void Preferences::save()
 
     s.setValue("syntax_keyword_color", syntaxKeywordColor);
     s.setValue("syntax_value_color", syntaxValueColor);
+    
+    for (auto it = shortcuts.constBegin(); it != shortcuts.constEnd(); ++it) {
+        s.setValue("Shortcuts/" + it.key(), it.value());
+        qDebug() << "Saving shortcut for" << it.key() << ":" << it.value().toString();
+    }
+
+    emit shortcutsUpdated();
 }
 
-void Preferences::restoreDefaults()
+void Preferences::restoreColorDefaults()
 {
+    qDebug() << "--- Preferences::restoreColorDefaults() ---";
     identicalDiffColor = DEF_IDENTICAL_DIFF_COLOR;
     moderateDiffColor = DEF_MODERATE_DIFF_COLOR;
     hugeDiffColor = DEF_HUGE_DIFF_COLOR;
@@ -85,6 +123,16 @@ void Preferences::restoreDefaults()
 
     syntaxKeywordColor = DEF_SYNTAX_KW_COLOR;
     syntaxValueColor = DEF_SYNTAX_VAL_COLOR;
+    save();
+}
+
+void Preferences::restoreShortcutDefaults()
+{
+    qDebug() << "--- Preferences::restoreShortcutDefaults() ---";
+    for (const auto &info : shortcutInfos) {
+        shortcuts[info.key] = info.defaultSequence;
+    }
+    save();
 }
 
 QColor Preferences::diffColor(DiffColorType colorType)

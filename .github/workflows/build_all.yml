@@ -30,27 +30,86 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      build_mac_dmg: ${{ steps.set_flags.outputs.build_mac_dmg }}
+      build_mac_zip: ${{ steps.set_flags.outputs.build_mac_zip }}
+      build_win: ${{ steps.set_flags.outputs.build_win }}
+      build_lin: ${{ steps.set_flags.outputs.build_lin }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
+          fetch-depth: 0
       - name: get app version
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating notes since last tag: $LAST_TAG"
+            COMMIT_LOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"* %s (%h)")
+          else
+            echo "No previous tag found. Generating notes for all commits."
+            COMMIT_LOG=$(git log --pretty=format:"* %s (%h)")
+          fi
+
+          {
+            echo "changelog_body<<EOF"
+            echo "$COMMIT_LOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Debug changelog body
+        run: |
+          echo "--- Start of Changelog Body ---"
+          echo "${{ steps.generate_notes.outputs.changelog_body }}"
+          echo "--- End of Changelog Body ---"
       - name: Create release
         if: github.ref == 'refs/heads/main'
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
+          body: ${{ steps.generate_notes.outputs.changelog_body }}
           tag_name: ${{ steps.build.outputs.VER_TAG_NAME }}_${{ github.ref }}
           name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set build flags from PR tags or commit message
+        id: set_flags
+        run: |
+          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
+            SRC="${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}"
+          else
+            SRC="${{ github.event.head_commit.message }}"
+          fi
+
+          BUILD_MAC_DMG=0
+          BUILD_MAC_ZIP=0
+          BUILD_WIN=0
+          BUILD_LIN=0
+
+          if echo "$SRC" | grep -iq '\[build mac dmg\]'; then BUILD_MAC_DMG=1; fi
+          if echo "$SRC" | grep -iq '\[build mac\]'; then BUILD_MAC_DMG=1; fi
+          if echo "$SRC" | grep -iq '\[build mac zip\]'; then BUILD_MAC_ZIP=1; fi
+          if echo "$SRC" | grep -iq '\[build win\]'; then BUILD_WIN=1; fi
+          if echo "$SRC" | grep -iq '\[build linux\]'; then BUILD_LIN=1; fi
+
+          if [[ "$BUILD_MAC_DMG" -eq 0 && "$BUILD_MAC_ZIP" -eq 0 && "$BUILD_WIN" -eq 0 && "$BUILD_LIN" -eq 0 ]]; then
+            BUILD_MAC_DMG=1
+            BUILD_MAC_ZIP=1
+            BUILD_WIN=1
+            BUILD_LIN=1
+          fi
+
+          echo "build_mac_dmg=$BUILD_MAC_DMG" >> $GITHUB_OUTPUT
+          echo "build_mac_zip=$BUILD_MAC_ZIP" >> $GITHUB_OUTPUT
+          echo "build_win=$BUILD_WIN" >> $GITHUB_OUTPUT
+          echo "build_lin=$BUILD_LIN" >> $GITHUB_OUTPUT
   build_release:
     name: Build release
     needs: create_release
@@ -66,33 +125,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: get app version
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
       - name: add qt repo to linux
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
           sudo apt-get update -qq
 #         sudo add-apt-repository ppa:beineri/opt-qt-5.15.4-focal -y
       - name: install qt into linux
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev zlib1g-dev libfuse2
       - name: Set up GPG
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
           echo "${{ secrets.LAUNCHPAD_GPG_KEY }}" | gpg --batch --import
           echo "${{ secrets.LAUNCHPAD_GPG_KEY_ID }}:6:" | gpg --import-ownertrust
       - name: Setup SSH for Launchpad
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.LAUNCHPAD_SSH_KEY }}" > ~/.ssh/launchpad-ci_id_rsa
           chmod 600 ~/.ssh/launchpad-ci_id_rsa
           ssh-keyscan -t rsa git.launchpad.net >> ~/.ssh/known_hosts
       - name: Update changelog
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: bash debian/update-changelog.sh
       - name: Prep launchpad
         if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
@@ -107,7 +166,7 @@ jobs:
         run: |
           dput ppa:coozoo/qtjsondiff ../${{ steps.launchpadid.outputs.CHANGES_NAME }}
       - name: build on linux
-        if: matrix.config.os == 'ubuntu-22.04'
+        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         id: buildlinux
         run: |
           # source /opt/qt*/bin/qt*-env.sh || true
@@ -158,23 +217,23 @@ jobs:
           asset_name: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_content_type: application/octet-stream
       - name: Archive code coverage results
-        if: matrix.config.os == 'ubuntu-22.04' && github.ref != 'refs/heads/main'
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_lin == '1'
         uses: actions/upload-artifact@v4.4.3
         with:
           name: Qt_JSON_diff-x86_64.AppImage
           path: ./Qt_JSON_diff-x86_64.AppImage
           overwrite: true
       - name: get app version
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: buildosx
       - name: install qt OSX
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
         run: brew install qt
       - name: buid OSX
-        if: matrix.config.os == 'macos-latest'
+        if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
         run: |
           echo 'export PATH="$(brew --prefix qt)/bin:$PATH"' >> /Users/runner/.zshrc
           echo 'export PATH="/Users/runner/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
@@ -210,15 +269,22 @@ jobs:
           asset_path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
           asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           asset_content_type: application/zip
-      - name: Archive code coverage results
-        if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main'
+      - name: Archive code coverage results zip
+        if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_mac_zip == '1'
         uses: actions/upload-artifact@v4.4.3
         with:
           name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
           overwrite: true
+      - name: Archive code coverage results dmg
+        if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_mac_dmg == '1'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
+          path: ./${{ steps.bundleosx.outputs.MAC_DMG_NAME }}
+          overwrite: true
       - name: Setup MSYS2 env
-        if: matrix.config.os == 'windows-latest'
+        if: matrix.config.os == 'windows-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_win == '1')
         uses: msys2/setup-msys2@v2
         with:
           # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
@@ -249,14 +315,14 @@ jobs:
             openssl-devel
             tar
       - name: get app version
-        if: matrix.config.os == 'windows-latest'
+        if: matrix.config.os == 'windows-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_win == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT          
         shell: msys2 {0}
         id: buildwin
       - name: make 64 win app
-        if: matrix.config.os == 'windows-latest'
+        if: matrix.config.os == 'windows-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_win == '1')
         run: |
           ls -l
           pwd
@@ -264,8 +330,8 @@ jobs:
           ROOTMSYS=/d/a/_temp/msys64/mingw64
           export PATH=$ROOTMSYS/bin:$PATH
           ls -l $ROOTMSYS/bin | grep qmake || echo "qmake not found"
-          $ROOTMSYS/bin/qmake-qt6 --version || echo "qmake failed to run"
-          qmake-qt6
+          $ROOTMSYS/bin/qmake6 --version || echo "qmake failed to run"
+          qmake6
           make -j$(nproc)
           rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h
           windeployqt6.exe release/${{ steps.buildwin.outputs.APP_NAME }}.exe
@@ -288,7 +354,7 @@ jobs:
           asset_name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_content_type: application/zip
       - name: Archive code coverage results
-        if: matrix.config.os == 'windows-latest' && github.ref != 'refs/heads/main'
+        if: matrix.config.os == 'windows-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_win == '1'
         uses: actions/upload-artifact@v4.4.3
         with:
           name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip

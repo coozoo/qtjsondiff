@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
 
     messageJsonCont = new QJsonContainer(ui->jsonview_tab);
+    messageJsonCont->setEditable(true);
     //messageJsonCont->setBrowseVisible(false);
     messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
     differ = new QJsonDiff(ui->compare_tab);

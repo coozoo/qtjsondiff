@@ -1,3 +1,5 @@
+[<img src="https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/package/QTjsonDiff/status_image/last_build.png"></img>](https://copr.fedorainfracloud.org/coprs/yura/QTjsonDiff/) [<img src="https://github.com/coozoo/qtjsondiff/workflows/Release_Version/badge.svg"></img>](https://github.com/coozoo/qtjsondiff/releases/latest)
+
 # QT JSON diff
 
 ## Contents
@@ -14,35 +16,35 @@
 
 ## Summary
 
-Some kind of diff viewer for Json (based on tree like json container/viewer widget).
+Some kind of diff viewer for Json (based on a tree-like json container/viewer widget).
 
-Actually I've created this widget for myself. As tester often I need to compare JSONs from different sources or simply handy viewer which able to work sometimes with really big JSONs. 
+Actually, I've created this widget for myself. As a tester, I often need to compare JSONs from different sources or simply need a handy viewer that can work with really big JSONs.
 
-Usually online viewers are simply crashing and hanging with such data. This one viewer still able to work with such big JSONs.
+Usually, online viewers simply crash and hang with such data. This viewer is still able to work with such big JSONs.
 
-For example I'm using this in my SignalR, cometD clients to visualize responses or simply to show http response and compare them from other sources.
-And found this example app pretty handy as well.
+For example, I'm using this in my SignalR and cometD clients to visualize responses or simply to show and compare HTTP responses from other sources. And I've found this example app pretty handy as well.
 
 Some features:
 
-    - two view modes json formatted text or json tree (switch by "Show JSON Text/View" button);
-    - load json from file, url or copy paste (CTRL+V in treeview mode to paste JSON);
-    - search through json text or json model (backward, forward, casesensitivity);
-    - compare two jsons with highlightings, sync scrolling, sync item selection (only treeview mode);
-    - sort objects inside arrays;
-    - two comparison modes (switched by "Use Full Path" checkbox):
-      * follow by full path;
-      * try to find child+parent pair anywhere inside JSON (first occurrence).
-    - copy text into clipboard:
-      * **Copy Row** - item text "Name Type Value" separated by tab;
-      * **Copy Rows** - all items text separated by tab (tabs allow spreadsheet paste);
-      * **Copy Path** - path to the item in such format "name(type)->name(type)"
-           For example: root(Object)->widget(Object)->image(Object)->alignment(String);
-      * **Copy Path** - path path in jq style"
-           For example: .AppConfiguration.sportToBeDisplayedByDefault[1].body;
-      * **Copy Plain Json** - copy full plain text JSON (not formatted);
-      * **Copy Pretty Json** - copy full pretty print JSON;
-      * **Copy Selected Json Value** - copy value, array or object.
+    - **Dual View Modes**: Switch between a formatted JSON text view and an interactive tree view.
+    - **Data Loading**: Load JSON from a file, a URL, or by pasting directly into the tree view (Ctrl+V).
+    - **Inline Editing**: Edit keys and values directly within the tree view.
+    - **Search**: Full search functionality (forward, backward, case-sensitive) for both text and tree views.
+    - **JSON Comparison**: Compare two JSON documents with highlighting for differences, synchronized scrolling, and synchronized item selection in tree view.
+    - **Array Sorting**: Sort objects within arrays to simplify comparison when order is not important.
+    - **Comparison Modes**:
+      * **Full Path**: (Default, Fast) Compares items based on their absolute path.
+      * **Parent+Child Pair**: (Slow) Finds the first occurrence of a parent-child pair anywhere in the JSON, useful for structurally different but content-similar JSONs.
+    - **Rich Clipboard Support**:
+      * **Copy Row**: Copies the selected item's text ("Key Type Value").
+      * **Copy Rows**: Copies the entire tree content for pasting into spreadsheets.
+      * **Copy Path**: Copies the Qt-style path to the item (e.g., `root(Object)->widget(Object)`).
+      * **Copy jq Path**: Copies the path in `jq` compatible syntax (e.g., `'.widget.image.alignment'`).
+      * **Copy Plain/Pretty JSON**: Copies the full JSON document, either minified or indented.
+      * **Copy Selected Plain/Pretty**: Copies just the selected object or array, either minified or indented.
+    - **Tree Expansion**:
+      * **Expand/Collapse Selected**: Expands or collapses the currently selected items.
+      * **Expand/Collapse Recursively**: Expands or collapses the selected items and all their children.
 
 
 JSON Tree View
@@ -80,7 +82,15 @@ sudo apt-get install qtjsondiff
 
 **Windows** zip archives available just extract and run exe file.
 
-**Mac OS** zip and DMG as well available (and I don't know if they're working I don't have any mac). Don't forget mac prevents app from untrusted Dev (me not deserve trust :) ). so at first attempt it will be blocked. Go to Apple menu > System Preferences, click Security & Privacy, then click General and click open anyway..
+**Mac OS** zip and DMG as well available. 
+
+You should dance and turn few times in order to launch it. Once app unpacked you need to allow it  for damn mac security and it's getting harder from day to day
+
+```
+# adjust application location accordingly to yours
+xattr -dr com.apple.quarantine /Applications/qtjsondiff.app
+codesign --force --deep --sign - /Applications/qtjsondiff.app
+```
 
 You can find all of above in release section.
 
@@ -98,7 +108,7 @@ Open in QTcreator the QTjsonDiff.pro file and compile it (you will get something
 
 Suppose you have installed and configured:
   - xCode+command line tools
-  - QT (```brew install qt```)
+  - Qt6 (```brew install qt```)
 
 ```bash
 $ cd ~
@@ -114,7 +124,7 @@ It will build and copy libs into app. You will find ready app inside this direct
 
 ### Linux
 
-You should have QT5 if no then install it accordingly to your distro.
+You should have Qt6 if no then install it accordingly to your distro.
 
 You can build it with QTcreator or execute commands:
 ```bash
@@ -189,6 +199,24 @@ That's all pretty simple.
 Parent+Child pair - slow but it will find first occurrence of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
 
 Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
+
+
+### Supported Build Tags
+
+You can trigger or control specific build jobs by including one or more of these tags in your commit message or pull request title/body (don't use backticks or it will break the build):
+
+| Tag                 | Effect                                                       |
+|---------------------|--------------------------------------------------------------|
+| `[build mac dmg]`   | Builds a macOS DMG package                                   |
+| `[build mac zip]`   | Builds a macOS ZIP package                                   |
+| `[build mac]`       | Builds a macOS DMG package (alias for `[build mac dmg]`)     |
+| `[build win]`       | Builds the Windows release                                   |
+| `[build linux]`     | Builds the Linux release                                     |
+| `[skip ci]`         | Skips all CI jobs for this commit or PR                      |
+
+**Note:**  
+If no build tags are present, the system will build **all platforms** by default.  
+Use `[skip ci]` to intentionally skip the build and workflow runs.
 
 
 ## Special thanks to this projects:

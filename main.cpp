@@ -9,7 +9,7 @@
 #include <QSettings>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.80";
+const QString APP_VERSION = "0.90";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
 
+    const QString actualAppName = QFileInfo(QCoreApplication::applicationFilePath()).baseName();
     QLoggingCategory::setFilterRules("*.debug=true\nqt.*.debug=false");
 
     qInfo() << QLocale::system().name();
@@ -65,7 +66,7 @@ int main(int argc, char *argv[])
     qInfo() << "Search for translations";
     foreach (const QString &str, translations)
         {
-            QFileInfo fileinfo(str + "/" + a.applicationName() + "_" + QLocale::system().name() + ".qm");
+            QFileInfo fileinfo(str + "/" + actualAppName + "_" + QLocale::system().name() + ".qm");
             qInfo() << fileinfo.filePath();
             if (fileinfo.exists() && fileinfo.isFile())
                 {

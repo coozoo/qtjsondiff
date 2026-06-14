@@ -29,18 +29,36 @@
 
 QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)
 {
-
     mParent = parent;
-
 }
 
 QJsonTreeItem::~QJsonTreeItem()
 {
-    qDeleteAll(mChilds);
+    clearChildren();
 }
+
+void QJsonTreeItem::clearChildren()
+{
+    qDeleteAll(mChilds);
+    mChilds.clear();
+}
+
+QList<QJsonTreeItem *> QJsonTreeItem::takeChildren()
+{
+    QList<QJsonTreeItem*> children = mChilds;
+    mChilds.clear();
+    return children;
+}
+
+void QJsonTreeItem::setChildren(const QList<QJsonTreeItem *> &children)
+{
+    mChilds = children;
+}
+
 
 void QJsonTreeItem::appendChild(QJsonTreeItem *item)
 {
+    item->setParent(this);
     mChilds.append(item);
 }
 
@@ -52,6 +70,11 @@ QJsonTreeItem *QJsonTreeItem::child(int row)
 QJsonTreeItem *QJsonTreeItem::parent()
 {
     return mParent;
+}
+
+void QJsonTreeItem::setParent(QJsonTreeItem *parent)
+{
+    mParent = parent;
 }
 
 int QJsonTreeItem::childCount() const
@@ -185,6 +208,18 @@ QString QJsonTreeItem::typeName() const
    return QString("Fatal");
 }
 
+QJsonValue::Type QJsonTreeItem::stringToType(const QString& typeName)
+{
+    if (typeName == "String") return QJsonValue::String;
+    if (typeName == "Double") return QJsonValue::Double;
+    if (typeName == "Bool") return QJsonValue::Bool;
+    if (typeName == "Array") return QJsonValue::Array;
+    if (typeName == "Object") return QJsonValue::Object;
+    if (typeName == "Null") return QJsonValue::Null;
+    return QJsonValue::Undefined;
+}
+
+
 QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* parent)
 {
     QJsonTreeItem * rootItem = new QJsonTreeItem(parent);
@@ -194,7 +229,7 @@ QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* paren
     {
 
         //Get all QJsonValue childs
-        foreach (QString key , value.toObject().keys()){
+        for (const QString& key : value.toObject().keys()){
             QJsonValue v = value.toObject().value(key);
             QJsonTreeItem * child = load(v,rootItem);
             child->setKey(key);

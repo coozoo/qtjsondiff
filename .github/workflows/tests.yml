@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check commit message
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"[skip ci]"* ]]; then
+            echo "Skipping workflow"
+            exit 1
+          fi
+
+  unit-tests:
+    name: Unit tests (Qt6 on ubuntu-latest)
+    runs-on: ubuntu-latest
+    needs: check-skip
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Qt 6 + deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            qt6-base-dev \
+            qt6-tools-dev \
+            qt6-tools-dev-tools \
+            libgl1-mesa-dev \
+            libssl-dev \
+            zlib1g-dev
+
+      - name: Shadow build (Debug, with tests target)
+        run: |
+          mkdir -p build/Desktopqt6-Debug
+          cd build/Desktopqt6-Debug
+          qmake6 ../../qtjsondiff.pro CONFIG+=debug CONFIG+=tests
+          make -j$(nproc)
+
+      - name: Run unit tests
+        working-directory: build/Desktopqt6-Debug
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: make check

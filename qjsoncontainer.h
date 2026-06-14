@@ -82,6 +82,7 @@ public:
     QWidget *spacer;
     QHBoxLayout *browse_layout;
     void setBrowseVisible(bool state);
+    void setEditable(bool editable);
     QPushButton *showjson_pushbutton;
     QAction *findNext_toolbutton;
     QAction *findPrevious_toolbutton;
@@ -123,6 +124,7 @@ private:
     QAction *copyJsonPlainText;
     QAction *copyJsonPrettyText;
     QAction *copyJsonByPath;
+    QAction *copySelectedJsonValuePlain;
     QAction *singleExpandSelectedRecursively;
     QAction *singleCollapseSelectedRecursively;
     QMenu multiSelectMenu;
@@ -137,6 +139,7 @@ private:
     QPalette gotDefaultPalette;
     QPixmap createPixmapFromText(const QString &text);
     QString JsonPathToJq(const QString& qtPath) const;
+    QMap<QString, QAction*> m_shortcutActionMap;
 
 signals:
     void sJsonFileLoaded(QString path);
@@ -159,20 +162,19 @@ private slots:
     void serviceGetDataRequestFinished(QNetworkReply* reply);
     void on_find_lineEdit_textChanged(const QString &text);
     void on_model_dataUpdated();
+    void on_model_changed();
     void showContextMenu(const QPoint &point);
+    void onActionTriggered();
 
 public slots:
     void findText();
     void loadJsonFile(QString target);
     void showJsonButtonPosition();
+    void applyShortcuts();
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event) override;
 
 };
-
-
-
-
 
 #endif // QJSONCONTAINER_H
