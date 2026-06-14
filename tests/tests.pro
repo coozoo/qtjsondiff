@@ -6,4 +6,5 @@ CONFIG  += ordered
 
 SUBDIRS = \
     conversions \
-    compare
+    compare \
+    engine

@@ -600,6 +600,13 @@ void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
     }
 }
 
+QJsonValue::Type QJsonModel::rootType() const
+{
+    if (!mRootItem)
+        return QJsonValue::Null;
+    return mRootItem->type();
+}
+
 QJsonDocument QJsonModel::getJsonDocument() const {
     if (!mRootItem)
         return QJsonDocument();

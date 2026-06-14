@@ -22,6 +22,7 @@ QMAKE_CXXFLAGS += -Wno-implicit-fallthrough
 
 SOURCES += main.cpp\
     commandlineparser.cpp \
+    jsondiffengine.cpp \
     jsonitemdelegate.cpp \
     jsonsyntaxhighlighter.cpp \
     mainwindow.cpp \
@@ -34,6 +35,7 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     commandlineparser.h \
+    jsondiffengine.h \
     jsonitemdelegate.h \
     jsonsyntaxhighlighter.h \
     preferences/preferences.h \
@@ -82,7 +84,8 @@ tests {
         $(QMAKE) $$PWD/tests/tests.pro && \
         $(MAKE) && \
         QT_QPA_PLATFORM=offscreen ./conversions/tst_json_conversions && \
-        QT_QPA_PLATFORM=offscreen ./compare/tst_compare
+        QT_QPA_PLATFORM=offscreen ./compare/tst_compare && \
+        ./engine/tst_engine
 
     QMAKE_EXTRA_TARGETS += check
 }

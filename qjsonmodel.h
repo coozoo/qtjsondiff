@@ -45,6 +45,7 @@ public:
     QString lastErrorMessage() const { return mLastErrorMessage; }
     int lastErrorOffset() const { return mLastErrorOffset; }
     QJsonDocument getJsonDocument() const;
+    QJsonValue::Type rootType() const;
 
     void setEditable(bool editable);
 

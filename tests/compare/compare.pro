@@ -17,6 +17,7 @@ SOURCES += \
     ../../qjsoncontainer.cpp \
     ../../qjsonmodel.cpp \
     ../../qjsonitem.cpp \
+    ../../jsondiffengine.cpp \
     ../../jsonitemdelegate.cpp \
     ../../jsonsyntaxhighlighter.cpp \
     ../../preferences/preferences.cpp
@@ -26,6 +27,7 @@ HEADERS += \
     ../../qjsoncontainer.h \
     ../../qjsonmodel.h \
     ../../qjsonitem.h \
+    ../../jsondiffengine.h \
     ../../jsonitemdelegate.h \
     ../../jsonsyntaxhighlighter.h \
     ../../preferences/preferences.h

@@ -52,14 +52,6 @@ public:
     QCheckBox *useFullPath_checkbox;
     QSpacerItem *checkboxSpacer;
 
-    void compareModels(QJsonModel *modelLeft, const QModelIndex &parentLeft, QJsonModel *modelRight);
-    int findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, QModelIndex idxLeft, QJsonModel *modelRight, const QModelIndex &parentRight);
-    int fixColors(QJsonModel *model, const QModelIndex &parent);
-    QStringList jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList);
-    void comparePath(QJsonModel *modelLeft, QStringList leftPathList, QList<QModelIndex> leftIndexList,
-                                     QJsonModel *modelRight,QStringList rightPathList, QList<QModelIndex> rightIndexList);
-    void compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndexList,
-                                     QJsonModel *modelRight);
     int prevLeftScroll;
     int prevRightScroll;
     void startComparison();
