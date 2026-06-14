@@ -130,8 +130,6 @@ bool QJsonModel::loadJson(const QByteArray &json)
         emit dataUpdated();
         return false;
     }
-    emit dataUpdated();
-    return false;
 }
 
 void QJsonModel::setParseError(bool hasError, const QString& msg, int offset)
