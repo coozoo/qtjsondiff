@@ -156,12 +156,13 @@ You need to include those files:
 #include "qjsonmodel.h"
 #include "qjsoncontainer.h"
 #include "qjsondiff.h"
+#include "jsondiffengine.h"          // only if you want to drive the compare engine directly
 
 #include "preferences/preferences.h"
 #include "preferences/preferencesdialog.h"
 
 ```
-If you need just json tree view you can ignore qjsondiff.h
+If you need just json tree view you can ignore `qjsondiff.h` and `jsondiffengine.h`.
 
 Declare pointers:
 ```cpp
@@ -178,6 +179,8 @@ Create objects and define their properties:
     messageJsonCont=new QJsonContainer(ui->jsonview_tab);
     // you can hide address line and browse button
     //messageJsonCont->setBrowseVisible(false);
+    // you can let users edit keys, values and types inline
+    //messageJsonCont->setEditable(true);
     // you can set json text
     messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
     
@@ -193,12 +196,55 @@ Create objects and define their properties:
 
 That's all pretty simple.
 
+If you want to run a comparison without the widget (for example in a CLI tool or a background job), you can use `JsonDiffEngine` directly:
+
+```cpp
+#include "jsondiffengine.h"
+#include "qjsonmodel.h"
+
+// take a snapshot of each model
+DiffNode left  = JsonDiffEngine::snapshot(leftModel);
+DiffNode right = JsonDiffEngine::snapshot(rightModel);
+
+// run the compare (Mode::FullPath or Mode::ParentChildPair)
+JsonDiffEngine::compare(left, right, JsonDiffEngine::Mode::FullPath);
+
+// apply the result back onto the models so the tree views show colors
+JsonDiffEngine::apply(left,  leftModel,  rightModel);
+JsonDiffEngine::apply(right, rightModel, leftModel);
+```
+
+That's all you need for a basic compare. `QJsonDiff` does the same thing internally on a background thread with a progress dialog.
+
 
 ## Comparison modes
 
-Parent+Child pair - slow but it will find first occurrence of pair and no matter how deep they're inside JSONs. It will be very slow if JSONs are significantly different. This mode will find matches of different keys for example the one key with different type will be considered as different keys.
+There are two ways the diff view can decide whether two items in your JSONs are "the same item":
 
-Full Path - much faster mode (switched by default) it searches for absolute path and type. It will be faster if JSONs are significantly different. This mode will consider the one key with different type as non existent because type is the part of path.
+### Full Path (default, fast)
+
+Items are matched **only if they sit at the same place in the tree** — same chain of keys from the root, and same JSON type.
+
+For example, given:
+
+```json
+left:  { "user": { "id": 42 } }
+right: { "user": { "id": "42" } }
+```
+
+both `id` keys live at `user.id`, but the left one is a number and the right one is a string. Full Path treats them as **two different items** (one missing on each side) because the type is part of the path.
+
+This is much faster for large or very different JSONs. Pick this one unless you have a reason not to.
+
+### Parent+Child pair (slow, structure-flexible)
+
+Items are matched if they share the **same parent key and the same own key**, no matter where they sit in the tree. Type is checked separately — a mismatched type counts as "found, but different" rather than "missing".
+
+Using the same example above, Parent+Child pair would say "`user.id` exists on both sides, but its value/type differs" — it pairs them up and highlights the difference.
+
+Useful when two JSONs describe the same data but are structured differently, or when you care about *values* more than *exact tree shape*. The trade-off is speed: every left-side item walks the entire right side looking for a match, so very large or very different JSONs can take a long time.
+
+You can switch between modes at any time with the **Use Full Path** checkbox above the diff view.
 
 
 ### Supported Build Tags

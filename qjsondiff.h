@@ -16,8 +16,11 @@
 #include "qjsoncontainer.h"
 #include"qjsonitem.h"
 #include"qjsonmodel.h"
+#include "jsondiffengine.h"
 
 class QPaintEvent;
+class QThread;
+class QProgressDialog;
 
 class QJsonDiff : public QWidget
 {
@@ -52,16 +55,11 @@ public:
     QCheckBox *useFullPath_checkbox;
     QSpacerItem *checkboxSpacer;
 
-    void compareModels(QJsonModel *modelLeft, const QModelIndex &parentLeft, QJsonModel *modelRight);
-    int findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, QModelIndex idxLeft, QJsonModel *modelRight, const QModelIndex &parentRight);
-    int fixColors(QJsonModel *model, const QModelIndex &parent);
-    QStringList jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList);
-    void comparePath(QJsonModel *modelLeft, QStringList leftPathList, QList<QModelIndex> leftIndexList,
-                                     QJsonModel *modelRight,QStringList rightPathList, QList<QModelIndex> rightIndexList);
-    void compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndexList,
-                                     QJsonModel *modelRight);
     int prevLeftScroll;
     int prevRightScroll;
+    // Synchronous compare on the calling thread. Used by integrators
+    // and tests. The Compare button uses the threaded path instead
+    // (see on_compare_pushbutton_clicked).
     void startComparison();
     void setBrowseVisible(bool state);
     void showJsonButtonPosition();
@@ -86,8 +84,25 @@ public slots:
     void rightJsonFileLoaded(const QString &path);
     void leftJsonFileLoaded(const QString &path);
 
+private slots:
+    void onCompareFinished(QSharedPointer<DiffNode> left, QSharedPointer<DiffNode> right);
+    void onCompareCancelled();
+    void onCompareProgressed(int done, int total);
+
 protected:
     void paintEvent(QPaintEvent *) override;
+
+private:
+    // Worker thread + engine used by the Compare button's async path.
+    // startComparison() (the public API) stays synchronous and does
+    // not touch these.
+    JsonDiffEngine  *mEngine = nullptr;
+    QThread         *mWorkerThread = nullptr;
+    QProgressDialog *mProgressDialog = nullptr;
+    bool             mCompareCancelledByUser = false;
+
+    void setupCompareWorker();
+    void teardownCompareWorker();
 };
 
 #endif // QJSONDIFF_H

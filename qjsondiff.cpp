@@ -5,7 +5,10 @@
 #include "qjsondiff.h"
 #include <QGroupBox>
 #include <QTime>
+#include <QThread>
+#include <QProgressDialog>
 #include "qjsonitem.h"
+#include "jsondiffengine.h"
 #include "preferences/preferences.h"
 
 QJsonDiff::QJsonDiff(QWidget *parent):
@@ -60,7 +63,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     compare_pushbutton=new QPushButton(button_groupbox);
     compare_pushbutton->setText(tr("Compare"));
-    compare_pushbutton->setToolTip(tr("Start somparison (ALT+C)"));
+    compare_pushbutton->setToolTip(tr("Start comparison (ALT+C)"));
     compare_shortcut = new QShortcut(QKeySequence("ALT+C"), compare_pushbutton);
     button_layout->addWidget(compare_pushbutton,0,0,1,1);
     syncScroll_checkbox=new QCheckBox(button_groupbox);
@@ -108,25 +111,22 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     connect(left_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_lefttreeview_clicked);
     connect(right_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_righttreeview_clicked);
+
+    setupCompareWorker();
 }
 
 QJsonDiff::~QJsonDiff()
 {
-    left_cont->deleteLater();
-    right_cont->deleteLater();
-    compare_groupbox->deleteLater();
-    compare_layout->deleteLater();
-    qjsoncontainer_layout->deleteLater();
-    container_left_groupbox->deleteLater();
-    container_right_groupbox->deleteLater();
-    button_groupbox->deleteLater();
-    button_layout->deleteLater();
-    common_layout->deleteLater();
-    common_groupbox->deleteLater();
-    compare_shortcut->deleteLater();
-    compare_pushbutton->deleteLater();
-    syncScroll_checkbox->deleteLater();
-    useFullPath_checkbox->deleteLater();
+    teardownCompareWorker();
+    // All the widgets and layouts constructed here are parented to
+    // either `this`, the parent widget passed to the constructor, or
+    // to inner group-boxes. Qt's normal parent-child cleanup destroys
+    // them automatically when their owners go away. The old pattern of
+    // explicit deleteLater() calls on objects we don't own crashed at
+    // app exit because some of those owners (notably the parent
+    // widget's own layout, common_layout) are destroyed in the parent
+    // widget's ~QWidget body BEFORE ~QObject::deleteChildren reaches
+    // this QJsonDiff — leaving us holding dangling pointers.
 }
 
 void QJsonDiff::reinitLeftModel()
@@ -240,46 +240,173 @@ void QJsonDiff::paintEvent(QPaintEvent *)
     //p.drawLine(0,0,width(),height());
 }
 
+void QJsonDiff::setupCompareWorker()
+{
+    mWorkerThread = new QThread(this);
+    mEngine = new JsonDiffEngine();   // no parent; deleted explicitly in teardown
+    mEngine->moveToThread(mWorkerThread);
+
+    connect(mEngine, &JsonDiffEngine::finished,
+            this,    &QJsonDiff::onCompareFinished,   Qt::QueuedConnection);
+    connect(mEngine, &JsonDiffEngine::cancelled,
+            this,    &QJsonDiff::onCompareCancelled,  Qt::QueuedConnection);
+    connect(mEngine, &JsonDiffEngine::progressed,
+            this,    &QJsonDiff::onCompareProgressed, Qt::QueuedConnection);
+
+    // Note: we deliberately do NOT connect QThread::finished to
+    // engine.deleteLater. The worker's event loop has stopped by the
+    // time that signal fires, so the deferred-delete event never gets
+    // processed and the engine would leak. Engine lifetime is managed
+    // explicitly by teardownCompareWorker.
+
+    mWorkerThread->start();
+}
+
+void QJsonDiff::teardownCompareWorker()
+{
+    if (mProgressDialog)
+    {
+        mProgressDialog->hide();
+        // mProgressDialog has `this` as parent; QObject's child cleanup
+        // will destroy it when ~QJsonDiff finishes. Calling deleteLater
+        // at shutdown is unsafe — the event loop is dying and the
+        // posted DeferredDelete event has nowhere to land.
+        mProgressDialog = nullptr;
+    }
+    if (mEngine)
+    {
+        mEngine->requestCancel();
+    }
+    if (mWorkerThread)
+    {
+        mWorkerThread->quit();
+        mWorkerThread->wait();
+        // Worker is fully stopped — no thread can be touching the
+        // engine. We deliberately do NOT moveToThread() back to the
+        // main thread here: Qt requires moveToThread be invoked from
+        // the object's *own* current thread, and the worker that owns
+        // the engine is already dead. Just delete it from main; the
+        // engine has no per-thread state of its own to worry about.
+        if (mEngine)
+        {
+            delete mEngine;
+            mEngine = nullptr;
+        }
+        // mWorkerThread is a child of `this`. Don't `delete` it here —
+        // let QObject's child cleanup destroy it when ~QJsonDiff
+        // finishes (avoids mutating this widget's children list
+        // mid-destruction).
+        mWorkerThread = nullptr;
+    }
+}
+
 void QJsonDiff::on_compare_pushbutton_clicked()
 {
     qDebug()<<"compare button clicked";
-    //QTreeView *treeview=left_cont->getTreeView();
-    //qDebug()<<treeview->currentIndex();
-    //QJsonModel *model=left_cont->getJsonModel();
-
 
     left_cont->reInitModel();
     right_cont->reInitModel();
-    double temp=QTime::currentTime().msecsSinceStartOfDay();
-    qDebug()<<"started:"<<temp;
-    startComparison();
-    //a bit worried about performance but will test it later with big jsons
+
+    QJsonModel *leftModel  = left_cont->getJsonModel();
+    QJsonModel *rightModel = right_cont->getJsonModel();
+
+    // Heap-allocate the snapshots so only the shared-pointer handles
+    // cross the worker-thread boundary — see compareAsync's payload
+    // contract in jsondiffengine.h.
+    auto leftSnap  = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(leftModel));
+    auto rightSnap = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(rightModel));
+
+    const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
+        ? JsonDiffEngine::Mode::FullPath
+        : JsonDiffEngine::Mode::ParentChildPair;
+
+    // Modal progress dialog blocks user input until compare completes
+    // or is cancelled. Lives until either finished/cancelled fires.
+    mCompareCancelledByUser = false;
+    if (!mProgressDialog)
+    {
+        mProgressDialog = new QProgressDialog(this);
+        mProgressDialog->setWindowTitle(tr("Comparing JSON"));
+        mProgressDialog->setLabelText(tr("Running comparison..."));
+        mProgressDialog->setCancelButtonText(tr("Cancel"));
+        mProgressDialog->setWindowModality(Qt::ApplicationModal);
+        mProgressDialog->setAutoClose(false);
+        mProgressDialog->setAutoReset(false);
+        mProgressDialog->setMinimumDuration(0);
+        connect(mProgressDialog, &QProgressDialog::canceled, this, [this]()
+        {
+            mCompareCancelledByUser = true;
+            if (mEngine) mEngine->requestCancel();
+        });
+    }
+    mProgressDialog->setRange(0, mode == JsonDiffEngine::Mode::FullPath ? 6 : 3);
+    mProgressDialog->setValue(0);
+    mProgressDialog->show();
+
+    mEngine->resetCancel();
+    QMetaObject::invokeMethod(mEngine, "compareAsync", Qt::QueuedConnection,
+        Q_ARG(QSharedPointer<DiffNode>, leftSnap),
+        Q_ARG(QSharedPointer<DiffNode>, rightSnap),
+        Q_ARG(JsonDiffEngine::Mode, mode));
+}
+
+void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
+                                  QSharedPointer<DiffNode> right)
+{
+    if (mProgressDialog)
+        mProgressDialog->hide();
+
+    // If the user clicked Cancel just as the engine emitted finished()
+    // (race window), honour the user's intent and discard the result.
+    if (mCompareCancelledByUser)
+        return;
+
+    if (!left || !right)
+        return;
+
+    QJsonModel *leftModel  = left_cont->getJsonModel();
+    QJsonModel *rightModel = right_cont->getJsonModel();
+    JsonDiffEngine::apply(*left,  leftModel,  rightModel);
+    JsonDiffEngine::apply(*right, rightModel, leftModel);
+
     left_cont->gotoIndexHandler(true);
     right_cont->gotoIndexHandler(true);
-    qDebug()<<(QTime::currentTime().msecsSinceStartOfDay()-temp)/1000;
+}
+
+void QJsonDiff::onCompareCancelled()
+{
+    if (mProgressDialog)
+        mProgressDialog->hide();
+    // Discard partial — no apply (Phase 2 design Q3).
+}
+
+void QJsonDiff::onCompareProgressed(int done, int total)
+{
+    if (!mProgressDialog) return;
+    mProgressDialog->setRange(0, total);
+    mProgressDialog->setValue(done);
 }
 
 void QJsonDiff::startComparison()
 {
-    if(!useFullPath_checkbox->isChecked())
-        {
-            compareModels(left_cont->getJsonModel(),QModelIndex(),right_cont->getJsonModel());
-            fixColors(left_cont->getJsonModel(),QModelIndex());
-            fixColors(right_cont->getJsonModel(),QModelIndex());
-        }
-    else
-        {
-            QList<QModelIndex> leftIndexList;
-            QStringList leftStringList=jsonPathList(left_cont->getJsonModel(),QModelIndex(),&leftIndexList);
-            QList<QModelIndex> rightIndexList;
-            QStringList rightStringList=jsonPathList(right_cont->getJsonModel(),QModelIndex(),&rightIndexList);
-            comparePath(left_cont->getJsonModel(),leftStringList,leftIndexList,right_cont->getJsonModel(),rightStringList,rightIndexList);
-            comparePath(right_cont->getJsonModel(),rightStringList,rightIndexList,left_cont->getJsonModel(),leftStringList,leftIndexList);
-            compareValue(left_cont->getJsonModel(),leftIndexList,right_cont->getJsonModel());
-            compareValue(right_cont->getJsonModel(),rightIndexList,left_cont->getJsonModel());
-            fixColors(left_cont->getJsonModel(),QModelIndex());
-            fixColors(right_cont->getJsonModel(),QModelIndex());
-        }
+    QJsonModel *leftModel  = left_cont->getJsonModel();
+    QJsonModel *rightModel = right_cont->getJsonModel();
+
+    // Synchronous compare path. Used by integrators that don't want the
+    // built-in progress dialog and by the unit tests. The Compare button
+    // uses the threaded path with a modal progress dialog instead — see
+    // on_compare_pushbutton_clicked().
+    DiffNode leftSnap  = JsonDiffEngine::snapshot(leftModel);
+    DiffNode rightSnap = JsonDiffEngine::snapshot(rightModel);
+
+    const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
+        ? JsonDiffEngine::Mode::FullPath
+        : JsonDiffEngine::Mode::ParentChildPair;
+
+    JsonDiffEngine::compare(leftSnap, rightSnap, mode);
+
+    JsonDiffEngine::apply(leftSnap,  leftModel,  rightModel);
+    JsonDiffEngine::apply(rightSnap, rightModel, leftModel);
 }
 
 void QJsonDiff::setBrowseVisible(bool state)
@@ -336,351 +463,6 @@ void QJsonDiff::on_righttreeview_clicked(const QModelIndex&)
 
 }
 
-
-
-void QJsonDiff::compareModels(QJsonModel *modelLeft, const QModelIndex &parentLeft, QJsonModel *modelRight)
-{
-    int rowCount = modelLeft->rowCount(parentLeft);
-
-    for(int i = 0; i < rowCount; ++i)
-        {
-            QModelIndex idx0 = modelLeft->index(i, 0, parentLeft);
-            //QModelIndex idx1 = modelLeft->index(i, 1, parentLeft);
-            QModelIndex idx2 = modelLeft->index(i, 2, parentLeft);
-            //qDebug()<<idx0.data(Qt::DisplayRole).toString()<<idx1.data(Qt::DisplayRole).toString()<<idx2.data(Qt::DisplayRole).toString();
-            //qDebug()<<static_cast<QJsonTreeItem*>(idx0.internalPointer())->typeName();
-            //QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx0.internalPointer());
-            QJsonTreeItem *item=modelLeft->itemFromIndex(idx0);
-            /*if(item->parent()->key()!="root")
-            {
-             qDebug()<<"Parent:"<<item->parent()->key()<<item->parent()->typeName()<<item->parent()->value();
-            }
-
-             qDebug()<<"Item:"<<item->key()<<item->type()<<item->typeName()<<item->value();
-             qDebug()<<"Childs:"<<item->childCount()<<item->color();
-             qDebug()<<"test: "<<item->childCount();*/
-            //item->setColor(QColor(Qt::green));
-            if(item->colorType() == DiffColorType::None)
-                {
-                    int res=findIndexInModel(modelLeft,item,idx2,modelRight,QModelIndex());
-                    Q_UNUSED(res)
-
-                    //QPainter::drawLine(QAbstractItemView::visualRect(idx0).center(),
-                    //                   QAbstractItemView::visualRect(idx1).center());
-                    modelLeft->layoutChanged();
-                }
-
-            if(idx0.isValid())
-                {
-                    //retval << idx0.data(Qt::DisplayRole).toString();
-                    //qDebug()<<idx0.data(Qt::DisplayRole).toString();
-                    compareModels(modelLeft, idx0,modelRight);
-                }
-        }
-}
-
-
-int QJsonDiff::findIndexInModel(QJsonModel *modelLeft, QJsonTreeItem *itemLeft, QModelIndex idxLeft,
-                                QJsonModel *modelRight,const QModelIndex &parentRight)
-{
-
-
-    int rowCount = modelRight->rowCount(parentRight);
-    for(int i = 0; i < rowCount; ++i)
-        {
-            DiffColorType leftColor= DiffColorType::Huge;
-            DiffColorType rightColor= DiffColorType::Huge;
-
-            QModelIndex idx0 = modelRight->index(i, 0, parentRight);
-            QModelIndex idxRight = modelRight->index(i, 0, parentRight);
-            QJsonTreeItem *item=modelRight->itemFromIndex(idx0);
-            /*if(item->parent()->key()!="root")
-            {
-             qDebug()<<"Parent:"<<item->parent()->key()<<item->parent()->typeName()<<item->parent()->value();
-            }
-            qDebug()<<"Item:"<<item->key()<<item->type()<<item->typeName()<<item->value();
-            qDebug()<<"Childs:"<<item->childCount()<<item->color();
-            qDebug()<<"test: "<<item->childCount();*/
-
-            //First comparison step find and highlight all items
-            //that have matched in type, key name and parent name
-            if(itemLeft->type()==item->type())
-                {
-                    if(itemLeft->colorType() == DiffColorType::None
-                            && item->colorType() == DiffColorType::None
-                            && itemLeft->parent()->key()==item->parent()->key()
-                            && itemLeft->key()==item->key())
-                        {
-                            if(itemLeft->type()==QJsonValue::Array && item->type()==QJsonValue::Array)
-                                //       && !item->color().isValid() && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                                {
-                                    if(itemLeft->childCount()==item->childCount())
-                                        {
-                                            leftColor= DiffColorType::Identical;
-                                            rightColor= DiffColorType::Identical;
-                                        }
-                                    else
-                                        {
-                                            leftColor= DiffColorType::Huge;
-                                            rightColor= DiffColorType::Huge;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-                                }
-                            else if(itemLeft->type()==QJsonValue::Object && item->type()==QJsonValue::Object)
-                                //        && !item->color().isValid()  && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                                {
-                                    if(itemLeft->childCount()==item->childCount())
-                                        {
-                                            leftColor=DiffColorType::Identical;
-                                            rightColor=DiffColorType::Identical;
-                                        }
-                                    else
-                                        {
-                                            leftColor=DiffColorType::Huge;
-                                            rightColor=DiffColorType::Huge;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-                                }
-                            else if(itemLeft->type()==QJsonValue::Double && item->type()==QJsonValue::Double)
-                                //                && !item->color().isValid()  && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                                {
-
-                                    if(itemLeft->value()==item->value())
-                                        {
-                                            leftColor=DiffColorType::Identical;
-                                            rightColor=DiffColorType::Identical;
-                                        }
-                                    else
-                                        {
-                                            leftColor=DiffColorType::Huge;
-                                            rightColor=DiffColorType::Huge;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-
-                                }
-                            else if(itemLeft->type()==QJsonValue::String && item->type()==QJsonValue::String)
-                                //                && !item->color().isValid()  && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                                {
-                                    if(itemLeft->value()==item->value())
-                                        {
-                                            leftColor=DiffColorType::Identical;
-                                            rightColor=DiffColorType::Identical;
-                                        }
-                                    else
-                                        {
-                                            leftColor=DiffColorType::Huge;
-                                            rightColor=DiffColorType::Huge;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-                                }
-                            else if(itemLeft->type()==QJsonValue::Bool && item->type()==QJsonValue::Bool)
-                                //                && !item->color().isValid()  && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                                {
-                                    if(itemLeft->value()==item->value())
-                                        {
-                                            leftColor=DiffColorType::Identical;
-                                            rightColor=DiffColorType::Identical;
-                                        }
-                                    else
-                                        {
-                                            leftColor=DiffColorType::Huge;
-                                            rightColor=DiffColorType::Huge;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-                                }
-
-                            else if(itemLeft->type()==QJsonValue::Null && item->type()==QJsonValue::Null)
-                                //                && !item->color().isValid()  && !itemLeft->color().isValid() && itemLeft->parent()->key()==item->parent()->key())
-                                {
-                                    if(itemLeft->key()==item->key())
-                                        {
-                                            leftColor=DiffColorType::Identical;
-                                            rightColor=DiffColorType::Identical;
-                                        }
-                                    item->setColorType(rightColor);
-                                    itemLeft->setColorType(leftColor);
-                                    item->setIdxRelation(idxLeft);
-                                    itemLeft->setIdxRelation(idxRight);
-                                    modelRight->layoutChanged();
-                                    return 0;
-                                }
-                        }
-                }
-            else
-                {
-                    //Second level - find any values that where not matched in previous step
-                    //but ignore type of value (for example if some value equal to null)
-
-                    if (itemLeft->colorType() == DiffColorType::None
-                            && item->colorType() == DiffColorType::None
-                            && itemLeft->parent()->key()==item->parent()->key() && itemLeft->key()==item->key())
-                        {
-                            leftColor=DiffColorType::Huge;
-                            rightColor=DiffColorType::Huge;
-                            item->setColorType(rightColor);
-                            itemLeft->setColorType(leftColor);
-                            item->setIdxRelation(idxLeft);
-                            itemLeft->setIdxRelation(idxRight);
-                            modelRight->layoutChanged();
-                            return 0;
-                        }
-                }
-
-            //item->setColor(hugeDiffColor);
-            modelRight->layoutChanged();
-            //result.leftRelations=item;
-            //result.rightRelations=itemLeft;
-            if(idx0.isValid())
-                {
-                    //retval << idx0.data(Qt::DisplayRole).toString();
-                    //qDebug()<<idx0.data(Qt::DisplayRole).toString();
-                    findIndexInModel(modelLeft,itemLeft,idxLeft, modelRight,idx0);
-                }
-
-        }
-    return -1;
-
-}
-
-
-int QJsonDiff::fixColors(QJsonModel *model, const QModelIndex &parent)
-{
-
-    int rowCount = model->rowCount(parent);
-
-    for(int i = 0; i < rowCount; ++i)
-        {
-            QModelIndex idx0 = model->index(i, 0, parent);
-
-
-            if(idx0.isValid())
-                {
-                    //retval << idx0.data(Qt::DisplayRole).toString();
-                    //qDebug()<<idx0.data(Qt::DisplayRole).toString();
-                    fixColors(model, idx0);
-                }
-            QJsonTreeItem *item=model->itemFromIndex(idx0);
-
-            if(item->colorType()!= DiffColorType::Identical
-                    && item->colorType() != DiffColorType::None
-                    && item->colorType()!=DiffColorType::NotPresent
-                    && item->parent()->colorType()!=DiffColorType::Huge
-                    && item->parent()->colorType()!=DiffColorType::NotPresent)
-                {
-                    item->parent()->setColorType(DiffColorType::Moderate);
-                }
-
-            if(item->colorType() == DiffColorType::None)
-                {
-                    item->setColorType(DiffColorType::NotPresent);
-
-                }
-            model->layoutChanged();
-        }
-
-    return 0;
-}
-
-
-QStringList QJsonDiff::jsonPathList(QJsonModel * model, const QModelIndex &parent, QList<QModelIndex> *indexList)
-{
-    QStringList text;
-    int rowCount = model->rowCount(parent);
-    for(int i = 0; i < rowCount; ++i)
-        {
-            QModelIndex idx0 = model->index(i, 0, parent);
-            QString path=model->jsonPath(idx0);
-            //qDebug()<<path;
-            text<<path;
-            indexList->append(idx0);
-            if(idx0.isValid())
-                {
-                    text<<jsonPathList(model, idx0,indexList);
-                }
-        }
-    return text;
-}
-
-void QJsonDiff::comparePath(QJsonModel *modelLeft, QStringList leftPathList, QList<QModelIndex> leftIndexList,
-                            QJsonModel *modelRight,QStringList rightPathList, QList<QModelIndex> rightIndexList)
-{
-    for(int i = 0; i < leftPathList.count(); ++i)
-        {
-            QModelIndex idxLeft =leftIndexList[i];
-            QJsonTreeItem *item=modelRight->itemFromIndex(idxLeft);
-            if(item->colorType()!=DiffColorType::Identical)
-                {
-                    if(rightPathList.contains(leftPathList[i]))
-                        {
-                            item->setColorType(DiffColorType::Identical);
-                            QModelIndex idxRight =rightIndexList[rightPathList.indexOf(leftPathList[i])];
-                            QJsonTreeItem *itemRight=modelRight->itemFromIndex(idxRight);
-                            item->setIdxRelation(idxRight);
-                            itemRight->setIdxRelation(idxLeft);
-                            itemRight->setColorType(DiffColorType::Identical);
-                            modelLeft->layoutChanged();
-                        }
-                    else
-                        {
-                            item->setColorType(DiffColorType::NotPresent);
-                        }
-                }
-        }
-}
-
-void QJsonDiff::compareValue(QJsonModel *modelLeft, QList<QModelIndex> leftIndexList,
-                             QJsonModel *modelRight)
-{
-    for(int i = 0; i < leftIndexList.count(); ++i)
-        {
-            QModelIndex idxLeft =leftIndexList[i];
-            QJsonTreeItem *item=modelRight->itemFromIndex(idxLeft);
-            if(item->colorType()==DiffColorType::Identical)
-                {
-                    QModelIndex idxRight =item->idxRelation();
-                    QJsonTreeItem *itemRight=modelRight->itemFromIndex(idxRight);
-                    if((item->type()!=QJsonValue::Array || item->type()!=QJsonValue::Object) && item->value()!=itemRight->value())
-                        {
-                            item->setColorType(DiffColorType::Huge);
-                            itemRight->setColorType(DiffColorType::Huge);
-                        }
-                    else
-                        {
-                            if(item->childCount()!=itemRight->childCount())
-                                {
-                                    item->setColorType(DiffColorType::Huge);
-                                    itemRight->setColorType(DiffColorType::Huge);
-                                }
-                        }
-                    modelLeft->layoutChanged();
-                }
-        }
-}
 
 void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
 {
