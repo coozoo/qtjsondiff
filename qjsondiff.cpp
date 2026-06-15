@@ -5,6 +5,8 @@
 #include "qjsondiff.h"
 #include <QGroupBox>
 #include <QTime>
+#include <QThread>
+#include <QProgressDialog>
 #include "qjsonitem.h"
 #include "jsondiffengine.h"
 #include "preferences/preferences.h"
@@ -61,7 +63,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     compare_pushbutton=new QPushButton(button_groupbox);
     compare_pushbutton->setText(tr("Compare"));
-    compare_pushbutton->setToolTip(tr("Start somparison (ALT+C)"));
+    compare_pushbutton->setToolTip(tr("Start comparison (ALT+C)"));
     compare_shortcut = new QShortcut(QKeySequence("ALT+C"), compare_pushbutton);
     button_layout->addWidget(compare_pushbutton,0,0,1,1);
     syncScroll_checkbox=new QCheckBox(button_groupbox);
@@ -109,25 +111,22 @@ QJsonDiff::QJsonDiff(QWidget *parent):
 
     connect(left_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_lefttreeview_clicked);
     connect(right_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_righttreeview_clicked);
+
+    setupCompareWorker();
 }
 
 QJsonDiff::~QJsonDiff()
 {
-    left_cont->deleteLater();
-    right_cont->deleteLater();
-    compare_groupbox->deleteLater();
-    compare_layout->deleteLater();
-    qjsoncontainer_layout->deleteLater();
-    container_left_groupbox->deleteLater();
-    container_right_groupbox->deleteLater();
-    button_groupbox->deleteLater();
-    button_layout->deleteLater();
-    common_layout->deleteLater();
-    common_groupbox->deleteLater();
-    compare_shortcut->deleteLater();
-    compare_pushbutton->deleteLater();
-    syncScroll_checkbox->deleteLater();
-    useFullPath_checkbox->deleteLater();
+    teardownCompareWorker();
+    // All the widgets and layouts constructed here are parented to
+    // either `this`, the parent widget passed to the constructor, or
+    // to inner group-boxes. Qt's normal parent-child cleanup destroys
+    // them automatically when their owners go away. The old pattern of
+    // explicit deleteLater() calls on objects we don't own crashed at
+    // app exit because some of those owners (notably the parent
+    // widget's own layout, common_layout) are destroyed in the parent
+    // widget's ~QWidget body BEFORE ~QObject::deleteChildren reaches
+    // this QJsonDiff — leaving us holding dangling pointers.
 }
 
 void QJsonDiff::reinitLeftModel()
@@ -241,23 +240,151 @@ void QJsonDiff::paintEvent(QPaintEvent *)
     //p.drawLine(0,0,width(),height());
 }
 
+void QJsonDiff::setupCompareWorker()
+{
+    mWorkerThread = new QThread(this);
+    mEngine = new JsonDiffEngine();   // no parent; deleted explicitly in teardown
+    mEngine->moveToThread(mWorkerThread);
+
+    connect(mEngine, &JsonDiffEngine::finished,
+            this,    &QJsonDiff::onCompareFinished,   Qt::QueuedConnection);
+    connect(mEngine, &JsonDiffEngine::cancelled,
+            this,    &QJsonDiff::onCompareCancelled,  Qt::QueuedConnection);
+    connect(mEngine, &JsonDiffEngine::progressed,
+            this,    &QJsonDiff::onCompareProgressed, Qt::QueuedConnection);
+
+    // Note: we deliberately do NOT connect QThread::finished to
+    // engine.deleteLater. The worker's event loop has stopped by the
+    // time that signal fires, so the deferred-delete event never gets
+    // processed and the engine would leak. Engine lifetime is managed
+    // explicitly by teardownCompareWorker.
+
+    mWorkerThread->start();
+}
+
+void QJsonDiff::teardownCompareWorker()
+{
+    if (mProgressDialog)
+    {
+        mProgressDialog->hide();
+        // mProgressDialog has `this` as parent; QObject's child cleanup
+        // will destroy it when ~QJsonDiff finishes. Calling deleteLater
+        // at shutdown is unsafe — the event loop is dying and the
+        // posted DeferredDelete event has nowhere to land.
+        mProgressDialog = nullptr;
+    }
+    if (mEngine)
+    {
+        mEngine->requestCancel();
+    }
+    if (mWorkerThread)
+    {
+        mWorkerThread->quit();
+        mWorkerThread->wait();
+        // Worker is fully stopped — no thread can be touching the
+        // engine. We deliberately do NOT moveToThread() back to the
+        // main thread here: Qt requires moveToThread be invoked from
+        // the object's *own* current thread, and the worker that owns
+        // the engine is already dead. Just delete it from main; the
+        // engine has no per-thread state of its own to worry about.
+        if (mEngine)
+        {
+            delete mEngine;
+            mEngine = nullptr;
+        }
+        // mWorkerThread is a child of `this`. Don't `delete` it here —
+        // let QObject's child cleanup destroy it when ~QJsonDiff
+        // finishes (avoids mutating this widget's children list
+        // mid-destruction).
+        mWorkerThread = nullptr;
+    }
+}
+
 void QJsonDiff::on_compare_pushbutton_clicked()
 {
     qDebug()<<"compare button clicked";
-    //QTreeView *treeview=left_cont->getTreeView();
-    //qDebug()<<treeview->currentIndex();
-    //QJsonModel *model=left_cont->getJsonModel();
-
 
     left_cont->reInitModel();
     right_cont->reInitModel();
-    double temp=QTime::currentTime().msecsSinceStartOfDay();
-    qDebug()<<"started:"<<temp;
-    startComparison();
-    //a bit worried about performance but will test it later with big jsons
+
+    QJsonModel *leftModel  = left_cont->getJsonModel();
+    QJsonModel *rightModel = right_cont->getJsonModel();
+
+    // Heap-allocate the snapshots so only the shared-pointer handles
+    // cross the worker-thread boundary — see compareAsync's payload
+    // contract in jsondiffengine.h.
+    auto leftSnap  = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(leftModel));
+    auto rightSnap = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(rightModel));
+
+    const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
+        ? JsonDiffEngine::Mode::FullPath
+        : JsonDiffEngine::Mode::ParentChildPair;
+
+    // Modal progress dialog blocks user input until compare completes
+    // or is cancelled. Lives until either finished/cancelled fires.
+    mCompareCancelledByUser = false;
+    if (!mProgressDialog)
+    {
+        mProgressDialog = new QProgressDialog(this);
+        mProgressDialog->setWindowTitle(tr("Comparing JSON"));
+        mProgressDialog->setLabelText(tr("Running comparison..."));
+        mProgressDialog->setCancelButtonText(tr("Cancel"));
+        mProgressDialog->setWindowModality(Qt::ApplicationModal);
+        mProgressDialog->setAutoClose(false);
+        mProgressDialog->setAutoReset(false);
+        mProgressDialog->setMinimumDuration(0);
+        connect(mProgressDialog, &QProgressDialog::canceled, this, [this]()
+        {
+            mCompareCancelledByUser = true;
+            if (mEngine) mEngine->requestCancel();
+        });
+    }
+    mProgressDialog->setRange(0, mode == JsonDiffEngine::Mode::FullPath ? 6 : 3);
+    mProgressDialog->setValue(0);
+    mProgressDialog->show();
+
+    mEngine->resetCancel();
+    QMetaObject::invokeMethod(mEngine, "compareAsync", Qt::QueuedConnection,
+        Q_ARG(QSharedPointer<DiffNode>, leftSnap),
+        Q_ARG(QSharedPointer<DiffNode>, rightSnap),
+        Q_ARG(JsonDiffEngine::Mode, mode));
+}
+
+void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
+                                  QSharedPointer<DiffNode> right)
+{
+    if (mProgressDialog)
+        mProgressDialog->hide();
+
+    // If the user clicked Cancel just as the engine emitted finished()
+    // (race window), honour the user's intent and discard the result.
+    if (mCompareCancelledByUser)
+        return;
+
+    if (!left || !right)
+        return;
+
+    QJsonModel *leftModel  = left_cont->getJsonModel();
+    QJsonModel *rightModel = right_cont->getJsonModel();
+    JsonDiffEngine::apply(*left,  leftModel,  rightModel);
+    JsonDiffEngine::apply(*right, rightModel, leftModel);
+
     left_cont->gotoIndexHandler(true);
     right_cont->gotoIndexHandler(true);
-    qDebug()<<(QTime::currentTime().msecsSinceStartOfDay()-temp)/1000;
+}
+
+void QJsonDiff::onCompareCancelled()
+{
+    if (mProgressDialog)
+        mProgressDialog->hide();
+    // Discard partial — no apply (Phase 2 design Q3).
+}
+
+void QJsonDiff::onCompareProgressed(int done, int total)
+{
+    if (!mProgressDialog) return;
+    mProgressDialog->setRange(0, total);
+    mProgressDialog->setValue(done);
 }
 
 void QJsonDiff::startComparison()
@@ -265,10 +392,10 @@ void QJsonDiff::startComparison()
     QJsonModel *leftModel  = left_cont->getJsonModel();
     QJsonModel *rightModel = right_cont->getJsonModel();
 
-    // Phase 1 of the threaded-compare refactor: pull the algorithm out
-    // of this widget into JsonDiffEngine, but still run it synchronously
-    // on the main thread. Phase 2 will move compare() onto a worker
-    // QThread with progress + cancel; snapshot/apply must stay here.
+    // Synchronous compare path. Used by integrators that don't want the
+    // built-in progress dialog and by the unit tests. The Compare button
+    // uses the threaded path with a modal progress dialog instead — see
+    // on_compare_pushbutton_clicked().
     DiffNode leftSnap  = JsonDiffEngine::snapshot(leftModel);
     DiffNode rightSnap = JsonDiffEngine::snapshot(rightModel);
 

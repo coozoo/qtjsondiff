@@ -8,6 +8,8 @@
 // since those are the model-touching halves of the engine API.
 
 #include <QTest>
+#include <QSignalSpy>
+#include <QThread>
 
 #include "jsondiffengine.h"
 #include "qjsonmodel.h"
@@ -284,6 +286,117 @@ private slots:
     // ------------------------------------------------------------------
     // apply() — pushes snapshot state back onto a real QJsonModel
     // ------------------------------------------------------------------
+
+    // ------------------------------------------------------------------
+    // Async path: engine on a worker QThread, queued signal/slot.
+    // Verifies cross-thread plumbing — DiffNode marshalled across thread
+    // boundary, finished/cancelled/progressed routed via Qt::Queued.
+    // ------------------------------------------------------------------
+
+    // Build a small {root: {a: 1}} snapshot on the heap.
+    static QSharedPointer<DiffNode> makeSharedRoot()
+    {
+        auto root = QSharedPointer<DiffNode>::create();
+        root->key  = "root";
+        root->type = QJsonValue::Object;
+        root->children.append(makeScalar("a", QJsonValue::Double, "1"));
+        return root;
+    }
+
+    void asyncCompareEmitsFinished()
+    {
+        JsonDiffEngine engine;
+        QThread thread;
+        engine.moveToThread(&thread);
+        thread.start();
+
+        auto L = makeSharedRoot();
+        auto R = makeSharedRoot();
+
+        QSignalSpy finishedSpy(&engine, &JsonDiffEngine::finished);
+        QSignalSpy progressSpy(&engine, &JsonDiffEngine::progressed);
+
+        QMetaObject::invokeMethod(&engine, "compareAsync", Qt::QueuedConnection,
+            Q_ARG(QSharedPointer<DiffNode>, L),
+            Q_ARG(QSharedPointer<DiffNode>, R),
+            Q_ARG(JsonDiffEngine::Mode, JsonDiffEngine::Mode::FullPath));
+
+        QVERIFY(finishedSpy.wait(5000));
+        QCOMPARE(finishedSpy.count(), 1);
+
+        // Same shared object came back — the trees were mutated in place,
+        // not copied. Verify the colour reached our local pointer too.
+        QCOMPARE(L->children[0].color, DiffColorType::Identical);
+
+        // The signal's first argument is the same shared pointer.
+        const QList<QVariant> args = finishedSpy.takeFirst();
+        auto resultLeft = args[0].value<QSharedPointer<DiffNode>>();
+        QVERIFY(resultLeft);
+        QCOMPARE(resultLeft.data(), L.data());  // pointer equality
+
+        QVERIFY(progressSpy.count() >= 1);
+
+        thread.quit();
+        thread.wait();
+    }
+
+    void asyncCancelEmitsCancelledNotFinished()
+    {
+        JsonDiffEngine engine;
+        QThread thread;
+        engine.moveToThread(&thread);
+        thread.start();
+
+        // Pre-set the cancel flag. compareAsync does NOT reset cancel
+        // on entry; the engine sees it at the first tick() and aborts
+        // via cancelled().
+        engine.requestCancel();
+
+        auto L = makeSharedRoot();
+        auto R = makeSharedRoot();
+
+        QSignalSpy finishedSpy(&engine,  &JsonDiffEngine::finished);
+        QSignalSpy cancelledSpy(&engine, &JsonDiffEngine::cancelled);
+
+        QMetaObject::invokeMethod(&engine, "compareAsync", Qt::QueuedConnection,
+            Q_ARG(QSharedPointer<DiffNode>, L),
+            Q_ARG(QSharedPointer<DiffNode>, R),
+            Q_ARG(JsonDiffEngine::Mode, JsonDiffEngine::Mode::FullPath));
+
+        QVERIFY(cancelledSpy.wait(5000));
+        QCOMPARE(cancelledSpy.count(), 1);
+        QCOMPARE(finishedSpy.count(), 0);
+
+        thread.quit();
+        thread.wait();
+    }
+
+    void resetCancelAllowsFreshRun()
+    {
+        JsonDiffEngine engine;
+        QThread thread;
+        engine.moveToThread(&thread);
+        thread.start();
+
+        engine.requestCancel();
+        engine.resetCancel();
+        QVERIFY(!engine.cancelRequested());
+
+        auto L = makeSharedRoot();
+        auto R = makeSharedRoot();
+
+        QSignalSpy finishedSpy(&engine, &JsonDiffEngine::finished);
+        QMetaObject::invokeMethod(&engine, "compareAsync", Qt::QueuedConnection,
+            Q_ARG(QSharedPointer<DiffNode>, L),
+            Q_ARG(QSharedPointer<DiffNode>, R),
+            Q_ARG(JsonDiffEngine::Mode, JsonDiffEngine::Mode::FullPath));
+
+        QVERIFY(finishedSpy.wait(5000));
+        QCOMPARE(finishedSpy.count(), 1);
+
+        thread.quit();
+        thread.wait();
+    }
 
     void applyWritesColorAndRelation()
     {

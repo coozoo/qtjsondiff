@@ -7,16 +7,20 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 #include <QSettings>
+#include <QTimer>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.90";
+const QString APP_VERSION = "0.91";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QByteArray localMsg = msg.toLocal8Bit();
     const char *file = context.file ? context.file : "";
     const char *function = context.function ? context.function : "";
-    const char *timestamp = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate).toUtf8();
+    // Keep the QByteArray alive in a local — the `const char *` form
+    // would dangle as soon as the full-expression ended, and fprintf()
+    // below would strlen() freed memory.
+    QByteArray timestamp = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate).toUtf8();
     const char *level = "n/a";
 
     switch (type)
@@ -39,7 +43,7 @@ void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const Q
         }
 
     fprintf(stderr, "%s [%s] %s (%s:%u, %s)\n",
-            timestamp, level, localMsg.constData(), file, context.line, function);
+            timestamp.constData(), level, localMsg.constData(), file, context.line, function);
 }
 
 int main(int argc, char *argv[])
@@ -121,6 +125,19 @@ int main(int argc, char *argv[])
 
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());
     w.show();
+
+    // Test/leak-check hook: if the env var is set, schedule a clean
+    // quit after N ms. Lets the app be driven under valgrind without
+    // needing manual GUI input. Set QTJSONDIFF_AUTOQUIT_MS=5000 (etc.)
+    if (qEnvironmentVariableIsSet("QTJSONDIFF_AUTOQUIT_MS"))
+    {
+        bool ok = false;
+        int ms = qEnvironmentVariable("QTJSONDIFF_AUTOQUIT_MS").toInt(&ok);
+        if (ok && ms > 0)
+        {
+            QTimer::singleShot(ms, &a, &QCoreApplication::quit);
+        }
+    }
 
     return a.exec();
 }

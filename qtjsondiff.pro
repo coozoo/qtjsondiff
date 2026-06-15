@@ -20,6 +20,17 @@ CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 QMAKE_CXXFLAGS += -Wno-implicit-fallthrough
 
+# Opt-in AddressSanitizer + LeakSanitizer: pass CONFIG+=asan at qmake
+# time. Adds runtime instrumentation for use-after-free / leaks. Slower
+# than a clean build, much faster than Valgrind. Never enable for
+# release; never enable when CONFIG+=tests is also set (the test
+# binaries are independent qmake invocations and can't easily share
+# the ASan runtime).
+asan {
+    QMAKE_CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer -g
+    QMAKE_LFLAGS   += -fsanitize=address
+}
+
 SOURCES += main.cpp\
     commandlineparser.cpp \
     jsondiffengine.cpp \
