@@ -15,6 +15,19 @@
 #include "qjsonmodel.h"
 #include "qjsonitem.h"
 
+namespace
+{
+// RAII guard: stops a worker QThread on scope exit. Used by the async
+// tests so a QVERIFY-early-return path can't leave the thread running —
+// otherwise the QThread destructor would QFATAL with "Destroyed while
+// thread is still running" and trash the next test.
+struct ThreadStopper
+{
+    QThread &t;
+    ~ThreadStopper() { t.quit(); t.wait(); }
+};
+} // namespace
+
 class TestEngine : public QObject
 {
     Q_OBJECT
@@ -303,10 +316,12 @@ private slots:
         return root;
     }
 
+
     void asyncCompareEmitsFinished()
     {
         JsonDiffEngine engine;
         QThread thread;
+        ThreadStopper stopper{thread};
         engine.moveToThread(&thread);
         thread.start();
 
@@ -335,15 +350,13 @@ private slots:
         QCOMPARE(resultLeft.data(), L.data());  // pointer equality
 
         QVERIFY(progressSpy.count() >= 1);
-
-        thread.quit();
-        thread.wait();
     }
 
     void asyncCancelEmitsCancelledNotFinished()
     {
         JsonDiffEngine engine;
         QThread thread;
+        ThreadStopper stopper{thread};
         engine.moveToThread(&thread);
         thread.start();
 
@@ -366,15 +379,13 @@ private slots:
         QVERIFY(cancelledSpy.wait(5000));
         QCOMPARE(cancelledSpy.count(), 1);
         QCOMPARE(finishedSpy.count(), 0);
-
-        thread.quit();
-        thread.wait();
     }
 
     void resetCancelAllowsFreshRun()
     {
         JsonDiffEngine engine;
         QThread thread;
+        ThreadStopper stopper{thread};
         engine.moveToThread(&thread);
         thread.start();
 
@@ -393,9 +404,6 @@ private slots:
 
         QVERIFY(finishedSpy.wait(5000));
         QCOMPARE(finishedSpy.count(), 1);
-
-        thread.quit();
-        thread.wait();
     }
 
     void applyWritesColorAndRelation()

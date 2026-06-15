@@ -545,6 +545,10 @@ JsonDiffEngine::JsonDiffEngine(QObject *parent) :
     // idempotent so repeat calls are harmless.
     qRegisterMetaType<DiffNode>("DiffNode");
     qRegisterMetaType<QSharedPointer<DiffNode>>("QSharedPointer<DiffNode>");
+    // Q_ENUM alone does not register the enum for queued-call argument
+    // marshalling on every Qt version — CI hits "Unable to handle
+    // unregistered datatype 'JsonDiffEngine::Mode'" otherwise.
+    qRegisterMetaType<JsonDiffEngine::Mode>("JsonDiffEngine::Mode");
 }
 
 JsonDiffEngine::~JsonDiffEngine() = default;
