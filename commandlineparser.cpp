@@ -22,9 +22,14 @@ CliAppMode CommandLineParser::parse()
     QCommandLineOption helpOption = parser.addHelpOption();
     QCommandLineOption versionOption = parser.addVersionOption();
     //it will not overwrite default qt argument. I will just list them
+    // Description: translate the English template once via tr(), then
+    // append the runtime list of style names. Don't nest translate() —
+    // lupdate can only extract string LITERALS, not expressions, so the
+    // outer translate("main", QString(...).toUtf8()) form was being
+    // silently dropped (and the inner tr() ran twice for no benefit).
     QCommandLineOption styleOption(QStringList() << "style",
-                QCoreApplication::translate("main", QString(tr("overwrite application theme style <style>. \n Available styles: \n") + styles_Str).toUtf8()),
-                                   QCoreApplication::translate("main", "style"));
+                                   tr("overwrite application theme style <style>. \nAvailable styles: \n") + styles_Str,
+                                   tr("style"));
     parser.addOption(styleOption);
     parser.addPositionalArgument("files",
                                  tr("File(s) to open. One file for tree view, " \
