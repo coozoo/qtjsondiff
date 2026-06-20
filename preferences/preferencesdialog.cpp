@@ -63,6 +63,16 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
         PREF_INST->showJsonButtonPosition=-2;
         ui->showJson_buttonGroup->button(-2)->setChecked(true);
     }
+
+    // JSON Editing page — sync checkbox state from current prefs and
+    // route toggles to a single slot that writes the right pref +
+    // notifies listeners (MainWindow re-applies setEditable live).
+    ui->singleTreeEditCheckBox->setChecked(PREF_INST->editableSingleTree);
+    ui->diffViewEditCheckBox->setChecked(PREF_INST->editableDiffView);
+    connect(ui->singleTreeEditCheckBox, &QCheckBox::toggled,
+            this, &PreferencesDialog::editModeCheckBoxToggled);
+    connect(ui->diffViewEditCheckBox,   &QCheckBox::toggled,
+            this, &PreferencesDialog::editModeCheckBoxToggled);
 }
 
 PreferencesDialog::~PreferencesDialog()
@@ -173,6 +183,15 @@ void PreferencesDialog::showJsonButtonPosition_clicked(QAbstractButton* button)
        int id = ui->showJson_buttonGroup->id(button);
        PREF_INST->showJsonButtonPosition=id;
        PREF_INST->save();
+}
+
+void PreferencesDialog::editModeCheckBoxToggled(bool checked)
+{
+    Q_UNUSED(checked);   // we read both checkbox states fresh each time
+    PREF_INST->editableSingleTree = ui->singleTreeEditCheckBox->isChecked();
+    PREF_INST->editableDiffView   = ui->diffViewEditCheckBox->isChecked();
+    PREF_INST->save();
+    emit PREF_INST->editModeChanged();
 }
 
 void PreferencesDialog::shortcut_changed(QStandardItem *item)

@@ -61,6 +61,13 @@ public:
     // Build a snapshot of a model. Main thread only.
     static DiffNode snapshot(QJsonModel *model);
 
+    // Build a DiffNode for one model node (recursively). Used by the
+    // rowsInserted hook in QJsonDiff to splice a newly-dropped subtree
+    // into an existing snapshot without re-walking the whole tree.
+    // Resulting node has no colour/relationPath; caller is expected
+    // to mark it NotPresent (or otherwise) before apply().
+    static DiffNode snapshotIndex(QJsonModel *model, const QModelIndex &idx);
+
     // Push snapshot.color + snapshot.relationPath back onto the model's
     // QJsonTreeItems. Main thread only. Emits layoutChanged() so views
     // repaint.
@@ -71,6 +78,97 @@ public:
     // Fills color + relationPath in place. Used by tests, used as the
     // body of compareAsync(). No thread or signal interaction.
     static void compare(DiffNode &left, DiffNode &right, Mode mode);
+
+    // Convert a snapshot subtree to QJsonValue. Used to hand a peer's
+    // content to QJsonModel::replaceFromJson() without dragging a
+    // DiffNode dependency into qjsonmodel.h.
+    static QJsonValue toJsonValue(const DiffNode &node);
+
+    // --- Phase A: targeted edit-and-recompare ------------------------
+
+    // Copy type/value/children from `source` into `target` in place.
+    // Preserves `target.key` (the key identifies the node's position
+    // in its parent) and does NOT touch color/relationPath — the
+    // caller is expected to follow up with recomparePair() to refresh
+    // colours on the affected pair and their ancestors.
+    static void copyPeer(DiffNode &target, const DiffNode &source);
+
+    // After an edit (or a copyPeer), update the colour of the matched
+    // pair at (leftRoot[leftPath], rightRoot[rightPath]) and walk both
+    // ancestor chains refreshing Moderate / Identical state. Cheap —
+    // no full traversal of either tree. Mode is currently unused but
+    // kept for forward-compatibility with mode-specific edge cases.
+    static void recomparePair(DiffNode &leftRoot,  const QList<int> &leftPath,
+                              DiffNode &rightRoot, const QList<int> &rightPath,
+                              Mode mode);
+
+    // --- Phase B: append / remove for NotPresent rows ----------------
+
+    // Append a copy of `srcRoot[srcPath]` (a NotPresent node) as the
+    // last child of `dstRoot[dstParentPath]`. The inserted subtree is
+    // cross-linked with the source recursively so apply() will set up
+    // idxRelation across every newly-mirrored node — not just the new
+    // root. Refreshes ancestor colours on both sides.
+    //
+    // Append-only (no positional insert): keeps the implementation
+    // simple by avoiding a sibling-relationPath shift. The caller is
+    // expected to mirror this by APPENDING on the model side too.
+    //
+    // Returns the new child's structural path inside dstRoot on success
+    // (so the widget can drive QJsonModel::appendChildFromJson with a
+    // matching position), or an empty list on failure.
+    static QList<int> insertPeer(DiffNode &srcRoot,
+                                 const QList<int> &srcPath,
+                                 DiffNode &dstRoot,
+                                 const QList<int> &dstParentPath,
+                                 Mode mode);
+
+    // Remove the node at `srcRoot[srcPath]`. If that node was paired
+    // (relationPath non-empty), the peer in `otherRoot` is set to
+    // NotPresent and its relationPath cleared — orphaned, the user's
+    // next move is to either push it back or delete it on that side.
+    // Ancestor colours refresh on both sides. Rejects an empty path
+    // (root removal).
+    static bool removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
+                           DiffNode &otherRoot, Mode mode);
+
+    // Detach a paired leaf from its peer: mark both sides NotPresent +
+    // clear cross-links + refresh ancestor colours. Used when a user
+    // renames the key of a paired item — the same slot now names a
+    // different item, so the prior pairing is invalid until the next
+    // Compare. Safe to call with an unpaired node (no-op on the peer
+    // side). Rejects an empty path.
+    static bool detachPair(DiffNode &myRoot, const QList<int> &myPath,
+                           DiffNode &peerRoot, Mode mode);
+
+    // Re-walk the model's subtree at `myPath` and replace the snapshot
+    // subtree's children. The node at myPath KEEPS its key/type/value/
+    // color/relationPath — only children are replaced. New children
+    // default to NotPresent (no peers on the other side yet). Any
+    // node in peerRoot whose relationPath pointed strictly INTO the
+    // old subtree (i.e. relationPath.size() > myPath.size() and starts
+    // with myPath) gets orphaned to NotPresent.
+    //
+    // Used by the inline-edit slot when a column-1 (type) edit
+    // restructures the model's children through Object↔Array
+    // conversion paths — keeps the snapshot consistent without a
+    // full re-Compare. Rejects an empty path (the root has no parent
+    // index to navigate to).
+    static bool resnapshotSubtree(DiffNode &myRoot,
+                                  const QList<int> &myPath,
+                                  QJsonModel *myModel,
+                                  DiffNode &peerRoot);
+
+    // Given a NotPresent node at srcRoot[srcPath], compute the
+    // destination-side parent's structural path in the other tree.
+    // Returns true on success (parent has a peer, or src parent is the
+    // root and we mirror to the other root). The empty parent path =
+    // the other tree's root. Returns false when the source parent is
+    // also NotPresent — the caller should hide the push action in that
+    // case.
+    static bool resolveDstParentPath(const DiffNode &srcRoot,
+                                     const QList<int> &srcPath,
+                                     QList<int> &dstParentPath);
 
     // --- Async cancellation -----------------------------------------
 
@@ -101,6 +199,10 @@ public slots:
 
 signals:
     void progressed(int done, int total);
+    // Emitted at each algorithm-phase boundary so the host can update
+    // the dialog label ("Matching paths…", "Comparing values…", …).
+    // Untranslated; the receiver is expected to map/translate as needed.
+    void phaseChanged(const QString &phase);
     void finished(QSharedPointer<DiffNode> left, QSharedPointer<DiffNode> right);
     void cancelled();
 

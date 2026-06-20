@@ -1,5 +1,6 @@
 #include "jsonitemdelegate.h"
 #include "qjsonmodel.h"
+#include "qjsonitem.h"
 #include <QComboBox>
 #include <QDebug>
 
@@ -29,13 +30,16 @@ void JsonItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) 
     }
 
     QComboBox *comboBox = static_cast<QComboBox*>(editor);
-    // The current value is the item's type name
-    QString currentType = index.model()->data(index, Qt::DisplayRole).toString();
-    // For arrays, the display role is e.g. "Array[5]", so we strip it.
-    if (currentType.startsWith("Array")) {
-        currentType = "Array";
-    }
-    comboBox->setCurrentText(currentType);
+    // Read the item's canonical type name directly instead of parsing
+    // the display string. The model's column-1 DisplayRole is
+    // "Array[N]" for arrays (childcount suffix) and the bare type
+    // name otherwise — using QJsonTreeItem::typeName() side-steps
+    // the parse entirely and stays correct if more types are added.
+    QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
+    if (item)
+        comboBox->setCurrentText(item->typeName());
+    else
+        QStyledItemDelegate::setEditorData(editor, index);
 }
 
 void JsonItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const

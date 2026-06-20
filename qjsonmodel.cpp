@@ -31,7 +31,12 @@
 #include <QJsonArray>
 #include <QIcon>
 #include <QFont>
+#include <QMimeData>
+#include <QSet>
 #include <algorithm>
+
+const QString QJsonModel::kItemMimeType =
+        QStringLiteral("application/x-qjsondiff-item");
 
 QJsonModel::QJsonModel(QObject *parent) :
     QAbstractItemModel(parent)
@@ -388,6 +393,11 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
         emit dataChanged(index.siblingAtColumn(0), index.siblingAtColumn(columnCount() - 1), {Qt::DisplayRole, Qt::EditRole});
         emit modelChanged();
+        // Structural change — children may have been removed/inserted
+        // by the Object<->Array conversion logic above. Tell listeners
+        // (QJsonContainer) to reset their cached find/goto QModelIndex
+        // lists. Same reason as in replaceFromJson().
+        emit dataUpdated();
         return true;
     }
 
@@ -411,19 +421,29 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid())
+    {
+        // Invalid index = the root. Qt consults flags(QModelIndex())
+        // when deciding whether a drop on empty viewport space is OK.
+        // Allow root-level drops only when the root is a container and
+        // the model is editable; otherwise no flags (default behavior).
+        if (mIsEditable && mRootItem
+                && (mRootItem->type() == QJsonValue::Object
+                    || mRootItem->type() == QJsonValue::Array))
+            return Qt::ItemIsDropEnabled;
         return Qt::NoItemFlags;
+    }
 
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
     if (!mIsEditable)
         return flags;
 
     QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
-    
+
     // Type is editable, but not for the root item
     if (index.column() == 1 && item->parent()) {
         flags |= Qt::ItemIsEditable;
     }
-    
+
     // Keys are not editable for array elements
     if (index.column() == 0 && item->parent() && item->parent()->type() != QJsonValue::Array) {
         flags |= Qt::ItemIsEditable;
@@ -436,6 +456,16 @@ Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
         item->type() != QJsonValue::Null) {
         flags |= Qt::ItemIsEditable;
     }
+
+    // Drag enabled for any non-root item (root cannot leave the tree).
+    if (item->parent())
+        flags |= Qt::ItemIsDragEnabled;
+
+    // Drop enabled when the item is a container — it can receive
+    // children. The root container is handled via the invalid parent
+    // branch in canDropMimeData().
+    if (item->type() == QJsonValue::Object || item->type() == QJsonValue::Array)
+        flags |= Qt::ItemIsDropEnabled;
 
     return flags;
 }
@@ -607,6 +637,162 @@ QJsonValue::Type QJsonModel::rootType() const
     return mRootItem->type();
 }
 
+bool QJsonModel::replaceFromJson(const QModelIndex &target, const QJsonValue &source)
+{
+    if (!target.isValid() || source.isUndefined())
+        return false;
+    QJsonTreeItem *item = itemFromIndex(target);
+    if (!item)
+        return false;
+
+    // begin/endRemove and begin/endInsert use the column-0 sibling as
+    // the parent index, per Qt model contract.
+    const QModelIndex parent0 = target.siblingAtColumn(0);
+
+    // 1) drop any existing children with proper structural signals so
+    //    selection/expansion state in views stays correct
+    if (item->childCount() > 0)
+    {
+        beginRemoveRows(parent0, 0, item->childCount() - 1);
+        item->clearChildren();
+        endRemoveRows();
+    }
+
+    // 2) overwrite type + value to match the source
+    item->setType(source.type());
+    if (source.isString())
+        item->setValue(source.toString());
+    else if (source.isDouble())
+        item->setValue(QString::number(source.toDouble()));
+    else if (source.isBool())
+        item->setValue(source.toBool() ? QStringLiteral("true") : QStringLiteral("false"));
+    else
+        item->setValue(QString());  // Object/Array/Null carry empty value strings
+
+    // 3) for containers, build a fresh subtree from source and steal
+    //    its children. We use QJsonTreeItem::load() so child key
+    //    numbering / type assignment matches the loadJson() path.
+    if (source.isObject() || source.isArray())
+    {
+        QJsonTreeItem *built = QJsonTreeItem::load(source);
+        QList<QJsonTreeItem*> kids = built->takeChildren();
+        if (!kids.isEmpty())
+        {
+            beginInsertRows(parent0, 0, kids.size() - 1);
+            for (QJsonTreeItem *kid : kids)
+                item->appendChild(kid);
+            endInsertRows();
+        }
+        delete built;  // wrapper drained of children, safe to drop
+    }
+
+    emit dataChanged(parent0,
+                     target.siblingAtColumn(columnCount() - 1),
+                     {Qt::DisplayRole, Qt::EditRole, Qt::DecorationRole});
+    emit modelChanged();
+    // Structural change — children were removed/inserted. Tell listeners
+    // (QJsonContainer) to reset cached find/goto QModelIndex lists and
+    // refresh the diff counter, the same way they react to loadJson.
+    emit dataUpdated();
+    return true;
+}
+
+QModelIndex QJsonModel::appendChildFromJson(const QModelIndex &parent,
+                                            const QString &key,
+                                            const QJsonValue &source)
+{
+    if (source.isUndefined())
+        return QModelIndex();
+
+    QJsonTreeItem *parentItem = parent.isValid() ? itemFromIndex(parent)
+                                                 : mRootItem;
+    if (!parentItem)
+        return QModelIndex();
+    if (parentItem->type() != QJsonValue::Object
+            && parentItem->type() != QJsonValue::Array)
+        return QModelIndex();
+
+    // load() returns a wrapper whose own slot represents `source`:
+    //  - scalar: type+value set on the wrapper directly; no children.
+    //  - container: children built recursively; type left unset on the
+    //    wrapper (loadJson() patches that — we do the same here).
+    QJsonTreeItem *newChild = QJsonTreeItem::load(source);
+    newChild->setType(source.type());
+    newChild->setKey(parentItem->type() == QJsonValue::Array
+                         ? QString::number(parentItem->childCount())
+                         : key);
+
+    const int row = parentItem->childCount();
+    const QModelIndex parent0 = parent.isValid() ? parent.siblingAtColumn(0)
+                                                 : QModelIndex();
+
+    beginInsertRows(parent0, row, row);
+    parentItem->appendChild(newChild);
+    endInsertRows();
+
+    // Parent's childCount text (column 2) may change; refresh its row.
+    if (parent.isValid())
+    {
+        emit dataChanged(parent.siblingAtColumn(0),
+                         parent.siblingAtColumn(columnCount() - 1),
+                         {Qt::DisplayRole, Qt::EditRole, Qt::DecorationRole});
+    }
+    emit modelChanged();
+    emit dataUpdated();
+
+    return index(row, 0, parent0);
+}
+
+bool QJsonModel::removeRowAt(const QModelIndex &target)
+{
+    if (!target.isValid())
+        return false;
+    QJsonTreeItem *item = itemFromIndex(target);
+    if (!item || item == mRootItem)
+        return false;
+    QJsonTreeItem *parentItem = item->parent();
+    if (!parentItem)
+        return false;
+
+    const int row = item->row();
+    const QModelIndex parent0 = target.parent();
+
+    beginRemoveRows(parent0, row, row);
+    // QJsonTreeItem owns its children — remove from the parent's list
+    // and delete the subtree.
+    QList<QJsonTreeItem*> kids = parentItem->takeChildren();
+    QJsonTreeItem *removed = kids.takeAt(row);
+    parentItem->setChildren(kids);
+    delete removed;
+    endRemoveRows();
+
+    // Array children carry stringified-index keys ("0","1","2"…). After
+    // removing one, the survivors past the removal point keep their
+    // original strings, so the display would show "0","2","3" with a
+    // gap. getJsonDocument() serialises by position so the JSON is fine,
+    // but the user sees inconsistent keys. Renumber from `row` onward
+    // and emit dataChanged for the key column.
+    if (parentItem->type() == QJsonValue::Array)
+    {
+        for (int i = row; i < parentItem->childCount(); ++i)
+        {
+            QJsonTreeItem *sibling = parentItem->child(i);
+            const QString want = QString::number(i);
+            if (sibling->key() != want)
+            {
+                sibling->setKey(want);
+                QModelIndex keyIdx = index(i, 0, parent0);
+                emit dataChanged(keyIdx, keyIdx,
+                                 {Qt::DisplayRole, Qt::EditRole});
+            }
+        }
+    }
+
+    emit modelChanged();
+    emit dataUpdated();
+    return true;
+}
+
 QJsonDocument QJsonModel::getJsonDocument() const {
     if (!mRootItem)
         return QJsonDocument();
@@ -621,4 +807,207 @@ QJsonDocument QJsonModel::getJsonDocument() const {
     }
 
     return QJsonDocument();
+}
+
+QModelIndex QJsonModel::insertChildFromJson(const QModelIndex &parent,
+                                            int row,
+                                            const QString &key,
+                                            const QJsonValue &source)
+{
+    if (source.isUndefined())
+        return QModelIndex();
+
+    QJsonTreeItem *parentItem = parent.isValid() ? itemFromIndex(parent)
+                                                 : mRootItem;
+    if (!parentItem)
+        return QModelIndex();
+    if (parentItem->type() != QJsonValue::Object
+            && parentItem->type() != QJsonValue::Array)
+        return QModelIndex();
+
+    const int count = parentItem->childCount();
+    if (row < 0 || row > count) row = count;
+
+    // Append fast-path delegates to appendChildFromJson for the trivial
+    // case and for object parents — object children are unordered by
+    // key, so insert-at-row is the same as append plus a meaningless
+    // visual position change.
+    if (row == count || parentItem->type() == QJsonValue::Object)
+        return appendChildFromJson(parent, key, source);
+
+    // Array mid-insert: build the new child, insert at row, then renumber
+    // siblings past the insert point so the displayed keys stay 0..N-1.
+    QJsonTreeItem *newChild = QJsonTreeItem::load(source);
+    newChild->setType(source.type());
+    newChild->setKey(QString::number(row));
+
+    const QModelIndex parent0 = parent.isValid() ? parent.siblingAtColumn(0)
+                                                 : QModelIndex();
+
+    beginInsertRows(parent0, row, row);
+    // QJsonTreeItem owns its children; takeChildren / setChildren is
+    // the safe way to splice in the middle (mirrors removeRowAt).
+    QList<QJsonTreeItem*> kids = parentItem->takeChildren();
+    kids.insert(row, newChild);
+    parentItem->setChildren(kids);
+    endInsertRows();
+
+    // Renumber siblings past the insert point so the key column matches
+    // their new positions. Mirrors removeRowAt's renumber loop.
+    for (int i = row + 1; i < parentItem->childCount(); ++i)
+    {
+        QJsonTreeItem *sibling = parentItem->child(i);
+        const QString want = QString::number(i);
+        if (sibling->key() != want)
+        {
+            sibling->setKey(want);
+            QModelIndex keyIdx = index(i, 0, parent0);
+            emit dataChanged(keyIdx, keyIdx,
+                             {Qt::DisplayRole, Qt::EditRole});
+        }
+    }
+
+    if (parent.isValid())
+    {
+        emit dataChanged(parent.siblingAtColumn(0),
+                         parent.siblingAtColumn(columnCount() - 1),
+                         {Qt::DisplayRole, Qt::EditRole, Qt::DecorationRole});
+    }
+    emit modelChanged();
+    emit dataUpdated();
+    return index(row, 0, parent0);
+}
+
+// ---------------------------------------------------------------------
+// Drag-and-drop
+// ---------------------------------------------------------------------
+
+Qt::DropActions QJsonModel::supportedDragActions() const
+{
+    // Copy only — the source side keeps its node. The user's mental
+    // model for diff DnD is "duplicate this onto the other side",
+    // not "move it" (which would leave a hole and break ordering on
+    // the source tree).
+    return Qt::CopyAction;
+}
+
+Qt::DropActions QJsonModel::supportedDropActions() const
+{
+    return Qt::CopyAction;
+}
+
+QStringList QJsonModel::mimeTypes() const
+{
+    // Deliberately omit "text/uri-list". File-URL drags must fall
+    // through the tree (which ignores unrecognized MIME) up to the
+    // surrounding QGroupBox where the file-drop event filter lives.
+    return QStringList{kItemMimeType};
+}
+
+QMimeData *QJsonModel::mimeData(const QModelIndexList &indexes) const
+{
+    if (indexes.isEmpty()) return nullptr;
+
+    // Single-item drag only — the tree's selection is single by default
+    // and packing multiple at once raises insertion-order questions we
+    // don't want to answer for v1. Pick the first column-0 sibling.
+    QModelIndex src;
+    for (const QModelIndex &i : indexes)
+    {
+        if (i.isValid() && i.column() == 0) { src = i; break; }
+    }
+    if (!src.isValid()) src = indexes.first();
+    if (!src.isValid()) return nullptr;
+
+    QJsonTreeItem *item = itemFromIndex(src);
+    if (!item || item == mRootItem) return nullptr;
+
+    // Serialise the subtree to a QJsonValue using the same path
+    // getJsonDocument() uses. Scalars come through with their literal
+    // value; containers come through with their nested structure.
+    QJsonValue payload;
+    generateJson(item, payload);
+
+    QJsonObject env;
+    env.insert(QStringLiteral("key"),   item->key());
+    env.insert(QStringLiteral("value"), payload);
+
+    QMimeData *md = new QMimeData;
+    md->setData(kItemMimeType,
+                QJsonDocument(env).toJson(QJsonDocument::Compact));
+    return md;
+}
+
+bool QJsonModel::canDropMimeData(const QMimeData *data, Qt::DropAction action,
+                                 int row, int column,
+                                 const QModelIndex &parent) const
+{
+    Q_UNUSED(row);
+    Q_UNUSED(column);
+    if (!mIsEditable) return false;
+    if (!data || !data->hasFormat(kItemMimeType)) return false;
+    if (action != Qt::CopyAction && action != Qt::IgnoreAction) return false;
+
+    // Drop parent must be a container. Invalid parent = root drop;
+    // accept only if root is a container.
+    if (parent.isValid())
+    {
+        QJsonTreeItem *p = itemFromIndex(parent);
+        if (!p) return false;
+        return p->type() == QJsonValue::Object
+                || p->type() == QJsonValue::Array;
+    }
+    return mRootItem
+            && (mRootItem->type() == QJsonValue::Object
+                || mRootItem->type() == QJsonValue::Array);
+}
+
+bool QJsonModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
+                              int row, int column,
+                              const QModelIndex &parent)
+{
+    Q_UNUSED(column);
+    if (!canDropMimeData(data, action, row, column, parent)) return false;
+    if (action == Qt::IgnoreAction) return true;
+
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(data->data(kItemMimeType), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject())
+        return false;
+    const QJsonObject env = doc.object();
+    const QJsonValue payload = env.value(QStringLiteral("value"));
+    if (payload.isUndefined()) return false;
+    QString key = env.value(QStringLiteral("key")).toString();
+
+    // Resolve the parent item to decide insertion semantics.
+    QJsonTreeItem *parentItem = parent.isValid() ? itemFromIndex(parent)
+                                                 : mRootItem;
+    if (!parentItem) return false;
+
+    // For object parents we need a key that doesn't collide. Take the
+    // source key as a starting suggestion; if empty (e.g. dragged from
+    // an array source where keys are positional) fall back to
+    // "new_key"; then dedupe against existing children.
+    if (parentItem->type() == QJsonValue::Object)
+    {
+        if (key.isEmpty()) key = QStringLiteral("new_key");
+        QSet<QString> used;
+        for (int i = 0; i < parentItem->childCount(); ++i)
+            used.insert(parentItem->child(i)->key());
+        if (used.contains(key))
+        {
+            const QString base = key;
+            for (int k = 1; ; ++k)
+            {
+                key = QStringLiteral("%1_%2").arg(base).arg(k);
+                if (!used.contains(key)) break;
+            }
+        }
+    }
+
+    // row == -1 means "drop on parent" (no specific row). Append.
+    if (row < 0) row = parentItem->childCount();
+
+    QModelIndex newIdx = insertChildFromJson(parent, row, key, payload);
+    return newIdx.isValid();
 }

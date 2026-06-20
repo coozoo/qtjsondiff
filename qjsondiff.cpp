@@ -7,6 +7,11 @@
 #include <QTime>
 #include <QThread>
 #include <QProgressDialog>
+#include <QAction>
+#include <QToolBar>
+#include <QItemSelectionModel>
+#include <QStyle>
+#include <QApplication>
 #include "qjsonitem.h"
 #include "jsondiffengine.h"
 #include "preferences/preferences.h"
@@ -113,6 +118,25 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(right_cont,&QJsonContainer::diffSelected,this,&QJsonDiff::on_righttreeview_clicked);
 
     setupCompareWorker();
+    setupPushButtons();
+
+    // Inline-edit live diff refresh. Gated inside the slot on snapshot
+    // presence — pre-Compare edits are ignored. apply() bypasses the
+    // model's setData() path and only fires layoutChanged, so there's
+    // no dataChanged feedback loop from these handlers.
+    connect(left_cont->getJsonModel(),  &QJsonModel::dataChanged,
+            this, &QJsonDiff::onLeftModelDataChanged);
+    connect(right_cont->getJsonModel(), &QJsonModel::dataChanged,
+            this, &QJsonDiff::onRightModelDataChanged);
+
+    // Structural inserts (item DnD between sides, context-menu Add
+    // child) — keep the snapshot in sync so the next diff interaction
+    // sees the new node. The slot marks the inserted subtree gray
+    // (NotPresent) and bumps the drop parent's pair colour if needed.
+    connect(left_cont->getJsonModel(),  &QJsonModel::rowsInserted,
+            this, &QJsonDiff::onLeftRowsInserted);
+    connect(right_cont->getJsonModel(), &QJsonModel::rowsInserted,
+            this, &QJsonDiff::onRightRowsInserted);
 }
 
 QJsonDiff::~QJsonDiff()
@@ -252,6 +276,13 @@ void QJsonDiff::setupCompareWorker()
             this,    &QJsonDiff::onCompareCancelled,  Qt::QueuedConnection);
     connect(mEngine, &JsonDiffEngine::progressed,
             this,    &QJsonDiff::onCompareProgressed, Qt::QueuedConnection);
+    connect(mEngine, &JsonDiffEngine::phaseChanged,
+            this, [this](const QString &phase)
+    {
+        mCurrentPhase = phase;
+        if (mProgressDialog)
+            mProgressDialog->setLabelText(formatProgressLabel());
+    }, Qt::QueuedConnection);
 
     // Note: we deliberately do NOT connect QThread::finished to
     // engine.deleteLater. The worker's event loop has stopped by the
@@ -319,6 +350,7 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
         ? JsonDiffEngine::Mode::FullPath
         : JsonDiffEngine::Mode::ParentChildPair;
+    mLastMode = mode;
 
     // Modal progress dialog blocks user input until compare completes
     // or is cancelled. Lives until either finished/cancelled fires.
@@ -339,8 +371,15 @@ void QJsonDiff::on_compare_pushbutton_clicked()
             if (mEngine) mEngine->requestCancel();
         });
     }
+    // reset() clears the sticky wasCanceled flag from a prior cancelled
+    // compare — otherwise the setValue(0) below would immediately re-emit
+    // canceled() and abort this run before the engine even starts (D-105).
+    mProgressDialog->reset();
     mProgressDialog->setRange(0, mode == JsonDiffEngine::Mode::FullPath ? 6 : 3);
     mProgressDialog->setValue(0);
+    mCurrentPhase = tr("Starting");
+    mCompareElapsed.start();
+    mProgressDialog->setLabelText(formatProgressLabel());
     mProgressDialog->show();
 
     mEngine->resetCancel();
@@ -369,8 +408,16 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
     JsonDiffEngine::apply(*left,  leftModel,  rightModel);
     JsonDiffEngine::apply(*right, rightModel, leftModel);
 
+    // Keep the snapshots alive — Phase A targeted recompare runs on
+    // these without ever rebuilding from the model.
+    mLeftSnap  = left;
+    mRightSnap = right;
+
     left_cont->gotoIndexHandler(true);
     right_cont->gotoIndexHandler(true);
+
+    updateLeftPushAction();
+    updateRightPushAction();
 }
 
 void QJsonDiff::onCompareCancelled()
@@ -380,11 +427,26 @@ void QJsonDiff::onCompareCancelled()
     // Discard partial — no apply (Phase 2 design Q3).
 }
 
+QString QJsonDiff::formatProgressLabel() const
+{
+    const QString phase = mCurrentPhase.isEmpty()
+        ? tr("Running comparison")
+        : mCurrentPhase;
+    if (!mCompareElapsed.isValid())
+        return phase + QStringLiteral("…");
+    const qint64 secs = mCompareElapsed.elapsed() / 1000;
+    return tr("%1… (%2s)").arg(phase).arg(secs);
+}
+
 void QJsonDiff::onCompareProgressed(int done, int total)
 {
     if (!mProgressDialog) return;
     mProgressDialog->setRange(0, total);
     mProgressDialog->setValue(done);
+    // Refresh the label so the elapsed-seconds counter ticks visibly.
+    // The phase string is whatever the last phaseChanged set; the time
+    // is read fresh from mCompareElapsed every tick.
+    mProgressDialog->setLabelText(formatProgressLabel());
 }
 
 void QJsonDiff::startComparison()
@@ -402,11 +464,18 @@ void QJsonDiff::startComparison()
     const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
         ? JsonDiffEngine::Mode::FullPath
         : JsonDiffEngine::Mode::ParentChildPair;
+    mLastMode = mode;
 
     JsonDiffEngine::compare(leftSnap, rightSnap, mode);
 
     JsonDiffEngine::apply(leftSnap,  leftModel,  rightModel);
     JsonDiffEngine::apply(rightSnap, rightModel, leftModel);
+
+    // Cache snapshots for incremental Phase A edits — store moved copies
+    // on the heap so subsequent recomparePair calls operate on the same
+    // graph the model now reflects.
+    mLeftSnap  = QSharedPointer<DiffNode>::create(std::move(leftSnap));
+    mRightSnap = QSharedPointer<DiffNode>::create(std::move(rightSnap));
 }
 
 void QJsonDiff::setBrowseVisible(bool state)
@@ -503,4 +572,599 @@ void QJsonDiff::showJsonButtonPosition()
     left_cont->showJsonButtonPosition();
     right_cont->showJsonButtonPosition();
 }
+
+// -----------------------------------------------------------------------
+// Phase A — edit-in-diff
+// -----------------------------------------------------------------------
+
+void QJsonDiff::setDiffEditable(bool editable)
+{
+    mDiffEditable = editable;
+    left_cont->setEditable(editable);
+    right_cont->setEditable(editable);
+    updateLeftPushAction();
+    updateRightPushAction();
+    updateLeftDeleteAction();
+    updateRightDeleteAction();
+}
+
+bool QJsonDiff::isDiffEditable() const
+{
+    return mDiffEditable;
+}
+
+void QJsonDiff::setupPushButtons()
+{
+    // Each side gets one "push selected → other side" action, parked
+    // in the side's existing toolbar near the diff counter / prev/next-
+    // diff buttons. Always in the same place, hidden when nothing
+    // meaningful is selected.
+    //
+    // Icons matter: QToolBar's default toolButtonStyle is IconOnly, so
+    // text-only actions render as a blank cell. Use Qt's built-in
+    // standard arrow pixmaps for guaranteed visibility under any style.
+    QStyle *st = QApplication::style();
+
+    mLeftPushAction = new QAction(this);
+    mLeftPushAction->setIcon(st->standardIcon(QStyle::SP_ArrowRight));
+    mLeftPushAction->setText(tr("Push to right"));
+    mLeftPushAction->setToolTip(tr("Push selected row into the matching row on the right side (overwrites)"));
+    mLeftPushAction->setVisible(false);
+    left_cont->toolbar->addAction(mLeftPushAction);
+
+    mRightPushAction = new QAction(this);
+    mRightPushAction->setIcon(st->standardIcon(QStyle::SP_ArrowLeft));
+    mRightPushAction->setText(tr("Push to left"));
+    mRightPushAction->setToolTip(tr("Push selected row into the matching row on the left side (overwrites)"));
+    mRightPushAction->setVisible(false);
+    right_cont->toolbar->addAction(mRightPushAction);
+
+    // Phase B: delete-here actions, parked next to the push actions.
+    mLeftDeleteAction = new QAction(this);
+    mLeftDeleteAction->setIcon(st->standardIcon(QStyle::SP_TrashIcon));
+    mLeftDeleteAction->setText(tr("Delete here"));
+    mLeftDeleteAction->setToolTip(tr("Remove the selected row from this side. If it had a peer on the other side, the peer becomes NotPresent."));
+    mLeftDeleteAction->setVisible(false);
+    left_cont->toolbar->addAction(mLeftDeleteAction);
+
+    mRightDeleteAction = new QAction(this);
+    mRightDeleteAction->setIcon(st->standardIcon(QStyle::SP_TrashIcon));
+    mRightDeleteAction->setText(tr("Delete here"));
+    mRightDeleteAction->setToolTip(tr("Remove the selected row from this side. If it had a peer on the other side, the peer becomes NotPresent."));
+    mRightDeleteAction->setVisible(false);
+    right_cont->toolbar->addAction(mRightDeleteAction);
+
+    connect(mLeftPushAction,  &QAction::triggered,
+            this, &QJsonDiff::pushLeftSelectionToRight);
+    connect(mRightPushAction, &QAction::triggered,
+            this, &QJsonDiff::pushRightSelectionToLeft);
+    connect(mLeftDeleteAction,  &QAction::triggered,
+            this, &QJsonDiff::deleteLeftSelection);
+    connect(mRightDeleteAction, &QAction::triggered,
+            this, &QJsonDiff::deleteRightSelection);
+
+    QTreeView *lv = left_cont->getTreeView();
+    QTreeView *rv = right_cont->getTreeView();
+    connect(lv->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &QJsonDiff::updateLeftPushAction);
+    connect(rv->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &QJsonDiff::updateRightPushAction);
+    connect(lv->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &QJsonDiff::updateLeftDeleteAction);
+    connect(rv->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &QJsonDiff::updateRightDeleteAction);
+}
+
+void QJsonDiff::updatePushAction(QTreeView *view, QAction *action, QJsonModel *model,
+                                 DiffNode *srcSnapRoot)
+{
+    if (!action || !view || !model) return;
+    // Visibility tracks edit mode. The action's slot is the user-
+    // facing affordance — it shouldn't fade in and out as the cursor
+    // moves between rows. Enabledness reflects whether the current
+    // selection can actually drive a push.
+    action->setVisible(mDiffEditable);
+    if (!mDiffEditable)              { action->setEnabled(false); return; }
+
+    QModelIndex idx = view->currentIndex();
+    if (!idx.isValid())              { action->setEnabled(false); return; }
+    QJsonTreeItem *item = model->itemFromIndex(idx);
+    if (!item)                       { action->setEnabled(false); return; }
+
+    const DiffColorType c = item->colorType();
+
+    // Phase A: Huge with a valid peer → overwrite on the other side.
+    if (c == DiffColorType::Huge && item->idxRelation().isValid())
+    {
+        action->setEnabled(true);
+        return;
+    }
+
+    // Phase B: NotPresent → insert into the matched parent on the
+    // other side, but only when that parent actually has a peer.
+    // Without the resolve check we'd enable the arrow for chained-
+    // missing rows (parent also NotPresent) where the click is a
+    // confirmed no-op. Snapshot may not exist yet before the first
+    // compare — gate on that too.
+    if (c == DiffColorType::NotPresent && srcSnapRoot)
+    {
+        QList<int> dstParentPath;
+        if (JsonDiffEngine::resolveDstParentPath(*srcSnapRoot,
+                                                 indexPath(idx),
+                                                 dstParentPath))
+        {
+            action->setEnabled(true);
+            return;
+        }
+    }
+
+    action->setEnabled(false);
+}
+
+void QJsonDiff::updateLeftPushAction()
+{
+    updatePushAction(left_cont->getTreeView(),
+                     mLeftPushAction,
+                     left_cont->getJsonModel(),
+                     mLeftSnap.data());
+}
+
+void QJsonDiff::updateRightPushAction()
+{
+    updatePushAction(right_cont->getTreeView(),
+                     mRightPushAction,
+                     right_cont->getJsonModel(),
+                     mRightSnap.data());
+}
+
+void QJsonDiff::updateDeleteAction(QTreeView *view, QAction *action)
+{
+    if (!action || !view)            { return; }
+    // Visibility tracks edit mode (matches the push actions). Enabled
+    // tracks whether the selection is a non-root row that the model
+    // can actually remove.
+    action->setVisible(mDiffEditable);
+    if (!mDiffEditable)              { action->setEnabled(false); return; }
+    QModelIndex idx = view->currentIndex();
+    action->setEnabled(idx.isValid() && idx.parent().isValid());
+}
+
+void QJsonDiff::updateLeftDeleteAction()
+{
+    updateDeleteAction(left_cont->getTreeView(), mLeftDeleteAction);
+}
+
+void QJsonDiff::updateRightDeleteAction()
+{
+    updateDeleteAction(right_cont->getTreeView(), mRightDeleteAction);
+}
+
+QList<int> QJsonDiff::indexPath(const QModelIndex &idx)
+{
+    QList<int> path;
+    QModelIndex cur = idx;
+    while (cur.isValid())
+    {
+        path.prepend(cur.row());
+        cur = cur.parent();
+    }
+    return path;
+}
+
+bool QJsonDiff::pushFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx,
+                           QJsonModel *dstModel, const QModelIndex &dstIdx,
+                           DiffNode *srcSnapRoot, DiffNode *dstSnapRoot)
+{
+    if (!srcModel || !dstModel || !srcSnapRoot || !dstSnapRoot)
+        return false;
+    if (!srcIdx.isValid() || !dstIdx.isValid())
+        return false;
+
+    const QList<int> srcPath = indexPath(srcIdx);
+    const QList<int> dstPath = indexPath(dstIdx);
+
+    // 1. Build the JSON value to push from the cached source snapshot.
+    DiffNode *srcNode = nullptr;
+    {
+        DiffNode *cur = srcSnapRoot;
+        for (int step : srcPath)
+        {
+            if (step < 0 || step >= cur->children.size()) return false;
+            cur = &cur->children[step];
+        }
+        srcNode = cur;
+    }
+    DiffNode *dstNode = nullptr;
+    {
+        DiffNode *cur = dstSnapRoot;
+        for (int step : dstPath)
+        {
+            if (step < 0 || step >= cur->children.size()) return false;
+            cur = &cur->children[step];
+        }
+        dstNode = cur;
+    }
+
+    const QJsonValue payload = JsonDiffEngine::toJsonValue(*srcNode);
+
+    // 2. In-place replace on the model — emits dataChanged + dataUpdated,
+    // so the container's find/goto caches reset automatically. Suppress
+    // the rowsInserted hook for the duration: the snapshot bookkeeping
+    // for the new children is done by copyPeer below, not by re-walking
+    // model state.
+    {
+        const bool prev = mSuppressInsertHook;
+        mSuppressInsertHook = true;
+        const bool ok = dstModel->replaceFromJson(dstIdx, payload);
+        mSuppressInsertHook = prev;
+        if (!ok) return false;
+    }
+
+    // 3. Mirror the change on the cached snapshot and re-evaluate the
+    // pair + ancestor chain. No full re-snapshot, no full re-compare.
+    JsonDiffEngine::copyPeer(*dstNode, *srcNode);
+    JsonDiffEngine::recomparePair(*srcSnapRoot, srcPath,
+                                  *dstSnapRoot, dstPath,
+                                  mLastMode);
+
+    // 4. Push colours back onto both models so view repaints with the
+    // updated highlighting.
+    JsonDiffEngine::apply(*srcSnapRoot, srcModel, dstModel);
+    JsonDiffEngine::apply(*dstSnapRoot, dstModel, srcModel);
+
+    // 5. Refresh the push buttons — the row's color just flipped to
+    // Identical, so the action that was visible on it should hide.
+    updateLeftPushAction();
+    updateRightPushAction();
+    updateLeftDeleteAction();
+    updateRightDeleteAction();
+    return true;
+}
+
+bool QJsonDiff::pushInsertFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx,
+                                 QJsonModel *dstModel,
+                                 DiffNode *srcSnapRoot, DiffNode *dstSnapRoot)
+{
+    if (!srcModel || !dstModel || !srcSnapRoot || !dstSnapRoot)
+        return false;
+    if (!srcIdx.isValid())
+        return false;
+
+    const QList<int> srcPath = indexPath(srcIdx);
+
+    // Resolve the destination parent path on the OTHER snapshot via
+    // the source-side parent's relationPath. If the parent isn't paired
+    // (e.g. it's also NotPresent), bail — the user needs to push the
+    // missing parent first.
+    QList<int> dstParentPath;
+    if (!JsonDiffEngine::resolveDstParentPath(*srcSnapRoot, srcPath, dstParentPath))
+        return false;
+
+    // Navigate the destination MODEL to the parent index that matches
+    // dstParentPath. Empty path == invalid index == root.
+    QModelIndex dstParentIdx;
+    for (int step : dstParentPath)
+        dstParentIdx = dstModel->index(step, 0, dstParentIdx);
+
+    // Pull the source DiffNode for payload + key.
+    DiffNode *srcNode = srcSnapRoot;
+    for (int step : srcPath)
+    {
+        if (step < 0 || step >= srcNode->children.size()) return false;
+        srcNode = &srcNode->children[step];
+    }
+    const QJsonValue payload = JsonDiffEngine::toJsonValue(*srcNode);
+
+    // Append on the model. The model picks the new child's key for us
+    // (array parents use the new index; object parents use `key`).
+    // Suppress the rowsInserted hook: insertPeer below installs the
+    // matched-pair Identical + cross-linked snapshot state, which the
+    // hook would otherwise overwrite with a NotPresent placeholder.
+    QModelIndex newIdx;
+    {
+        const bool prev = mSuppressInsertHook;
+        mSuppressInsertHook = true;
+        newIdx = dstModel->appendChildFromJson(dstParentIdx,
+                                              srcNode->key, payload);
+        mSuppressInsertHook = prev;
+    }
+    if (!newIdx.isValid())
+        return false;
+
+    // Mirror on the snapshot. insertPeer cross-links the whole subtree
+    // and refreshes ancestors on both sides.
+    JsonDiffEngine::insertPeer(*srcSnapRoot, srcPath,
+                               *dstSnapRoot, dstParentPath,
+                               mLastMode);
+
+    JsonDiffEngine::apply(*srcSnapRoot, srcModel, dstModel);
+    JsonDiffEngine::apply(*dstSnapRoot, dstModel, srcModel);
+
+    updateLeftPushAction();
+    updateRightPushAction();
+    updateLeftDeleteAction();
+    updateRightDeleteAction();
+    return true;
+}
+
+bool QJsonDiff::deleteOn(QJsonModel *srcModel, const QModelIndex &srcIdx,
+                         QJsonModel *otherModel,
+                         DiffNode *srcSnapRoot, DiffNode *otherSnapRoot)
+{
+    if (!srcModel || !otherModel || !srcSnapRoot || !otherSnapRoot)
+        return false;
+    if (!srcIdx.isValid())
+        return false;
+
+    const QList<int> srcPath = indexPath(srcIdx);
+    if (srcPath.isEmpty()) return false;            // root rejected
+
+    if (!srcModel->removeRowAt(srcIdx))
+        return false;
+
+    JsonDiffEngine::removePeer(*srcSnapRoot, srcPath, *otherSnapRoot, mLastMode);
+
+    JsonDiffEngine::apply(*srcSnapRoot,   srcModel,   otherModel);
+    JsonDiffEngine::apply(*otherSnapRoot, otherModel, srcModel);
+
+    updateLeftPushAction();
+    updateRightPushAction();
+    updateLeftDeleteAction();
+    updateRightDeleteAction();
+    return true;
+}
+
+void QJsonDiff::pushLeftSelectionToRight()
+{
+    if (!mLeftSnap || !mRightSnap) return;
+    QTreeView *lv = left_cont->getTreeView();
+    QJsonModel *lm = left_cont->getJsonModel();
+    QJsonModel *rm = right_cont->getJsonModel();
+    if (!lv || !lm || !rm) return;
+    QModelIndex selIdx = lv->currentIndex();
+    if (!selIdx.isValid()) return;
+    QJsonTreeItem *item = lm->itemFromIndex(selIdx);
+    if (!item) return;
+
+    if (item->colorType() == DiffColorType::NotPresent)
+    {
+        pushInsertFromTo(lm, selIdx, rm,
+                         mLeftSnap.data(), mRightSnap.data());
+        return;
+    }
+    QModelIndex peerIdx = item->idxRelation();
+    if (!peerIdx.isValid()) return;
+    pushFromTo(lm, selIdx, rm, peerIdx,
+               mLeftSnap.data(), mRightSnap.data());
+}
+
+void QJsonDiff::pushRightSelectionToLeft()
+{
+    if (!mLeftSnap || !mRightSnap) return;
+    QTreeView *rv = right_cont->getTreeView();
+    QJsonModel *lm = left_cont->getJsonModel();
+    QJsonModel *rm = right_cont->getJsonModel();
+    if (!rv || !lm || !rm) return;
+    QModelIndex selIdx = rv->currentIndex();
+    if (!selIdx.isValid()) return;
+    QJsonTreeItem *item = rm->itemFromIndex(selIdx);
+    if (!item) return;
+
+    if (item->colorType() == DiffColorType::NotPresent)
+    {
+        pushInsertFromTo(rm, selIdx, lm,
+                         mRightSnap.data(), mLeftSnap.data());
+        return;
+    }
+    QModelIndex peerIdx = item->idxRelation();
+    if (!peerIdx.isValid()) return;
+    pushFromTo(rm, selIdx, lm, peerIdx,
+               mRightSnap.data(), mLeftSnap.data());
+}
+
+void QJsonDiff::deleteLeftSelection()
+{
+    if (!mLeftSnap || !mRightSnap) return;
+    QTreeView *lv = left_cont->getTreeView();
+    QJsonModel *lm = left_cont->getJsonModel();
+    QJsonModel *rm = right_cont->getJsonModel();
+    if (!lv || !lm || !rm) return;
+    deleteOn(lm, lv->currentIndex(), rm,
+             mLeftSnap.data(), mRightSnap.data());
+}
+
+void QJsonDiff::deleteRightSelection()
+{
+    if (!mLeftSnap || !mRightSnap) return;
+    QTreeView *rv = right_cont->getTreeView();
+    QJsonModel *lm = left_cont->getJsonModel();
+    QJsonModel *rm = right_cont->getJsonModel();
+    if (!rv || !lm || !rm) return;
+    deleteOn(rm, rv->currentIndex(), lm,
+             mRightSnap.data(), mLeftSnap.data());
+}
+
+void QJsonDiff::onLeftModelDataChanged(const QModelIndex &topLeft,
+                                       const QModelIndex &bottomRight,
+                                       const QList<int> &roles)
+{
+    Q_UNUSED(bottomRight);
+    Q_UNUSED(roles);
+    recomputeAfterUserEdit(topLeft, /*onLeft=*/true);
+}
+
+void QJsonDiff::onRightModelDataChanged(const QModelIndex &topLeft,
+                                        const QModelIndex &bottomRight,
+                                        const QList<int> &roles)
+{
+    Q_UNUSED(bottomRight);
+    Q_UNUSED(roles);
+    recomputeAfterUserEdit(topLeft, /*onLeft=*/false);
+}
+
+void QJsonDiff::onLeftRowsInserted(const QModelIndex &parent, int first, int last)
+{
+    recomputeAfterRowsInserted(parent, first, last, /*onLeft=*/true);
+}
+
+void QJsonDiff::onRightRowsInserted(const QModelIndex &parent, int first, int last)
+{
+    recomputeAfterRowsInserted(parent, first, last, /*onLeft=*/false);
+}
+
+void QJsonDiff::recomputeAfterRowsInserted(const QModelIndex &parent,
+                                           int first, int last, bool onLeft)
+{
+    if (mSuppressInsertHook) return;          // engine-driven insert
+    if (!mLeftSnap || !mRightSnap) return;   // pre-Compare → nothing to do
+    if (first < 0 || last < first) return;
+
+    DiffNode *mySnap   = onLeft ? mLeftSnap.data()  : mRightSnap.data();
+    DiffNode *peerSnap = onLeft ? mRightSnap.data() : mLeftSnap.data();
+    QJsonModel *myModel   = onLeft ? left_cont->getJsonModel()
+                                   : right_cont->getJsonModel();
+    QJsonModel *peerModel = onLeft ? right_cont->getJsonModel()
+                                   : left_cont->getJsonModel();
+
+    // Path to the drop parent (empty list = root).
+    QList<int> parentPath;
+    if (parent.isValid())
+        parentPath = indexPath(parent.siblingAtColumn(0));
+
+    // Navigate the snapshot to the same node.
+    DiffNode *parentSnap = mySnap;
+    for (int step : parentPath)
+    {
+        if (step < 0 || step >= parentSnap->children.size()) return;
+        parentSnap = &parentSnap->children[step];
+    }
+
+    // Build and splice in a fresh DiffNode for each newly-inserted row,
+    // marking the whole subtree NotPresent (it has no peer on the other
+    // side). Walking [first..last] in order keeps row indices stable as
+    // we insert into parentSnap->children.
+    std::function<void(DiffNode&)> markAllNotPresent = [&](DiffNode &n)
+    {
+        n.color = DiffColorType::NotPresent;
+        n.relationPath.clear();
+        for (DiffNode &c : n.children) markAllNotPresent(c);
+    };
+
+    for (int row = first; row <= last; ++row)
+    {
+        QModelIndex childIdx = myModel->index(row, 0, parent);
+        if (!childIdx.isValid()) return;
+        DiffNode newNode = JsonDiffEngine::snapshotIndex(myModel, childIdx);
+        markAllNotPresent(newNode);
+        // Clamp the insert position — defensive against any future
+        // model that emits rowsInserted with a row past childCount.
+        const int insertAt = qMin(row, int(parentSnap->children.size()));
+        parentSnap->children.insert(insertAt, newNode);
+    }
+
+    // Refresh the drop parent's pair colour if it was matched.
+    // Child counts diverged → pair likely flips to Huge, and ancestors
+    // up to either root get their Moderate state recomputed.
+    // Root case (parentPath empty) skips this: the root has no peer
+    // pairing in the same sense, and there are no ancestors to fix.
+    if (!parentPath.isEmpty() && !parentSnap->relationPath.isEmpty())
+    {
+        const QList<int> peerPath = parentSnap->relationPath;
+        if (onLeft)
+            JsonDiffEngine::recomparePair(*mySnap, parentPath,
+                                          *peerSnap, peerPath,
+                                          mLastMode);
+        else
+            JsonDiffEngine::recomparePair(*peerSnap, peerPath,
+                                          *mySnap, parentPath,
+                                          mLastMode);
+    }
+
+    JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
+    JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+}
+
+void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
+{
+    if (!mLeftSnap || !mRightSnap) return;   // pre-Compare → nothing to do
+    if (!idx.isValid()) return;
+
+    DiffNode *mySnap   = onLeft ? mLeftSnap.data()  : mRightSnap.data();
+    DiffNode *peerSnap = onLeft ? mRightSnap.data() : mLeftSnap.data();
+    QJsonModel *myModel   = onLeft ? left_cont->getJsonModel()
+                                   : right_cont->getJsonModel();
+    QJsonModel *peerModel = onLeft ? right_cont->getJsonModel()
+                                   : left_cont->getJsonModel();
+
+    // Path uses column-0 sibling so it matches snapshot navigation.
+    const QModelIndex rowIdx = idx.siblingAtColumn(0);
+    const QList<int> myPath = indexPath(rowIdx);
+    if (myPath.isEmpty()) return;            // root has no diff state
+
+    // Navigate to the snapshot node.
+    DiffNode *myNode = mySnap;
+    for (int step : myPath)
+    {
+        if (step < 0 || step >= myNode->children.size()) return;
+        myNode = &myNode->children[step];
+    }
+    QJsonTreeItem *item = myModel->itemFromIndex(rowIdx);
+    if (!item) return;
+
+    const QString modelKey   = item->key();
+    const QJsonValue::Type modelType = item->type();
+    const QString modelValue = item->value();
+
+    const bool keyChanged   = (myNode->key   != modelKey);
+    const bool typeChanged  = (myNode->type  != modelType);
+    const bool valueChanged = (myNode->value != modelValue);
+    if (!keyChanged && !typeChanged && !valueChanged) return;  // engine path already in sync
+
+    // Sync snapshot scalar fields to model. Children get re-walked
+    // below if the type changed — Object↔Array conversion paths
+    // restructure the model's children list and the snapshot has to
+    // catch up so future incremental edits keep working.
+    myNode->key   = modelKey;
+    myNode->type  = modelType;
+    myNode->value = modelValue;
+
+    if (keyChanged)
+    {
+        // The renamed slot is no longer "the same item" as before, so
+        // detach from the peer (both sides go NotPresent). User can
+        // still edit data freely; a fresh Compare re-pairs.
+        JsonDiffEngine::detachPair(*mySnap, myPath, *peerSnap, mLastMode);
+    }
+    else
+    {
+        if (typeChanged)
+        {
+            // Children may have been added/removed by the model's
+            // type-conversion code. Re-walk so the snapshot subtree
+            // matches the model; any peer cross-link pointing INTO
+            // the old subtree gets orphaned.
+            JsonDiffEngine::resnapshotSubtree(*mySnap, myPath, myModel,
+                                              *peerSnap);
+        }
+        // Type or value drift: same identity, different content →
+        // recomparePair lights up Huge on the pair and refreshes
+        // ancestor Moderate state on both sides.
+        if (!myNode->relationPath.isEmpty())
+        {
+            const QList<int> peerPath = myNode->relationPath;
+            if (onLeft)
+                JsonDiffEngine::recomparePair(*mySnap, myPath,
+                                              *peerSnap, peerPath,
+                                              mLastMode);
+            else
+                JsonDiffEngine::recomparePair(*peerSnap, peerPath,
+                                              *mySnap, myPath,
+                                              mLastMode);
+        }
+    }
+
+    JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
+    JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+}
+
 

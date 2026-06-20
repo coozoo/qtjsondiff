@@ -28,7 +28,11 @@ Some features:
 
     - **Dual View Modes**: Switch between a formatted JSON text view and an interactive tree view.
     - **Data Loading**: Load JSON from a file, a URL, or by pasting directly into the tree view (Ctrl+V).
-    - **Inline Editing**: Edit keys and values directly within the tree view.
+    - **Inline Editing** (opt-in): Edit keys, types and values directly within the tree view.
+      Toggle from **Preferences → JSON Editing**.
+      * **Single-tree tab**: right-click → *Add child* / *Delete row*.
+      * **Diff tab**: each side gets a toolbar arrow that resolves the selected difference — for paired rows it overwrites the other side's value with this side's; for rows that exist only here, it inserts a copy on the other side. A *Delete here* button removes the selected row (the peer on the other side becomes *NotPresent* until you delete or push it too). Colours update live as you edit — no need to press *Compare* again. Renaming a key detaches the pair (both sides become *NotPresent*); changing a value or type marks the pair *Huge*.
+    - **Threaded Compare with Progress + Cancel**: the *Compare* button runs on a worker thread; a modal progress dialog shows progress per node and a *Cancel* button aborts the run safely. The trees stay blocked from input until the compare finishes so the snapshot stays consistent.
     - **Search**: Full search functionality (forward, backward, case-sensitive) for both text and tree views.
     - **JSON Comparison**: Compare two JSON documents with highlighting for differences, synchronized scrolling, and synchronized item selection in tree view.
     - **Array Sorting**: Sort objects within arrays to simplify comparison when order is not important.
@@ -45,6 +49,12 @@ Some features:
     - **Tree Expansion**:
       * **Expand/Collapse Selected**: Expands or collapses the currently selected items.
       * **Expand/Collapse Recursively**: Expands or collapses the selected items and all their children.
+    - **Configurable** (Preferences, persisted via `QSettings`):
+      * Colours for *Identical*, *Moderate*, *Huge*, *NotPresent* + a global alpha; syntax highlighter colours; one-click restore-to-defaults.
+      * Tab position (north/south/west/east), JSON-view button position.
+      * Keyboard shortcuts for every clipboard action (editable in-table, restorable).
+      * **JSON Editing** toggles for the single-tree tab and the diff view.
+      * Optional restore-last-loaded-paths on startup.
 
 
 JSON Tree View
@@ -174,18 +184,24 @@ You need to create some UI elements where you can put those objects.
 
 Create objects and define their properties:
 ```cpp
-    
+
     // create json treeview and set tab as parent
     messageJsonCont=new QJsonContainer(ui->jsonview_tab);
     // you can hide address line and browse button
     //messageJsonCont->setBrowseVisible(false);
-    // you can let users edit keys, values and types inline
+    // you can let users edit keys, values and types inline (and
+    // unlock the Add child / Delete row context-menu items)
     //messageJsonCont->setEditable(true);
     // you can set json text
     messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
-    
+
     // create json diff like tree view set some tab as parrent
     differ=new QJsonDiff(ui->compare_tab);
+    // opt-in to inline diff editing: both trees become editable,
+    // per-side toolbar arrows resolve Huge differences and push
+    // NotPresent rows to the other side, and Delete here removes
+    // the selected row. Colours refresh live as the user edits.
+    //differ->setDiffEditable(true);
     // set some text to left diff view
     QJsonDocument data22=QJsonDocument::fromJson("{\"empty\":\"empty\"}");
     differ->loadJsonLeft(data22);
@@ -194,7 +210,27 @@ Create objects and define their properties:
     differ->loadJsonRight(data11);
 ```
 
-That's all pretty simple.
+That's all pretty simple. Both edit-mode switches are off by default
+so the original read-only widget contract is preserved.
+
+If you'd like to bind your own shortcuts to the edit actions instead
+of going through the toolbar / context menu, every action is exposed
+as a public slot:
+
+```cpp
+// Diff widget
+differ->pushLeftSelectionToRight();
+differ->pushRightSelectionToLeft();
+differ->deleteLeftSelection();
+differ->deleteRightSelection();
+
+// Single tree
+messageJsonCont->addChildOf(parentIndex);   // returns the new row
+messageJsonCont->removeAt(targetIndex);
+```
+
+All of them no-op when their side's edit mode is off, so you can
+wire them up unconditionally.
 
 If you want to run a comparison without the widget (for example in a CLI tool or a background job), you can use `JsonDiffEngine` directly:
 

@@ -64,6 +64,9 @@ void Preferences::load()
     syntaxKeywordColor = s.value("syntax_keyword_color", DEF_SYNTAX_KW_COLOR).value<QColor>();
     syntaxValueColor = s.value("syntax_value_color", DEF_SYNTAX_VAL_COLOR).value<QColor>();
 
+    editableSingleTree = s.value("Edit/single_tree_editable", false).toBool();
+    editableDiffView   = s.value("Edit/diff_view_editable",   false).toBool();
+
     bool needToSaveDefaults = !s.contains("Shortcuts/copy_row");
 
     for (const auto &info : shortcutInfos) {
@@ -102,7 +105,10 @@ void Preferences::save()
 
     s.setValue("syntax_keyword_color", syntaxKeywordColor);
     s.setValue("syntax_value_color", syntaxValueColor);
-    
+
+    s.setValue("Edit/single_tree_editable", editableSingleTree);
+    s.setValue("Edit/diff_view_editable",   editableDiffView);
+
     for (auto it = shortcuts.constBegin(); it != shortcuts.constEnd(); ++it) {
         s.setValue("Shortcuts/" + it.key(), it.value());
         qDebug() << "Saving shortcut for" << it.key() << ":" << it.value().toString();

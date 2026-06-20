@@ -60,6 +60,14 @@
        </item>
        <item>
         <property name="text">
+         <string>JSON Editing</string>
+        </property>
+        <property name="icon">
+         <iconset theme="document-edit"/>
+        </property>
+       </item>
+       <item>
+        <property name="text">
          <string>Keyboard Shortcuts</string>
         </property>
         <property name="icon">
@@ -401,6 +409,52 @@
                </widget>
               </item>
              </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="editPage">
+        <layout class="QGridLayout" name="gridLayout_edit">
+         <item row="0" column="0">
+          <widget class="QGroupBox" name="editGroupBox">
+           <property name="title">
+            <string>JSON Editing</string>
+           </property>
+           <layout class="QVBoxLayout" name="editVBox">
+            <item>
+             <widget class="QCheckBox" name="singleTreeEditCheckBox">
+              <property name="text">
+               <string>Enable inline editing in single-tree view</string>
+              </property>
+              <property name="toolTip">
+               <string>When on, keys, types and values can be edited inline on the single-tree tab. Add/Delete row actions also appear in the context menu.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="diffViewEditCheckBox">
+              <property name="text">
+               <string>Enable inline editing in diff view</string>
+              </property>
+              <property name="toolTip">
+               <string>When on, both diff trees become editable. Push arrows resolve Huge differences and copy NotPresent rows to the other side; Delete here removes the selected row.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="editVSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
             </item>
            </layout>
           </widget>

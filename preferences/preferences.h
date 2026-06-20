@@ -61,11 +61,19 @@ public:
     QColor syntaxKeywordColor;
     QColor syntaxValueColor;
 
+    // Inline-editing toggles. Off by default — integrators that want the
+    // original read-only widget contract see no behaviour change. The
+    // demo app's MainWindow reads these on startup and re-reads them
+    // whenever editModeChanged fires (live update from the dialog).
+    bool editableSingleTree;
+    bool editableDiffView;
+
     QMap<QString, QKeySequence> shortcuts;
     static const QList<ShortcutInfo> shortcutInfos;
 
 signals:
     void shortcutsUpdated();
+    void editModeChanged();
 
 private:
     explicit Preferences(QObject *parent = nullptr);
