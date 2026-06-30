@@ -62,7 +62,7 @@ public:
     QColor syntaxValueColor;
 
     // Inline-editing toggles. Off by default — integrators that want the
-    // original read-only widget contract see no behaviour change. The
+    // original read-only widget contract see no behavior change. The
     // demo app's MainWindow reads these on startup and re-reads them
     // whenever editModeChanged fires (live update from the dialog).
     bool editableSingleTree;

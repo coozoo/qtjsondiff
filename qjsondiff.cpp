@@ -3,6 +3,7 @@
  *              side by side comparison of two models
  */
 #include "qjsondiff.h"
+#include <functional>
 #include <QGroupBox>
 #include <QTime>
 #include <QThread>
@@ -132,11 +133,42 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     // Structural inserts (item DnD between sides, context-menu Add
     // child) — keep the snapshot in sync so the next diff interaction
     // sees the new node. The slot marks the inserted subtree gray
-    // (NotPresent) and bumps the drop parent's pair colour if needed.
+    // (NotPresent) and bumps the drop parent's pair color if needed.
     connect(left_cont->getJsonModel(),  &QJsonModel::rowsInserted,
             this, &QJsonDiff::onLeftRowsInserted);
     connect(right_cont->getJsonModel(), &QJsonModel::rowsInserted,
             this, &QJsonDiff::onRightRowsInserted);
+
+    // Structural removes (context-menu Delete, toolbar arrow, any
+    // future path). Clears cross-side idxRelations BEFORE the items
+    // are destroyed, then updates the snapshot in rowsRemoved.
+    connect(left_cont->getJsonModel(),  &QAbstractItemModel::rowsAboutToBeRemoved,
+            this, &QJsonDiff::onLeftRowsAboutToBeRemoved);
+    connect(right_cont->getJsonModel(), &QAbstractItemModel::rowsAboutToBeRemoved,
+            this, &QJsonDiff::onRightRowsAboutToBeRemoved);
+    connect(left_cont->getJsonModel(),  &QAbstractItemModel::rowsRemoved,
+            this, &QJsonDiff::onLeftRowsRemoved);
+    connect(right_cont->getJsonModel(), &QAbstractItemModel::rowsRemoved,
+            this, &QJsonDiff::onRightRowsRemoved);
+
+    // When either side gets a fresh document (loadJson / paste / browse /
+    // URL all go through beginResetModel/endResetModel), the cached diff
+    // snapshots no longer correspond to model state. Drop them both so
+    // subsequent edits don't paint stale colors / idxRelations through
+    // apply(), and the next Compare rebuilds from scratch.
+    auto onSideReset = [this]()
+    {
+        mLeftSnap.reset();
+        mRightSnap.reset();
+        updateLeftPushAction();
+        updateRightPushAction();
+        updateLeftDeleteAction();
+        updateRightDeleteAction();
+    };
+    connect(left_cont->getJsonModel(),  &QAbstractItemModel::modelReset,
+            this, onSideReset);
+    connect(right_cont->getJsonModel(), &QAbstractItemModel::modelReset,
+            this, onSideReset);
 }
 
 QJsonDiff::~QJsonDiff()
@@ -184,8 +216,9 @@ void QJsonDiff::on_lefttreeview_scroll_valuechanged(int val)
         }
     prevLeftScroll=left_cont->getTreeView()->verticalScrollBar()->value();
     prevRightScroll=right_cont->getTreeView()->verticalScrollBar()->value();
-    //right_cont->getTreeView()->repaint();
-    right_cont->getTreeView()->viewport()->repaint();
+    // update() queues a paint event. repaint() runs synchronously and
+    // crashes if called while another paint is in progress on this view.
+    right_cont->getTreeView()->viewport()->update();
     right_cont->getTreeView()->verticalScrollBar()->blockSignals(false);
 
 }
@@ -207,8 +240,7 @@ void QJsonDiff::on_righttreeview_scroll_valuechanged(int val)
         }
     prevLeftScroll=left_cont->getTreeView()->verticalScrollBar()->value();
     prevRightScroll=right_cont->getTreeView()->verticalScrollBar()->value();
-    //left_cont->getTreeView()->repaint();
-    left_cont->getTreeView()->viewport()->repaint();
+    left_cont->getTreeView()->viewport()->update();
     left_cont->getTreeView()->verticalScrollBar()->blockSignals(false);
 }
 
@@ -277,9 +309,25 @@ void QJsonDiff::setupCompareWorker()
     connect(mEngine, &JsonDiffEngine::progressed,
             this,    &QJsonDiff::onCompareProgressed, Qt::QueuedConnection);
     connect(mEngine, &JsonDiffEngine::phaseChanged,
-            this, [this](const QString &phase)
+            this, [this](JsonDiffEngine::Phase phase)
     {
-        mCurrentPhase = phase;
+        // tr() wraps each branch so lupdate picks them up — engine
+        // stays UI-/translation-agnostic.
+        switch (phase)
+        {
+        case JsonDiffEngine::Phase::BuildingPaths:
+            mCurrentPhase = tr("Building paths"); break;
+        case JsonDiffEngine::Phase::MatchingPaths:
+            mCurrentPhase = tr("Matching paths"); break;
+        case JsonDiffEngine::Phase::ComparingValues:
+            mCurrentPhase = tr("Comparing values"); break;
+        case JsonDiffEngine::Phase::IndexingRightTree:
+            mCurrentPhase = tr("Indexing right tree"); break;
+        case JsonDiffEngine::Phase::PairingItems:
+            mCurrentPhase = tr("Pairing items"); break;
+        case JsonDiffEngine::Phase::ResolvingColors:
+            mCurrentPhase = tr("Resolving colors"); break;
+        }
         if (mProgressDialog)
             mProgressDialog->setLabelText(formatProgressLabel());
     }, Qt::QueuedConnection);
@@ -333,7 +381,13 @@ void QJsonDiff::teardownCompareWorker()
 
 void QJsonDiff::on_compare_pushbutton_clicked()
 {
-    qDebug()<<"compare button clicked";
+
+    // Re-entrancy gate: rapid re-click (or ALT+C re-fire) during the
+    // setValue(0) event-pump below would otherwise queue a second
+    // compareAsync and leave the progress dialog desynchronised from
+    // the worker.
+    mComparing = true;
+    compare_pushbutton->setEnabled(false);
 
     left_cont->reInitModel();
     right_cont->reInitModel();
@@ -353,30 +407,32 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     mLastMode = mode;
 
     // Modal progress dialog blocks user input until compare completes
-    // or is cancelled. Lives until either finished/cancelled fires.
+    // or is cancelled. We deliberately CREATE A FRESH DIALOG each compare
+    // — reusing one via reset() + setValue(0) hits QProgressDialog's
+    // internal state machine (shown_once flag, forceTimer interaction)
+    // and can leave the widget painted-but-not-modal when the worker
+    // emits finished() before the show event finishes processing. Fresh
+    // allocation avoids that entire failure mode at zero meaningful cost.
     mCompareCancelledByUser = false;
-    if (!mProgressDialog)
+    if (mProgressDialog)
     {
-        mProgressDialog = new QProgressDialog(this);
-        mProgressDialog->setWindowTitle(tr("Comparing JSON"));
-        mProgressDialog->setLabelText(tr("Running comparison..."));
-        mProgressDialog->setCancelButtonText(tr("Cancel"));
-        mProgressDialog->setWindowModality(Qt::ApplicationModal);
-        mProgressDialog->setAutoClose(false);
-        mProgressDialog->setAutoReset(false);
-        mProgressDialog->setMinimumDuration(0);
-        connect(mProgressDialog, &QProgressDialog::canceled, this, [this]()
-        {
-            mCompareCancelledByUser = true;
-            if (mEngine) mEngine->requestCancel();
-        });
+        mProgressDialog->hide();
+        mProgressDialog->deleteLater();
+        mProgressDialog = nullptr;
     }
-    // reset() clears the sticky wasCanceled flag from a prior cancelled
-    // compare — otherwise the setValue(0) below would immediately re-emit
-    // canceled() and abort this run before the engine even starts (D-105).
-    mProgressDialog->reset();
+    mProgressDialog = new QProgressDialog(this);
+    mProgressDialog->setWindowTitle(tr("Comparing JSON"));
+    mProgressDialog->setCancelButtonText(tr("Cancel"));
+    mProgressDialog->setWindowModality(Qt::ApplicationModal);
+    mProgressDialog->setAutoClose(false);
+    mProgressDialog->setAutoReset(false);
+    mProgressDialog->setMinimumDuration(0);
     mProgressDialog->setRange(0, mode == JsonDiffEngine::Mode::FullPath ? 6 : 3);
-    mProgressDialog->setValue(0);
+    connect(mProgressDialog, &QProgressDialog::canceled, this, [this]()
+    {
+        mCompareCancelledByUser = true;
+        if (mEngine) mEngine->requestCancel();
+    });
     mCurrentPhase = tr("Starting");
     mCompareElapsed.start();
     mProgressDialog->setLabelText(formatProgressLabel());
@@ -393,10 +449,20 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
                                   QSharedPointer<DiffNode> right)
 {
     if (mProgressDialog)
+    {
         mProgressDialog->hide();
+        mProgressDialog->deleteLater();
+        mProgressDialog = nullptr;
+    }
+
+    // Release the re-entrancy gate and the visual lock on the Compare
+    // button. Done before any of the early-returns below so the user
+    // can re-Compare even when the result was discarded.
+    mComparing = false;
+    compare_pushbutton->setEnabled(true);
 
     // If the user clicked Cancel just as the engine emitted finished()
-    // (race window), honour the user's intent and discard the result.
+    // (race window), honor the user's intent and discard the result.
     if (mCompareCancelledByUser)
         return;
 
@@ -423,7 +489,13 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
 void QJsonDiff::onCompareCancelled()
 {
     if (mProgressDialog)
+    {
         mProgressDialog->hide();
+        mProgressDialog->deleteLater();
+        mProgressDialog = nullptr;
+    }
+    mComparing = false;
+    compare_pushbutton->setEnabled(true);
     // Discard partial — no apply (Phase 2 design Q3).
 }
 
@@ -440,12 +512,15 @@ QString QJsonDiff::formatProgressLabel() const
 
 void QJsonDiff::onCompareProgressed(int done, int total)
 {
+    // setValue() pumps the event loop on a modal dialog. Inside that
+    // pump the queued finished() can drain — onCompareFinished then
+    // deleteLater()s our dialog and the QPointer auto-nulls. Re-check
+    // after every dialog call so we don't touch a destroyed widget.
     if (!mProgressDialog) return;
     mProgressDialog->setRange(0, total);
+    if (!mProgressDialog) return;
     mProgressDialog->setValue(done);
-    // Refresh the label so the elapsed-seconds counter ticks visibly.
-    // The phase string is whatever the last phaseChanged set; the time
-    // is read fresh from mCompareElapsed every tick.
+    if (!mProgressDialog) return;
     mProgressDialog->setLabelText(formatProgressLabel());
 }
 
@@ -807,7 +882,7 @@ bool QJsonDiff::pushFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx,
                                   *dstSnapRoot, dstPath,
                                   mLastMode);
 
-    // 4. Push colours back onto both models so view repaints with the
+    // 4. Push colors back onto both models so view repaints with the
     // updated highlighting.
     JsonDiffEngine::apply(*srcSnapRoot, srcModel, dstModel);
     JsonDiffEngine::apply(*dstSnapRoot, dstModel, srcModel);
@@ -899,13 +974,11 @@ bool QJsonDiff::deleteOn(QJsonModel *srcModel, const QModelIndex &srcIdx,
     const QList<int> srcPath = indexPath(srcIdx);
     if (srcPath.isEmpty()) return false;            // root rejected
 
+    // Peer-side cleanup (clear stale idxRelations + color, snapshot
+    // removePeer + apply for ancestor color refresh) is driven by the
+    // rowsAboutToBeRemoved hook which fires from inside removeRowAt.
     if (!srcModel->removeRowAt(srcIdx))
         return false;
-
-    JsonDiffEngine::removePeer(*srcSnapRoot, srcPath, *otherSnapRoot, mLastMode);
-
-    JsonDiffEngine::apply(*srcSnapRoot,   srcModel,   otherModel);
-    JsonDiffEngine::apply(*otherSnapRoot, otherModel, srcModel);
 
     updateLeftPushAction();
     updateRightPushAction();
@@ -914,74 +987,72 @@ bool QJsonDiff::deleteOn(QJsonModel *srcModel, const QModelIndex &srcIdx,
     return true;
 }
 
-void QJsonDiff::pushLeftSelectionToRight()
+bool QJsonDiff::pushLeftSelectionToRight()
 {
-    if (!mLeftSnap || !mRightSnap) return;
+    if (!mLeftSnap || !mRightSnap) return false;
     QTreeView *lv = left_cont->getTreeView();
     QJsonModel *lm = left_cont->getJsonModel();
     QJsonModel *rm = right_cont->getJsonModel();
-    if (!lv || !lm || !rm) return;
+    if (!lv || !lm || !rm) return false;
     QModelIndex selIdx = lv->currentIndex();
-    if (!selIdx.isValid()) return;
+    if (!selIdx.isValid()) return false;
     QJsonTreeItem *item = lm->itemFromIndex(selIdx);
-    if (!item) return;
+    if (!item) return false;
 
     if (item->colorType() == DiffColorType::NotPresent)
     {
-        pushInsertFromTo(lm, selIdx, rm,
-                         mLeftSnap.data(), mRightSnap.data());
-        return;
+        return pushInsertFromTo(lm, selIdx, rm,
+                                mLeftSnap.data(), mRightSnap.data());
     }
     QModelIndex peerIdx = item->idxRelation();
-    if (!peerIdx.isValid()) return;
-    pushFromTo(lm, selIdx, rm, peerIdx,
-               mLeftSnap.data(), mRightSnap.data());
+    if (!peerIdx.isValid()) return false;
+    return pushFromTo(lm, selIdx, rm, peerIdx,
+                      mLeftSnap.data(), mRightSnap.data());
 }
 
-void QJsonDiff::pushRightSelectionToLeft()
+bool QJsonDiff::pushRightSelectionToLeft()
 {
-    if (!mLeftSnap || !mRightSnap) return;
+    if (!mLeftSnap || !mRightSnap) return false;
     QTreeView *rv = right_cont->getTreeView();
     QJsonModel *lm = left_cont->getJsonModel();
     QJsonModel *rm = right_cont->getJsonModel();
-    if (!rv || !lm || !rm) return;
+    if (!rv || !lm || !rm) return false;
     QModelIndex selIdx = rv->currentIndex();
-    if (!selIdx.isValid()) return;
+    if (!selIdx.isValid()) return false;
     QJsonTreeItem *item = rm->itemFromIndex(selIdx);
-    if (!item) return;
+    if (!item) return false;
 
     if (item->colorType() == DiffColorType::NotPresent)
     {
-        pushInsertFromTo(rm, selIdx, lm,
-                         mRightSnap.data(), mLeftSnap.data());
-        return;
+        return pushInsertFromTo(rm, selIdx, lm,
+                                mRightSnap.data(), mLeftSnap.data());
     }
     QModelIndex peerIdx = item->idxRelation();
-    if (!peerIdx.isValid()) return;
-    pushFromTo(rm, selIdx, lm, peerIdx,
-               mRightSnap.data(), mLeftSnap.data());
+    if (!peerIdx.isValid()) return false;
+    return pushFromTo(rm, selIdx, lm, peerIdx,
+                      mRightSnap.data(), mLeftSnap.data());
 }
 
-void QJsonDiff::deleteLeftSelection()
+bool QJsonDiff::deleteLeftSelection()
 {
-    if (!mLeftSnap || !mRightSnap) return;
+    if (!mLeftSnap || !mRightSnap) return false;
     QTreeView *lv = left_cont->getTreeView();
     QJsonModel *lm = left_cont->getJsonModel();
     QJsonModel *rm = right_cont->getJsonModel();
-    if (!lv || !lm || !rm) return;
-    deleteOn(lm, lv->currentIndex(), rm,
-             mLeftSnap.data(), mRightSnap.data());
+    if (!lv || !lm || !rm) return false;
+    return deleteOn(lm, lv->currentIndex(), rm,
+                    mLeftSnap.data(), mRightSnap.data());
 }
 
-void QJsonDiff::deleteRightSelection()
+bool QJsonDiff::deleteRightSelection()
 {
-    if (!mLeftSnap || !mRightSnap) return;
+    if (!mLeftSnap || !mRightSnap) return false;
     QTreeView *rv = right_cont->getTreeView();
     QJsonModel *lm = left_cont->getJsonModel();
     QJsonModel *rm = right_cont->getJsonModel();
-    if (!rv || !lm || !rm) return;
-    deleteOn(rm, rv->currentIndex(), lm,
-             mRightSnap.data(), mLeftSnap.data());
+    if (!rv || !lm || !rm) return false;
+    return deleteOn(rm, rv->currentIndex(), lm,
+                    mRightSnap.data(), mLeftSnap.data());
 }
 
 void QJsonDiff::onLeftModelDataChanged(const QModelIndex &topLeft,
@@ -1010,6 +1081,79 @@ void QJsonDiff::onLeftRowsInserted(const QModelIndex &parent, int first, int las
 void QJsonDiff::onRightRowsInserted(const QModelIndex &parent, int first, int last)
 {
     recomputeAfterRowsInserted(parent, first, last, /*onLeft=*/false);
+}
+
+static void clearPeerLinksRecursively(QJsonTreeItem *it, QJsonModel *peerModel)
+{
+    if (!it || !peerModel) return;
+    QModelIndex peer = it->idxRelation();
+    if (peer.isValid())
+    {
+        if (QJsonTreeItem *peerItem = peerModel->itemFromIndex(peer))
+        {
+            peerItem->setIdxRelation(QModelIndex());
+            peerItem->setColorType(DiffColorType::NotPresent);
+        }
+    }
+    for (int i = 0; i < it->childCount(); ++i)
+        clearPeerLinksRecursively(it->child(i), peerModel);
+}
+
+void QJsonDiff::onLeftRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+    QJsonModel *srcModel  = left_cont->getJsonModel();
+    QJsonModel *peerModel = right_cont->getJsonModel();
+    for (int row = first; row <= last; ++row)
+    {
+        QModelIndex idx = srcModel->index(row, 0, parent);
+        clearPeerLinksRecursively(srcModel->itemFromIndex(idx), peerModel);
+        if (mLeftSnap && mRightSnap)
+            mPendingRemovedPathsLeft.append(indexPath(idx));
+    }
+}
+
+void QJsonDiff::onRightRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+    QJsonModel *srcModel  = right_cont->getJsonModel();
+    QJsonModel *peerModel = left_cont->getJsonModel();
+    for (int row = first; row <= last; ++row)
+    {
+        QModelIndex idx = srcModel->index(row, 0, parent);
+        clearPeerLinksRecursively(srcModel->itemFromIndex(idx), peerModel);
+        if (mLeftSnap && mRightSnap)
+            mPendingRemovedPathsRight.append(indexPath(idx));
+    }
+}
+
+void QJsonDiff::onLeftRowsRemoved(const QModelIndex &, int, int)
+{
+    if (!mLeftSnap || !mRightSnap) { mPendingRemovedPathsLeft.clear(); return; }
+    // Process descending to avoid index-shift issues within the same parent.
+    std::sort(mPendingRemovedPathsLeft.begin(), mPendingRemovedPathsLeft.end(),
+              std::greater<QList<int>>());
+    for (const QList<int> &p : mPendingRemovedPathsLeft)
+        if (!p.isEmpty())
+            JsonDiffEngine::removePeer(*mLeftSnap, p, *mRightSnap, mLastMode);
+    mPendingRemovedPathsLeft.clear();
+    JsonDiffEngine::apply(*mLeftSnap,  left_cont->getJsonModel(),  right_cont->getJsonModel());
+    JsonDiffEngine::apply(*mRightSnap, right_cont->getJsonModel(), left_cont->getJsonModel());
+    updateLeftPushAction();  updateRightPushAction();
+    updateLeftDeleteAction(); updateRightDeleteAction();
+}
+
+void QJsonDiff::onRightRowsRemoved(const QModelIndex &, int, int)
+{
+    if (!mLeftSnap || !mRightSnap) { mPendingRemovedPathsRight.clear(); return; }
+    std::sort(mPendingRemovedPathsRight.begin(), mPendingRemovedPathsRight.end(),
+              std::greater<QList<int>>());
+    for (const QList<int> &p : mPendingRemovedPathsRight)
+        if (!p.isEmpty())
+            JsonDiffEngine::removePeer(*mRightSnap, p, *mLeftSnap, mLastMode);
+    mPendingRemovedPathsRight.clear();
+    JsonDiffEngine::apply(*mLeftSnap,  left_cont->getJsonModel(),  right_cont->getJsonModel());
+    JsonDiffEngine::apply(*mRightSnap, right_cont->getJsonModel(), left_cont->getJsonModel());
+    updateLeftPushAction();  updateRightPushAction();
+    updateLeftDeleteAction(); updateRightDeleteAction();
 }
 
 void QJsonDiff::recomputeAfterRowsInserted(const QModelIndex &parent,
@@ -1062,7 +1206,7 @@ void QJsonDiff::recomputeAfterRowsInserted(const QModelIndex &parent,
         parentSnap->children.insert(insertAt, newNode);
     }
 
-    // Refresh the drop parent's pair colour if it was matched.
+    // Refresh the drop parent's pair color if it was matched.
     // Child counts diverged → pair likely flips to Huge, and ancestors
     // up to either root get their Moderate state recomputed.
     // Root case (parentPath empty) skips this: the root has no peer

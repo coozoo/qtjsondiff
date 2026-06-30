@@ -186,7 +186,7 @@ private slots:
 
     // Full-path: type mismatch -> NotPresent (path includes type).
     // ParentChild: type mismatch -> Huge (second-stage key-only match).
-    // Both behaviours are locked in here so a future refactor can't
+    // Both behaviors are locked in here so a future refactor can't
     // silently change them.
     void sameKeyDifferentType_full()
     {
@@ -321,8 +321,8 @@ private slots:
     {
         // compareAsync should emit phaseChanged at every algorithm
         // boundary. FullPath: Building paths, Matching paths,
-        // Comparing values, Resolving colours. ParentChild: Indexing
-        // right tree, Pairing items, Resolving colours. Verify the
+        // Comparing values, Resolving colors. ParentChild: Indexing
+        // right tree, Pairing items, Resolving colors. Verify the
         // FullPath path here — exact set + ordering.
         QJsonModel left, right;
         left.loadJson(R"({"a":1,"b":2})");
@@ -336,9 +336,9 @@ private slots:
         eng.moveToThread(&t);
         t.start();
 
-        QStringList phases;
+        QList<JsonDiffEngine::Phase> phases;
         QObject::connect(&eng, &JsonDiffEngine::phaseChanged,
-                         [&](const QString &p) { phases.append(p); });
+                         [&](JsonDiffEngine::Phase p) { phases.append(p); });
 
         QSignalSpy finishedSpy(&eng, &JsonDiffEngine::finished);
         QMetaObject::invokeMethod(&eng, "compareAsync", Qt::QueuedConnection,
@@ -347,17 +347,17 @@ private slots:
             Q_ARG(JsonDiffEngine::Mode, JsonDiffEngine::Mode::FullPath));
         QVERIFY(finishedSpy.wait(2000));
 
-        QCOMPARE(phases, QStringList({
-            "Building paths",
-            "Matching paths",
-            "Comparing values",
-            "Resolving colours"
+        QCOMPARE(phases, QList<JsonDiffEngine::Phase>({
+            JsonDiffEngine::Phase::BuildingPaths,
+            JsonDiffEngine::Phase::MatchingPaths,
+            JsonDiffEngine::Phase::ComparingValues,
+            JsonDiffEngine::Phase::ResolvingColors
         }));
     }
 
     void asyncCompareParentChildPhases()
     {
-        // ParentChildPair: Indexing right tree, Pairing items, Resolving colours.
+        // ParentChildPair: Indexing right tree, Pairing items, Resolving colors.
         QJsonModel left, right;
         left.loadJson(R"({"a":1})");
         right.loadJson(R"({"a":1})");
@@ -370,9 +370,9 @@ private slots:
         eng.moveToThread(&t);
         t.start();
 
-        QStringList phases;
+        QList<JsonDiffEngine::Phase> phases;
         QObject::connect(&eng, &JsonDiffEngine::phaseChanged,
-                         [&](const QString &p) { phases.append(p); });
+                         [&](JsonDiffEngine::Phase p) { phases.append(p); });
 
         QSignalSpy finishedSpy(&eng, &JsonDiffEngine::finished);
         QMetaObject::invokeMethod(&eng, "compareAsync", Qt::QueuedConnection,
@@ -381,10 +381,10 @@ private slots:
             Q_ARG(JsonDiffEngine::Mode, JsonDiffEngine::Mode::ParentChildPair));
         QVERIFY(finishedSpy.wait(2000));
 
-        QCOMPARE(phases, QStringList({
-            "Indexing right tree",
-            "Pairing items",
-            "Resolving colours"
+        QCOMPARE(phases, QList<JsonDiffEngine::Phase>({
+            JsonDiffEngine::Phase::IndexingRightTree,
+            JsonDiffEngine::Phase::PairingItems,
+            JsonDiffEngine::Phase::ResolvingColors
         }));
     }
 
@@ -411,7 +411,7 @@ private slots:
         QCOMPARE(finishedSpy.count(), 1);
 
         // Same shared object came back — the trees were mutated in place,
-        // not copied. Verify the colour reached our local pointer too.
+        // not copied. Verify the color reached our local pointer too.
         QCOMPARE(L->children[0].color, DiffColorType::Identical);
 
         // The signal's first argument is the same shared pointer.
@@ -979,7 +979,7 @@ private slots:
         QVERIFY(JsonDiffEngine::resnapshotSubtree(L, {0}, &ml, R));
 
         // Peer of L[0] (R[0]) is left intact — recomparePair handles
-        // its colour after this call. Its DESCENDANT was orphaned.
+        // its color after this call. Its DESCENDANT was orphaned.
         QCOMPARE(R.children[0].children[0].color,        DiffColorType::NotPresent);
         QVERIFY (R.children[0].children[0].relationPath.isEmpty());
         // The pair at the top of the subtree is untouched here.
@@ -1044,7 +1044,7 @@ private slots:
         // Root's color: NotPresent descendants don't promote ancestors
         // in this engine (matches original fixColors). Root stays at
         // Identical/None — the "extra subtree" is shown by the per-row
-        // NotPresent colouring, not by an ancestor tint.
+        // NotPresent coloring, not by an ancestor tint.
     }
 };
 

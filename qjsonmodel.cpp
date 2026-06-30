@@ -786,6 +786,16 @@ bool QJsonModel::removeRowAt(const QModelIndex &target)
                                  {Qt::DisplayRole, Qt::EditRole});
             }
         }
+        // Array parent's column 1 shows "Array[N]" — N just changed.
+        // Refresh so views without a full-tree repaint pick up the new
+        // count. Mirrors what appendChildFromJson / insertChildFromJson
+        // already do on the insert side.
+        if (parent0.isValid())
+        {
+            const QModelIndex typeIdx = parent0.siblingAtColumn(1);
+            emit dataChanged(typeIdx, typeIdx,
+                             {Qt::DisplayRole, Qt::EditRole});
+        }
     }
 
     emit modelChanged();

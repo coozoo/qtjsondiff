@@ -1,7 +1,7 @@
 /* Author: Yuriy Kuzin
  * Description: implementation of JsonDiffEngine.
  *   Ports the original QJsonDiff comparison algorithm onto DiffNode
- *   trees. Behaviour is preserved exactly — including a couple of
+ *   trees. Behavior is preserved exactly — including a couple of
  *   harmless-by-accident expressions in the original — so the existing
  *   widget tests stay green through this refactor.
  *
@@ -40,7 +40,7 @@ public:
     ProgressTracker(int total,
                     std::atomic<bool> *cancel,
                     std::function<void(int, int)> onProgress,
-                    std::function<void(const QString&)> onPhase = nullptr)
+                    std::function<void(JsonDiffEngine::Phase)> onPhase = nullptr)
         : mTotal(total), mCancel(cancel),
           mOnProgress(std::move(onProgress)),
           mOnPhase(std::move(onPhase))
@@ -76,9 +76,9 @@ public:
 
     // Announce a new algorithm phase. The host typically rewrites the
     // dialog label. No-op if no callback was wired in.
-    void setPhase(const QString &name)
+    void setPhase(JsonDiffEngine::Phase phase)
     {
-        if (mOnPhase) mOnPhase(name);
+        if (mOnPhase) mOnPhase(phase);
     }
 
 private:
@@ -87,7 +87,7 @@ private:
     int mLastPct = -1;
     std::atomic<bool> *mCancel;
     std::function<void(int, int)> mOnProgress;
-    std::function<void(const QString&)> mOnPhase;
+    std::function<void(JsonDiffEngine::Phase)> mOnPhase;
 };
 
 // Count of nodes reachable as children-recursively from `n` (root itself
@@ -313,7 +313,7 @@ void buildFindInRightIndex(DiffNode &node,
 }
 
 // Look up the first match for itemLeft in the pre-built index. Returns
-// 0 on match (and writes colour + relationPath on both sides) or -1
+// 0 on match (and writes color + relationPath on both sides) or -1
 // otherwise. The match logic mirrors the original findInRight branch
 // by branch.
 int findInRightHashed(DiffNode &itemLeft,
@@ -526,9 +526,11 @@ void JsonDiffEngine::apply(const DiffNode &snap, QJsonModel *model, QJsonModel *
 {
     if (!model)
         return;
+    emit model->layoutAboutToBeChanged();
     applyRecursive(snap, model, QModelIndex(), otherModel);
-    // Tell views to repaint — same approach as the original algorithm.
     emit model->layoutChanged();
+    // Counter on the peer container relies on dataUpdated, not layoutChanged.
+    emit model->dataUpdated();
 }
 
 namespace
@@ -543,7 +545,7 @@ bool compareInternal(DiffNode &left, DiffNode &right,
 {
     if (mode == JsonDiffEngine::Mode::FullPath)
     {
-        if (tracker) tracker->setPhase(QStringLiteral("Building paths"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::BuildingPaths);
         QStringList                leftPaths;
         QList<DiffNode*>           leftNodes;
         QList<QList<int>>          leftIdxPaths;
@@ -562,7 +564,7 @@ bool compareInternal(DiffNode &left, DiffNode &right,
         const QHash<QString, int> leftIdx  = buildPathIndex(leftPaths);
         const QHash<QString, int> rightIdx = buildPathIndex(rightPaths);
 
-        if (tracker) tracker->setPhase(QStringLiteral("Matching paths"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::MatchingPaths);
         if (!comparePathOneWay(leftNodes,  leftPaths,  leftIdxPaths,
                                rightNodes, rightIdx,   rightIdxPaths, tracker))
             return false;
@@ -570,22 +572,22 @@ bool compareInternal(DiffNode &left, DiffNode &right,
                                leftNodes,  leftIdx,    leftIdxPaths, tracker))
             return false;
 
-        if (tracker) tracker->setPhase(QStringLiteral("Comparing values"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::ComparingValues);
         if (!compareValueOneWay(leftNodes,  right, tracker)) return false;
         if (!compareValueOneWay(rightNodes, left,  tracker)) return false;
 
-        if (tracker) tracker->setPhase(QStringLiteral("Resolving colours"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::ResolvingColors);
         if (!fixColors(left,  tracker)) return false;
         if (!fixColors(right, tracker)) return false;
     }
     else
     {
-        if (tracker) tracker->setPhase(QStringLiteral("Indexing right tree"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::IndexingRightTree);
         FindInRightIndex rightIndex;
         buildFindInRightIndex(right, {}, rightIndex);
-        if (tracker) tracker->setPhase(QStringLiteral("Pairing items"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::PairingItems);
         if (!compareModelsRecursive(left, {}, rightIndex, tracker)) return false;
-        if (tracker) tracker->setPhase(QStringLiteral("Resolving colours"));
+        if (tracker) tracker->setPhase(JsonDiffEngine::Phase::ResolvingColors);
         if (!fixColors(left,  tracker)) return false;
         if (!fixColors(right, tracker)) return false;
     }
@@ -608,6 +610,7 @@ JsonDiffEngine::JsonDiffEngine(QObject *parent) :
     // marshalling on every Qt version — CI hits "Unable to handle
     // unregistered datatype 'JsonDiffEngine::Mode'" otherwise.
     qRegisterMetaType<JsonDiffEngine::Mode>("JsonDiffEngine::Mode");
+    qRegisterMetaType<JsonDiffEngine::Phase>("JsonDiffEngine::Phase");
 }
 
 JsonDiffEngine::~JsonDiffEngine() = default;
@@ -643,7 +646,7 @@ DiffNode *navigateTo(DiffNode &root, const QList<int> &path)
 // True if a single matched pair (one node per side, already known to
 // reference each other) is "the same" from the algorithm's point of
 // view — mirrors the value/childcount checks compareValueOneWay and
-// findInRight use, so a recomputed colour matches what a full compare
+// findInRight use, so a recomputed color matches what a full compare
 // would produce for the same pair.
 bool pairLooksIdentical(const DiffNode &L, const DiffNode &R)
 {
@@ -656,7 +659,7 @@ bool pairLooksIdentical(const DiffNode &L, const DiffNode &R)
     return L.value == R.value;  // scalars (Bool/Double/String)
 }
 
-// After a leaf changed colour, walk from leafPath upward refreshing
+// After a leaf changed color, walk from leafPath upward refreshing
 // each ancestor's Moderate/Identical state. The rule mirrors the
 // original fixColors() but adds *demotion*: if all of an ancestor's
 // descendants are now Identical/None/NotPresent, the ancestor can go
@@ -729,10 +732,28 @@ QJsonValue JsonDiffEngine::toJsonValue(const DiffNode &node)
         case QJsonValue::Double:
             return QJsonValue(node.value.toDouble());
         case QJsonValue::Bool:
-            return QJsonValue(node.value.compare("true", Qt::CaseInsensitive) == 0);
+        {
+            // Bool snapshots are stringified by QJsonModel as "true" /
+            // "false". Anything else means the snapshot is malformed —
+            // warn so we don't silently coerce garbage to false.
+            const bool isTrue  = node.value.compare(QStringLiteral("true"),
+                                                    Qt::CaseInsensitive) == 0;
+            const bool isFalse = node.value.compare(QStringLiteral("false"),
+                                                    Qt::CaseInsensitive) == 0;
+            if (!isTrue && !isFalse)
+                qWarning() << "JsonDiffEngine::toJsonValue: Bool node has "
+                              "non-canonical value" << node.value
+                           << "— treating as false";
+            return QJsonValue(isTrue);
+        }
         case QJsonValue::Null:
+            return QJsonValue(QJsonValue::Null);
         case QJsonValue::Undefined:
         default:
+            // Undefined should never reach here from a well-formed
+            // snapshot; warn rather than silently substituting Null.
+            qWarning() << "JsonDiffEngine::toJsonValue: unexpected type"
+                       << int(node.type) << "— writing Null";
             return QJsonValue(QJsonValue::Null);
     }
 }
@@ -740,7 +761,7 @@ QJsonValue JsonDiffEngine::toJsonValue(const DiffNode &node)
 void JsonDiffEngine::copyPeer(DiffNode &target, const DiffNode &source)
 {
     // Preserve target.key — it identifies position in target's parent.
-    // colour/relationPath are deliberately untouched; recomparePair()
+    // color/relationPath are deliberately untouched; recomparePair()
     // is the next step the caller will run and it will set them.
     target.type     = source.type;
     target.value    = source.value;
@@ -891,7 +912,7 @@ QList<int> JsonDiffEngine::insertPeer(DiffNode &srcRoot,
     linkSubtreesRecursively(*src, srcPath,
                             dstParent->children.last(), dstPath);
 
-    // Refresh both sides' ancestor colours — src's chain may now be
+    // Refresh both sides' ancestor colors — src's chain may now be
     // back to Identical (its row went from NotPresent to Identical),
     // dst's chain may have lost its last diff descendant.
     refreshAncestorColors(srcRoot, srcPath);
@@ -934,7 +955,7 @@ bool JsonDiffEngine::resnapshotSubtree(DiffNode &myRoot,
     // Orphan any peer pointer that referenced something INSIDE the
     // old subtree. The peer of `me` itself (relationPath == myPath)
     // is left intact — recomparePair will re-evaluate that pair's
-    // colour after the call returns.
+    // color after the call returns.
     std::function<void(DiffNode&)> orphanDescendantPeers = [&](DiffNode &n)
     {
         if (!n.relationPath.isEmpty()
@@ -1023,7 +1044,7 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
             parent->children[i].key = QString::number(i);
     }
 
-    // Refresh ancestor colours on both sides. The removed leaf no
+    // Refresh ancestor colors on both sides. The removed leaf no
     // longer exists, but refreshAncestorColors only walks down to its
     // parent — which still exists.
     refreshAncestorColors(srcRoot,   srcPath);
@@ -1075,7 +1096,7 @@ void JsonDiffEngine::compareAsync(QSharedPointer<DiffNode> left,
         total,
         &mCancelRequested,
         [this](int done, int t) { emit progressed(done, t); },
-        [this](const QString &phase) { emit phaseChanged(phase); }
+        [this](JsonDiffEngine::Phase phase) { emit phaseChanged(phase); }
     );
 
     // Compute in place on the heap-allocated DiffNodes; no tree copies.

@@ -53,6 +53,20 @@ public:
     };
     Q_ENUM(Mode)
 
+    // Phase markers for progress reporting. Engine emits the enum;
+    // the host translates it for the user. Engine itself stays free
+    // of UI/translation concerns.
+    enum class Phase
+    {
+        BuildingPaths,      // FullPath: walk both trees, collect paths
+        MatchingPaths,      // FullPath: cross-reference paths via hash
+        ComparingValues,    // FullPath: per-pair value/childCount compare
+        IndexingRightTree,  // ParentChildPair: build hash of right tree
+        PairingItems,       // ParentChildPair: walk left, find peers
+        ResolvingColors    // both modes: ancestor Moderate promotion
+    };
+    Q_ENUM(Phase)
+
     explicit JsonDiffEngine(QObject *parent = nullptr);
     ~JsonDiffEngine() override;
 
@@ -64,7 +78,7 @@ public:
     // Build a DiffNode for one model node (recursively). Used by the
     // rowsInserted hook in QJsonDiff to splice a newly-dropped subtree
     // into an existing snapshot without re-walking the whole tree.
-    // Resulting node has no colour/relationPath; caller is expected
+    // Resulting node has no color/relationPath; caller is expected
     // to mark it NotPresent (or otherwise) before apply().
     static DiffNode snapshotIndex(QJsonModel *model, const QModelIndex &idx);
 
@@ -90,10 +104,10 @@ public:
     // Preserves `target.key` (the key identifies the node's position
     // in its parent) and does NOT touch color/relationPath — the
     // caller is expected to follow up with recomparePair() to refresh
-    // colours on the affected pair and their ancestors.
+    // colors on the affected pair and their ancestors.
     static void copyPeer(DiffNode &target, const DiffNode &source);
 
-    // After an edit (or a copyPeer), update the colour of the matched
+    // After an edit (or a copyPeer), update the color of the matched
     // pair at (leftRoot[leftPath], rightRoot[rightPath]) and walk both
     // ancestor chains refreshing Moderate / Identical state. Cheap —
     // no full traversal of either tree. Mode is currently unused but
@@ -108,7 +122,7 @@ public:
     // last child of `dstRoot[dstParentPath]`. The inserted subtree is
     // cross-linked with the source recursively so apply() will set up
     // idxRelation across every newly-mirrored node — not just the new
-    // root. Refreshes ancestor colours on both sides.
+    // root. Refreshes ancestor colors on both sides.
     //
     // Append-only (no positional insert): keeps the implementation
     // simple by avoiding a sibling-relationPath shift. The caller is
@@ -127,13 +141,13 @@ public:
     // (relationPath non-empty), the peer in `otherRoot` is set to
     // NotPresent and its relationPath cleared — orphaned, the user's
     // next move is to either push it back or delete it on that side.
-    // Ancestor colours refresh on both sides. Rejects an empty path
+    // Ancestor colors refresh on both sides. Rejects an empty path
     // (root removal).
     static bool removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
                            DiffNode &otherRoot, Mode mode);
 
     // Detach a paired leaf from its peer: mark both sides NotPresent +
-    // clear cross-links + refresh ancestor colours. Used when a user
+    // clear cross-links + refresh ancestor colors. Used when a user
     // renames the key of a paired item — the same slot now names a
     // different item, so the prior pairing is invalid until the next
     // Compare. Safe to call with an unpaired node (no-op on the peer
@@ -200,9 +214,10 @@ public slots:
 signals:
     void progressed(int done, int total);
     // Emitted at each algorithm-phase boundary so the host can update
-    // the dialog label ("Matching paths…", "Comparing values…", …).
-    // Untranslated; the receiver is expected to map/translate as needed.
-    void phaseChanged(const QString &phase);
+    // the dialog label. Receiver maps the enum to a tr()'d user-facing
+    // string — engine stays UI-/translation-agnostic. lupdate sees the
+    // tr() calls on the host side.
+    void phaseChanged(JsonDiffEngine::Phase phase);
     void finished(QSharedPointer<DiffNode> left, QSharedPointer<DiffNode> right);
     void cancelled();
 

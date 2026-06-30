@@ -13,6 +13,7 @@
 #include <QSpacerItem>
 #include <QShortcut>
 #include <QElapsedTimer>
+#include <QPointer>
 
 #include "qjsoncontainer.h"
 #include"qjsonitem.h"
@@ -86,14 +87,19 @@ public slots:
     // peer is created on the other side by appending into the matched
     // parent. Public so integrators can bind them to keyboard
     // shortcuts; the toolbar arrow buttons trigger these internally.
-    void pushLeftSelectionToRight();
-    void pushRightSelectionToLeft();
+    // Returns true on success, false when nothing was done (pre-Compare,
+    // no selection, root, chained-missing peer). Queued-connection
+    // callers can ignore the return; direct callers can use it to know
+    // whether to update their own UI.
+    bool pushLeftSelectionToRight();
+    bool pushRightSelectionToLeft();
 
     // Phase B: remove the currently-selected row on the corresponding
     // side. Top-level (root) deletion is rejected. If the row had a
-    // peer on the other side, that peer becomes NotPresent.
-    void deleteLeftSelection();
-    void deleteRightSelection();
+    // peer on the other side, that peer becomes NotPresent. Returns
+    // true on success, false on rejected/no-op.
+    bool deleteLeftSelection();
+    bool deleteRightSelection();
 
     void on_compare_pushbutton_clicked();
     void on_lefttreeview_clicked(const QModelIndex&);
@@ -120,7 +126,7 @@ private slots:
     void updateRightDeleteAction();
 
     // Inline-edit feedback: when user edits a cell on either side,
-    // sync the snapshot and recompare the affected pair so the colour
+    // sync the snapshot and recompare the affected pair so the color
     // updates without requiring a full re-compare.
     void onLeftModelDataChanged(const QModelIndex &topLeft,
                                 const QModelIndex &bottomRight,
@@ -133,10 +139,17 @@ private slots:
     // appendChildFromJson / insertChildFromJson caller while the diff
     // is live). New rows are added to the snapshot as NotPresent
     // (gray) — they have no peer on the other side. If the drop
-    // parent itself was paired, its colour is refreshed since its
+    // parent itself was paired, its color is refreshed since its
     // child count diverged.
     void onLeftRowsInserted(const QModelIndex &parent, int first, int last);
     void onRightRowsInserted(const QModelIndex &parent, int first, int last);
+
+    // Fires from inside removeRowAt before the items are destroyed.
+    // Handles any delete path (context-menu, toolbar arrow, ...).
+    void onLeftRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void onRightRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void onLeftRowsRemoved(const QModelIndex &parent, int first, int last);
+    void onRightRowsRemoved(const QModelIndex &parent, int first, int last);
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -147,8 +160,21 @@ private:
     // not touch these.
     JsonDiffEngine  *mEngine = nullptr;
     QThread         *mWorkerThread = nullptr;
-    QProgressDialog *mProgressDialog = nullptr;
+    // QPointer auto-nulls when the dialog is destroyed. Needed because
+    // QProgressDialog::setValue() pumps the event loop on a modal dialog,
+    // and the queued finished() can drain mid-pump, calling deleteLater
+    // on this dialog — the in-flight onCompareProgressed must observe
+    // the null and bail before its next dialog method call.
+    QPointer<QProgressDialog> mProgressDialog;
     bool             mCompareCancelledByUser = false;
+    // Re-entrancy guard against rapid re-click on the Compare button (or
+    // the ALT+C shortcut) while a previous compare is still in flight.
+    // Without it, QProgressDialog::setValue() pumps the event loop on a
+    // modal dialog before show() runs — that pump can deliver a queued
+    // second click, re-enter on_compare_pushbutton_clicked, queue a
+    // second compareAsync, and leave the dialog in a state where finished
+    // arrives before the second show() and the dialog hangs visible.
+    bool             mComparing = false;
     QElapsedTimer    mCompareElapsed;             // Phase 3 polish
     QString          mCurrentPhase;               // last phaseChanged emission
 
@@ -180,6 +206,10 @@ private:
     // (or splice a NotPresent placeholder that fights the
     // cross-linked Identical state insertPeer just set up).
     bool                       mSuppressInsertHook = false;
+    // Paths captured in rowsAboutToBeRemoved (model still has rows),
+    // consumed in rowsRemoved (model gone) for the snapshot update.
+    QList<QList<int>>          mPendingRemovedPathsLeft;
+    QList<QList<int>>          mPendingRemovedPathsRight;
     QAction                   *mLeftPushAction    = nullptr;   // in left toolbar
     QAction                   *mRightPushAction   = nullptr;   // in right toolbar
     QAction                   *mLeftDeleteAction  = nullptr;   // Phase B

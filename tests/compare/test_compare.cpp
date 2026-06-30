@@ -534,7 +534,7 @@ private slots:
         QJsonModel *L = diff->getLeftJsonModel();
         QJsonModel *R = diff->getRightJsonModel();
 
-        // Behavioural: the arrow action stays in the toolbar always
+        // Behavioral: the arrow action stays in the toolbar always
         // (so the user's eye doesn't track a vanishing/appearing
         // button), but it's DISABLED on "deep/leaf" because there's
         // nowhere to copy it (parent also missing). It's ENABLED on
@@ -783,7 +783,7 @@ private slots:
         QModelIndex kIdx = resolvePath(L, {"k"});
         QVERIFY(L->setData(kIdx.siblingAtColumn(1), "String"));
 
-        // Pair colour at k flipped to Huge.
+        // Pair color at k flipped to Huge.
         QCOMPARE(colorAt(L, {"k"}), DiffColorType::Huge);
         QCOMPARE(colorAt(R, {"k"}), DiffColorType::Huge);
         // Left's children are gone (Object → String drops them).
@@ -852,7 +852,7 @@ private slots:
 
     // ------------------------------------------------------------------
     // Drag-and-drop: item dropped on the other side becomes gray
-    // (NotPresent) and the drop-target parent's pair colour updates.
+    // (NotPresent) and the drop-target parent's pair color updates.
     // ------------------------------------------------------------------
 
     void dndDropIntoMatchedParentMarksGray()
@@ -878,7 +878,7 @@ private slots:
         delete md;
 
         // The dropped node landed with key "a" already taken → deduped
-        // to "a_1". Its colour is NotPresent (no peer on the left).
+        // to "a_1". Its color is NotPresent (no peer on the left).
         QModelIndex newOnRight = resolvePath(R, {"a_1"});
         QVERIFY(newOnRight.isValid());
         QCOMPARE(R->itemFromIndex(newOnRight)->colorType(),
@@ -886,7 +886,7 @@ private slots:
         // No cross-link — left side has nothing matched here.
         QVERIFY(!R->itemFromIndex(newOnRight)->idxRelation().isValid());
 
-        // Sanity: pre-existing matched siblings keep their colour.
+        // Sanity: pre-existing matched siblings keep their color.
         QCOMPARE(colorAt(R, {"a"}), DiffColorType::Identical);
         QCOMPARE(colorAt(R, {"b"}), DiffColorType::Identical);
     }
@@ -894,7 +894,7 @@ private slots:
     void dndDropIntoNestedContainerRefreshesParent()
     {
         // Drop a new entry into a matched nested object. The dropped
-        // node is NotPresent, and the matched parent's pair colour
+        // node is NotPresent, and the matched parent's pair color
         // refreshes — the parent now has more children on one side.
         loadAndCompare(R"({"obj":{"x":1}})",
                        R"({"obj":{"x":1}})", true);
@@ -916,7 +916,7 @@ private slots:
         QVERIFY(R->dropMimeData(md, Qt::CopyAction, -1, -1, objRight));
         delete md;
 
-        // The dropped duplicate is NotPresent. The parent's pair colour
+        // The dropped duplicate is NotPresent. The parent's pair color
         // is no longer Identical now that the child counts diverge.
         QModelIndex newOnRight = resolvePath(R, {"obj", "x_1"});
         QVERIFY(newOnRight.isValid());
