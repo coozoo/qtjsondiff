@@ -70,6 +70,10 @@ public:
     // root level (only valid when the root is Object/Array). Emits
     // begin/endInsertRows + dataChanged on the parent (its childCount
     // display changes) + modelChanged + dataUpdated.
+    // For Object parents, an empty `key` is rejected (returns invalid)
+    // because QJsonObject::insert("", v) silently overwrites prior
+    // empty-key siblings on serialize. For Array parents, `key` is
+    // ignored — the new child's key is set to its row index.
     // Returns the QModelIndex (column 0) of the new child, or invalid.
     QModelIndex appendChildFromJson(const QModelIndex &parent,
                                     const QString &key,

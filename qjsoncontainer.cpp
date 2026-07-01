@@ -240,16 +240,31 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     //treeview->setMinimumSize(500,500);
 
-    //read treeview stylesheet file from app resources
-    QFile file(":/qss/treeview.qss");
-    if (file.open(QIODevice::ReadOnly))
-        {
-            QString styleSheet = file.readAll();
-            file.close();
-            //apply stylesheet to treeview
-            treeview->setStyleSheet(styleSheet);
-        }
-    treeview->ensurePolished();
+    // Optional custom QSS for the tree view. Off by default — matches
+    // the pre-Style-prefs look (plain platform QTreeView). When
+    // Preferences::useStyledTree is on we load qss/qjsontreeview.qss
+    // (custom branch icons + hover/select gradients). Re-applied live
+    // whenever the user flips the checkbox in Preferences.
+    auto applyStyledTree = [this]() {
+        if (PREF_INST->useStyledTree)
+            {
+                QFile file(":/qss/qjsontreeview.qss");
+                if (file.open(QIODevice::ReadOnly))
+                    {
+                        treeview->setStyleSheet(
+                            QString::fromUtf8(file.readAll()));
+                        file.close();
+                    }
+            }
+        else
+            {
+                treeview->setStyleSheet(QString());
+            }
+        treeview->ensurePolished();
+    };
+    applyStyledTree();
+    connect(PREF_INST, &Preferences::styledTreeChanged,
+            this, applyStyledTree);
     treeview->setContextMenuPolicy(Qt::CustomContextMenu);
 
     //some arangments to make drag'n'drop posible

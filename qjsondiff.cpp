@@ -1272,6 +1272,13 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
     myNode->type  = modelType;
     myNode->value = modelValue;
 
+    // Track the peer path BEFORE the recompare/detach so we can apply
+    // a targeted refresh on the peer side without walking the whole
+    // peer tree. Value/key edits don't touch structure, so applyPath
+    // is sufficient; type edits restructure children so they fall back
+    // to the full apply.
+    const QList<int> peerPathAtEdit = myNode->relationPath;
+
     if (keyChanged)
     {
         // The renamed slot is no longer "the same item" as before, so
@@ -1293,22 +1300,45 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
         // Type or value drift: same identity, different content →
         // recomparePair lights up Huge on the pair and refreshes
         // ancestor Moderate state on both sides.
-        if (!myNode->relationPath.isEmpty())
+        if (!peerPathAtEdit.isEmpty())
         {
-            const QList<int> peerPath = myNode->relationPath;
             if (onLeft)
                 JsonDiffEngine::recomparePair(*mySnap, myPath,
-                                              *peerSnap, peerPath,
+                                              *peerSnap, peerPathAtEdit,
                                               mLastMode);
             else
-                JsonDiffEngine::recomparePair(*peerSnap, peerPath,
+                JsonDiffEngine::recomparePair(*peerSnap, peerPathAtEdit,
                                               *mySnap, myPath,
                                               mLastMode);
         }
     }
 
-    JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
-    JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+    // Type change restructured the subtree — the full apply is needed
+    // so views pick up the new/removed child rows. Value edits and key
+    // renames only shift color+idxRelation along the edited path and
+    // its ancestors, so the targeted applyPath saves the layoutChanged
+    // cost that was making per-edit repaints hitch on ~10k-node trees.
+    if (typeChanged)
+    {
+        JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
+        JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+    }
+    else
+    {
+        JsonDiffEngine::applyPath(*mySnap, myModel, myPath, peerModel);
+        if (!peerPathAtEdit.isEmpty())
+            JsonDiffEngine::applyPath(*peerSnap, peerModel,
+                                      peerPathAtEdit, myModel);
+        else if (keyChanged)
+        {
+            // Rename detached the pair — the peer went NotPresent too.
+            // Its color/idxRelation changed but we don't have its path
+            // handy any more (detachPair cleared it). Full apply on
+            // the peer keeps behaviour identical to the pre-fix path;
+            // only fires on rename, which is rare and cheap enough.
+            JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+        }
+    }
 }
 
 

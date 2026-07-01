@@ -533,6 +533,47 @@ void JsonDiffEngine::apply(const DiffNode &snap, QJsonModel *model, QJsonModel *
     emit model->dataUpdated();
 }
 
+void JsonDiffEngine::applyPath(const DiffNode &snap, QJsonModel *model,
+                               const QList<int> &path, QJsonModel *otherModel)
+{
+    if (!model || path.isEmpty())
+        return;
+
+    const DiffNode *node = &snap;
+    QModelIndex parent;
+    const int last = model->columnCount() - 1;
+    // Walk from root down to `path`. Every step is an ancestor of the
+    // edited node whose color/idxRelation may have shifted (Moderate ↔
+    // Identical) as a result of the edit. Emit dataChanged per cell so
+    // views repaint that row without going through the layoutChanged
+    // invalidation of every persistent QModelIndex.
+    for (int i = 0; i < path.size(); ++i)
+    {
+        const int step = path[i];
+        if (step < 0 || step >= node->children.size())
+            return;
+        node = &node->children[step];
+        const QModelIndex idx = model->index(step, 0, parent);
+        if (!idx.isValid())
+            return;
+        QJsonTreeItem *item = model->itemFromIndex(idx);
+        if (item)
+        {
+            item->setColorType(node->color);
+            item->setIdxRelation(node->relationPath.isEmpty()
+                                     ? QModelIndex()
+                                     : resolveIndex(otherModel,
+                                                    node->relationPath));
+            emit model->dataChanged(
+                idx, model->index(step, last, parent),
+                {Qt::BackgroundRole, Qt::DecorationRole, Qt::DisplayRole});
+        }
+        parent = idx;
+    }
+    // Counter widget listens to dataUpdated for its "N diffs" text.
+    emit model->dataUpdated();
+}
+
 namespace
 {
 
@@ -824,8 +865,15 @@ void linkSubtreesRecursively(DiffNode &a, const QList<int> &aPath,
 //     k > idx) → decrement k by 1 to account for the shift-left.
 void fixupRelationPathsAfterRemoval(DiffNode &otherRoot,
                                     const QList<int> &removedParentPath,
-                                    int removedIdx)
+                                    int removedIdx,
+                                    QList<QList<int>> &orphanPaths)
 {
+    // Track the current path through otherRoot so we can record each
+    // orphan's actual position. removePeer needs those paths to walk
+    // the right ancestor chains on the other side — using the src-side
+    // parentPath was only accurate when the trees lined up index-for-
+    // index, which Phase-B's paired compares can't assume.
+    QList<int> current;
     std::function<void(DiffNode&)> visit = [&](DiffNode &n)
     {
         if (!n.relationPath.isEmpty()
@@ -839,13 +887,19 @@ void fixupRelationPathsAfterRemoval(DiffNode &otherRoot,
             {
                 n.relationPath.clear();
                 n.color = DiffColorType::NotPresent;
+                orphanPaths.append(current);
             }
             else if (k > removedIdx)
             {
                 k = k - 1;
             }
         }
-        for (DiffNode &c : n.children) visit(c);
+        for (int i = 0; i < n.children.size(); ++i)
+        {
+            current.append(i);
+            visit(n.children[i]);
+            current.removeLast();
+        }
     };
     visit(otherRoot);
 }
@@ -1028,9 +1082,11 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
     parent->children.removeAt(idx);
 
     // Fix peer pointers on the other side: anything pointing into the
-    // removed subtree gets orphaned to NotPresent; anything pointing at
-    // a later sibling slides down by one.
-    fixupRelationPathsAfterRemoval(otherRoot, parentPath, idx);
+    // removed subtree gets orphaned to NotPresent (and its actual path
+    // recorded for ancestor refresh below); anything pointing at a
+    // later sibling slides down by one.
+    QList<QList<int>> orphanPaths;
+    fixupRelationPathsAfterRemoval(otherRoot, parentPath, idx, orphanPaths);
 
     // For arrays, the survivors past `idx` keep their old stringified-
     // index keys ("2","3"…) even though they now sit at positions
@@ -1044,11 +1100,48 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
             parent->children[i].key = QString::number(i);
     }
 
-    // Refresh ancestor colors on both sides. The removed leaf no
-    // longer exists, but refreshAncestorColors only walks down to its
-    // parent — which still exists.
-    refreshAncestorColors(srcRoot,   srcPath);
-    refreshAncestorColors(otherRoot, parentPath);  // approximate; orphans we already touched
+    // Re-apply the original compareValue rule: paired Object/Array
+    // containers with mismatched child counts BOTH go Huge (matches
+    // main-branch semantics on the next Compare). This is the
+    // edit-time replay of that rule — without it, an Object that
+    // just lost a child while its peer kept everything looked
+    // Identical or Moderate, which the user reads as "no diff" even
+    // though one object is structurally a subset of the other.
+    DiffNode *srcParent = navigateTo(srcRoot, parentPath);
+    DiffNode *dstParent = nullptr;
+    QList<int> dstParentPath;
+    if (srcParent && !srcParent->relationPath.isEmpty())
+    {
+        dstParentPath = srcParent->relationPath;
+        dstParent     = navigateTo(otherRoot, dstParentPath);
+    }
+    const bool isContainerPair = srcParent && dstParent
+            && (srcParent->type == QJsonValue::Object
+                    || srcParent->type == QJsonValue::Array);
+    const bool sizesDiffer = isContainerPair
+            && srcParent->children.size() != dstParent->children.size();
+
+    if (sizesDiffer)
+    {
+        srcParent->color = DiffColorType::Huge;
+        dstParent->color = DiffColorType::Huge;
+    }
+
+    // Refresh ancestors on both sides. The src side walks from
+    // srcPath; the other side from each orphan's actual otherRoot
+    // path (the pre-fix "approximate" walk used src-side indices,
+    // which landed on an unrelated subtree under ParentChildPair).
+    refreshAncestorColors(srcRoot, srcPath);
+    if (sizesDiffer)
+    {
+        // dstParent just changed to Huge — refresh its ancestors
+        // explicitly so they promote to Moderate. refreshAncestorColors
+        // skips Huge nodes themselves, so passing dstParentPath as the
+        // leafPath visits dstParent's ancestors without touching it.
+        refreshAncestorColors(otherRoot, dstParentPath);
+    }
+    for (const QList<int> &p : orphanPaths)
+        refreshAncestorColors(otherRoot, p);
     return true;
 }
 

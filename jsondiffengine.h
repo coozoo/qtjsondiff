@@ -87,6 +87,17 @@ public:
     // repaint.
     static void apply(const DiffNode &snap, QJsonModel *model, QJsonModel *otherModel);
 
+    // Targeted variant: walk root → `path` (ancestors + the leaf) and
+    // push each node's color + idxRelation. Emits dataChanged for just
+    // those cells rather than layoutChanged, so persistent QModelIndex
+    // remappings and full view-relayout are skipped. Use for inline
+    // edits where only the path (and its ancestor color chain) can
+    // change — value edits, key renames, non-structural recompares.
+    // For structural mutations (type change restructuring children,
+    // inserts, removes) fall back to the full apply().
+    static void applyPath(const DiffNode &snap, QJsonModel *model,
+                          const QList<int> &path, QJsonModel *otherModel);
+
     // --- Synchronous compare (pure compute) --------------------------
 
     // Fills color + relationPath in place. Used by tests, used as the

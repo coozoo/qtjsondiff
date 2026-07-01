@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QMimeData>
+#include <QRegularExpression>
 #include "qjsonmodel.h"
 
 class TestJsonConversions : public QObject
@@ -719,6 +720,64 @@ private slots:
         QCOMPARE(dataUpdatedSpy.count(), 1);
     }
 
+    void appendChildRejectsEmptyKeyForObject()
+    {
+        // QJsonObject::insert("", v) is legal but every subsequent
+        // empty-key insert overwrites the prior one on serialize. The
+        // model refuses to accept the empty key so integrators don't
+        // silently corrupt JSON.
+        QJsonModel m;
+        m.loadJson(R"({"a":1})");
+        QSignalSpy modelChangedSpy(&m, &QJsonModel::modelChanged);
+        QSignalSpy dataUpdatedSpy(&m, &QJsonModel::dataUpdated);
+        QTest::ignoreMessage(QtWarningMsg,
+            QRegularExpression("appendChildFromJson: empty key for Object parent"));
+        QModelIndex newIdx = m.appendChildFromJson(QModelIndex(),
+                                                  QString(),
+                                                  QJsonValue(2.0));
+        QVERIFY(!newIdx.isValid());
+        QCOMPARE(modelChangedSpy.count(), 0);
+        QCOMPARE(dataUpdatedSpy.count(), 0);
+        // Tree intact.
+        QJsonObject out = m.getJsonDocument().object();
+        QCOMPARE(out.size(), 1);
+        QCOMPARE(out.value("a").toDouble(), 1.0);
+    }
+
+    void appendChildEmptyKeyForArrayIsFine()
+    {
+        // Arrays override the caller's key with the row index, so an
+        // empty key is harmless on that path.
+        QJsonModel m;
+        m.loadJson(R"({"arr":[10,20]})");
+        QModelIndex arrIdx = childByKey(&m, QModelIndex(), "arr");
+        QModelIndex newIdx = m.appendChildFromJson(arrIdx,
+                                                   QString(),
+                                                   QJsonValue(30.0));
+        QVERIFY(newIdx.isValid());
+        QCOMPARE(m.itemFromIndex(newIdx)->key(), QString("2"));
+        QJsonArray out = m.getJsonDocument().object().value("arr").toArray();
+        QCOMPARE(out.size(),        3);
+        QCOMPARE(out[2].toDouble(), 30.0);
+    }
+
+    void insertChildRejectsEmptyKeyForObject()
+    {
+        // insertChildFromJson delegates to appendChildFromJson for
+        // Object parents (object children are unordered) so the empty-
+        // key rejection should propagate without a separate guard.
+        QJsonModel m;
+        m.loadJson(R"({"a":1,"b":2})");
+        QTest::ignoreMessage(QtWarningMsg,
+            QRegularExpression("appendChildFromJson: empty key for Object parent"));
+        QModelIndex newIdx = m.insertChildFromJson(QModelIndex(), 0,
+                                                  QString(),
+                                                  QJsonValue(3.0));
+        QVERIFY(!newIdx.isValid());
+        QJsonObject out = m.getJsonDocument().object();
+        QCOMPARE(out.size(), 2);
+    }
+
     void removeRowAtScalar()
     {
         QJsonModel m;
@@ -745,6 +804,70 @@ private slots:
         QJsonObject out = m.getJsonDocument().object();
         QVERIFY(!out.contains("big"));
         QCOMPARE(out.size(), 2);
+    }
+
+    void removeRowAtKeepsRowCountConsistentAcrossSignals()
+    {
+        // I-001: Between beginRemoveRows and endRemoveRows the model
+        // must report the pre-remove row count (Qt QAIM contract).
+        // The pre-fix implementation did takeChildren() + setChildren()
+        // which briefly emptied the parent's mChilds — so an observer
+        // that queried rowCount() mid-transaction saw 0.
+        //
+        // This test connects a lambda to rowsAboutToBeRemoved that
+        // queries rowCount(parent). If the pre-remove state is intact,
+        // the returned count matches the initial count.
+        QJsonModel m;
+        m.loadJson(R"({"a":1,"b":2,"c":3})");
+        const int initial = m.rowCount(QModelIndex());
+        QCOMPARE(initial, 3);
+
+        int observedInAboutTo = -1;
+        int observedInRemoved = -1;
+        QObject::connect(&m, &QAbstractItemModel::rowsAboutToBeRemoved,
+                         [&](const QModelIndex &p, int, int) {
+                             observedInAboutTo = m.rowCount(p);
+                         });
+        QObject::connect(&m, &QAbstractItemModel::rowsRemoved,
+                         [&](const QModelIndex &p, int, int) {
+                             observedInRemoved = m.rowCount(p);
+                         });
+
+        QModelIndex bIdx = childByKey(&m, QModelIndex(), "b");
+        QVERIFY(m.removeRowAt(bIdx));
+
+        QCOMPARE(observedInAboutTo, initial);       // pre-remove state
+        QCOMPARE(observedInRemoved, initial - 1);   // post-remove state
+    }
+
+    void insertChildFromJsonKeepsRowCountConsistentAcrossSignals()
+    {
+        // Symmetric guard for insertChildFromJson's array-mid-insert
+        // path. Between beginInsertRows and endInsertRows the model
+        // must report the pre-insert row count in rowsAboutToBeInserted
+        // and the post-insert count in rowsInserted.
+        QJsonModel m;
+        m.loadJson(R"({"arr":[10,20,30,40]})");
+        QModelIndex arr = childByKey(&m, QModelIndex(), "arr");
+        const int initial = m.rowCount(arr);
+        QCOMPARE(initial, 4);
+
+        int observedInAboutTo = -1;
+        int observedInInserted = -1;
+        QObject::connect(&m, &QAbstractItemModel::rowsAboutToBeInserted,
+                         [&](const QModelIndex &p, int, int) {
+                             observedInAboutTo = m.rowCount(p);
+                         });
+        QObject::connect(&m, &QAbstractItemModel::rowsInserted,
+                         [&](const QModelIndex &p, int, int) {
+                             observedInInserted = m.rowCount(p);
+                         });
+
+        // row=2 forces the mid-insert path (row != count, array parent).
+        QVERIFY(m.insertChildFromJson(arr, 2, QString(), QJsonValue(25.0)).isValid());
+
+        QCOMPARE(observedInAboutTo, initial);       // pre-insert
+        QCOMPARE(observedInInserted, initial + 1);  // post-insert
     }
 
     void removeRowAtRejectsInvalidAndRoot()

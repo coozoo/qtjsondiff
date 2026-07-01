@@ -73,6 +73,22 @@ void QJsonTreeItem::appendChild(QJsonTreeItem *item)
     mChilds.append(item);
 }
 
+void QJsonTreeItem::insertChild(int row, QJsonTreeItem *item)
+{
+    if (!item) return;
+    if (row < 0) row = 0;
+    if (row > mChilds.size()) row = mChilds.size();
+    item->setParent(this);
+    mChilds.insert(row, item);
+}
+
+QJsonTreeItem *QJsonTreeItem::takeChildAt(int row)
+{
+    if (row < 0 || row >= mChilds.size())
+        return nullptr;
+    return mChilds.takeAt(row);
+}
+
 QJsonTreeItem *QJsonTreeItem::child(int row)
 {
     return mChilds.value(row);

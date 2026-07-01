@@ -712,6 +712,19 @@ QModelIndex QJsonModel::appendChildFromJson(const QModelIndex &parent,
             && parentItem->type() != QJsonValue::Array)
         return QModelIndex();
 
+    // Object children need a non-empty key. QJsonObject::insert("", v)
+    // is legal but every subsequent empty-key insert overwrites the
+    // prior one on serialize, silently dropping siblings. Refuse here
+    // so integrators don't corrupt JSON by accident; arrays override
+    // the key with the row index a few lines below, so they're unaffected.
+    if (parentItem->type() == QJsonValue::Object && key.isEmpty())
+    {
+        qWarning() << "QJsonModel::appendChildFromJson: empty key for "
+                      "Object parent — rejecting to avoid silent "
+                      "QJsonObject::insert overwrite on serialize.";
+        return QModelIndex();
+    }
+
     // load() returns a wrapper whose own slot represents `source`:
     //  - scalar: type+value set on the wrapper directly; no children.
     //  - container: children built recursively; type left unset on the
@@ -758,11 +771,12 @@ bool QJsonModel::removeRowAt(const QModelIndex &target)
     const QModelIndex parent0 = target.parent();
 
     beginRemoveRows(parent0, row, row);
-    // QJsonTreeItem owns its children — remove from the parent's list
-    // and delete the subtree.
-    QList<QJsonTreeItem*> kids = parentItem->takeChildren();
-    QJsonTreeItem *removed = kids.takeAt(row);
-    parentItem->setChildren(kids);
+    // Single-index takeChildAt keeps mChilds atomically off-by-one
+    // during the transaction (as opposed to the older takeChildren/
+    // setChildren round-trip, which briefly emptied the list — a
+    // window that would let a proxy or nested-event-loop observer
+    // see rowCount()==0 mid-remove and violate the QAIM contract).
+    QJsonTreeItem *removed = parentItem->takeChildAt(row);
     delete removed;
     endRemoveRows();
 
@@ -855,11 +869,9 @@ QModelIndex QJsonModel::insertChildFromJson(const QModelIndex &parent,
                                                  : QModelIndex();
 
     beginInsertRows(parent0, row, row);
-    // QJsonTreeItem owns its children; takeChildren / setChildren is
-    // the safe way to splice in the middle (mirrors removeRowAt).
-    QList<QJsonTreeItem*> kids = parentItem->takeChildren();
-    kids.insert(row, newChild);
-    parentItem->setChildren(kids);
+    // Single-index insertChild keeps mChilds atomically off-by-one
+    // during the transaction. See removeRowAt for the same rationale.
+    parentItem->insertChild(row, newChild);
     endInsertRows();
 
     // Renumber siblings past the insert point so the key column matches

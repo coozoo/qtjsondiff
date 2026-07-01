@@ -507,6 +507,61 @@ private slots:
         QCOMPARE(ml.itemFromIndex(backToA)->key(), QString("a"));
     }
 
+    void applyPathWritesOnlyAlongPath()
+    {
+        // Setup: {a:1, b:{c:1, d:2}, e:3} vs {a:1, b:{c:1, d:9}, e:3}.
+        // After compare + full apply, b.d is Huge, b is Moderate, root
+        // is Moderate. Verify applyPath along path=[1,1] (b.d) touches
+        // exactly the ancestors and the leaf while leaving unrelated
+        // siblings' color/idxRelation intact — no layoutChanged fires.
+        QJsonModel ml;
+        ml.loadJson(R"({"a":1,"b":{"c":1,"d":2},"e":3})");
+        QJsonModel mr;
+        mr.loadJson(R"({"a":1,"b":{"c":1,"d":9},"e":3})");
+
+        DiffNode L = JsonDiffEngine::snapshot(&ml);
+        DiffNode R = JsonDiffEngine::snapshot(&mr);
+        JsonDiffEngine::compare(L, R, JsonDiffEngine::Mode::FullPath);
+        JsonDiffEngine::apply(L, &ml, &mr);
+        JsonDiffEngine::apply(R, &mr, &ml);
+
+        // Baseline state after full apply.
+        QModelIndex bL   = ml.index(1, 0);
+        QModelIndex bcL  = ml.index(0, 0, bL);
+        QModelIndex bdL  = ml.index(1, 0, bL);
+        QModelIndex eL   = ml.index(2, 0);
+        QCOMPARE(ml.itemFromIndex(bdL)->colorType(), DiffColorType::Huge);
+        QCOMPARE(ml.itemFromIndex(bL) ->colorType(), DiffColorType::Moderate);
+        QCOMPARE(ml.itemFromIndex(bcL)->colorType(), DiffColorType::Identical);
+        QCOMPARE(ml.itemFromIndex(eL) ->colorType(), DiffColorType::Identical);
+
+        // Corrupt siblings' state — applyPath must NOT overwrite them
+        // (they're outside the path). If applyPath walked the whole
+        // tree it would restore these from the snapshot.
+        ml.itemFromIndex(bcL)->setColorType(DiffColorType::None);
+        ml.itemFromIndex(eL) ->setColorType(DiffColorType::None);
+
+        // No layoutChanged should fire on a targeted applyPath — the
+        // whole point of the fast path is to avoid the persistent-
+        // index remap. Dataupdated is emitted for the counter widget.
+        QSignalSpy layoutSpy(&ml, &QAbstractItemModel::layoutChanged);
+        QSignalSpy dataChangedSpy(&ml, &QAbstractItemModel::dataChanged);
+        QSignalSpy dataUpdatedSpy(&ml, &QJsonModel::dataUpdated);
+
+        JsonDiffEngine::applyPath(L, &ml, {1, 1}, &mr);
+
+        QCOMPARE(layoutSpy.count(), 0);
+        QVERIFY (dataChangedSpy.count() >= 2);   // b + b.d rows
+        QCOMPARE(dataUpdatedSpy.count(), 1);
+        // Path targets refreshed from snapshot.
+        QCOMPARE(ml.itemFromIndex(bdL)->colorType(), DiffColorType::Huge);
+        QCOMPARE(ml.itemFromIndex(bL) ->colorType(), DiffColorType::Moderate);
+        // Off-path siblings were left corrupted — applyPath did NOT
+        // touch them, proving it walked only the path.
+        QCOMPARE(ml.itemFromIndex(bcL)->colorType(), DiffColorType::None);
+        QCOMPARE(ml.itemFromIndex(eL) ->colorType(), DiffColorType::None);
+    }
+
     // ------------------------------------------------------------------
     // Phase A: copyPeer + recomparePair
     // Targeted edit-and-recompare — what the diff-edit overlay button
@@ -1010,6 +1065,63 @@ private slots:
                                            JsonDiffEngine::Mode::FullPath));
         QCOMPARE(L.children[0].color, DiffColorType::NotPresent);
         QCOMPARE(R.children[0].color, DiffColorType::NotPresent);
+    }
+
+    void removePeerSetsParentHugeWhenSizesNowDiffer()
+    {
+        // Original main-branch rule (compareValue): paired Object/Array
+        // containers with mismatched child counts BOTH go Huge. After
+        // an edit-driven delete, removePeer must replay that rule so
+        // the user sees the same "this object now differs" signal they
+        // would get from a fresh Compare.
+        //
+        // ParentChildPair pairs items by parent.key+key+type, which can
+        // place peers at different indices on the two sides — that
+        // structural skew is also what made the old "approximate"
+        // ancestor walk land on the wrong subtree.
+        //
+        // Setup: left {"a":{"x":1,"y":9},"z":2},
+        //        right {"z":2,"a":{"x":1,"y":8}}.
+        // After Compare (ParentChildPair):
+        //   L.a [0]   pairs R.a [1] — same size, Identical → Moderate
+        //                            after fixColors promotes via y.
+        //   L.a.x [0,0] pairs R.a.x [1,0] — Identical.
+        //   L.a.y [0,1] pairs R.a.y [1,1] — Huge (9 vs 8).
+        //   L.z [1]   pairs R.z [0] — Identical.
+        DiffNode L = makeRoot();
+        DiffNode a_l = makeContainer("a", QJsonValue::Object);
+        a_l.children.append(makeScalar("x", QJsonValue::Double, "1"));
+        a_l.children.append(makeScalar("y", QJsonValue::Double, "9"));
+        L.children.append(a_l);
+        L.children.append(makeScalar("z", QJsonValue::Double, "2"));
+
+        DiffNode R = makeRoot();
+        R.children.append(makeScalar("z", QJsonValue::Double, "2"));
+        DiffNode a_r = makeContainer("a", QJsonValue::Object);
+        a_r.children.append(makeScalar("x", QJsonValue::Double, "1"));
+        a_r.children.append(makeScalar("y", QJsonValue::Double, "8"));
+        R.children.append(a_r);
+
+        JsonDiffEngine::compare(L, R, JsonDiffEngine::Mode::ParentChildPair);
+
+        // Pre-delete sanity: both `a` sides Moderate via Huge child y.
+        QCOMPARE(L.children[0].color, DiffColorType::Moderate);   // L.a
+        QCOMPARE(R.children[1].color, DiffColorType::Moderate);   // R.a
+        QCOMPARE(R.children[1].children[1].color, DiffColorType::Huge); // R.a.y
+
+        QVERIFY(JsonDiffEngine::removePeer(L, {0, 1}, R,
+                                           JsonDiffEngine::Mode::ParentChildPair));
+
+        // R.a.y is the orphan — no peer on the (now-smaller) src side.
+        QCOMPARE(R.children[1].children[1].color, DiffColorType::NotPresent);
+        QVERIFY (R.children[1].children[1].relationPath.isEmpty());
+        // Sizes differ (L.a has 1 child, R.a still has 2) → both `a`
+        // sides go Huge per the original rule. Roots get promoted to
+        // Moderate (Huge child counts as a diff descendant).
+        QCOMPARE(L.children[0].color, DiffColorType::Huge);       // L.a
+        QCOMPARE(R.children[1].color, DiffColorType::Huge);       // R.a
+        QCOMPARE(L.color,             DiffColorType::Moderate);   // L root
+        QCOMPARE(R.color,             DiffColorType::Moderate);   // R root
     }
 
     void removePeerSubtreeOrphansAllDescendants()
