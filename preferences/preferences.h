@@ -68,12 +68,27 @@ public:
     bool editableSingleTree;
     bool editableDiffView;
 
+    // Application QStyle override. Empty string means "don't override"
+    // (let Qt pick its platform default). Requires restart — Qt's
+    // QApplication::setStyle() reparents palettes mid-flight and the
+    // result is uneven across already-built widgets, so we only apply
+    // this in main() before MainWindow is constructed.
+    QString appStyle;
+
+    // Custom tree stylesheet toggle. Off by default — the widget then
+    // looks like the platform's plain QTreeView, matching the
+    // pre-Style-prefs behavior. On, qjsoncontainer applies
+    // qss/qjsontreeview.qss (custom branch icons, hover/select
+    // gradients). Live; flips on styledTreeChanged.
+    bool useStyledTree;
+
     QMap<QString, QKeySequence> shortcuts;
     static const QList<ShortcutInfo> shortcutInfos;
 
 signals:
     void shortcutsUpdated();
     void editModeChanged();
+    void styledTreeChanged();
 
 private:
     explicit Preferences(QObject *parent = nullptr);

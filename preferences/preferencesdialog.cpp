@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QHeaderView>
 #include <QShowEvent>
+#include <QStyleFactory>
 
 #include "preferencesdialog.h"
 #include "ui_preferencesdialog.h"
@@ -73,6 +74,26 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
             this, &PreferencesDialog::editModeCheckBoxToggled);
     connect(ui->diffViewEditCheckBox,   &QCheckBox::toggled,
             this, &PreferencesDialog::editModeCheckBoxToggled);
+
+    // Style page — combobox lists every QStyle Qt knows about plus a
+    // "Default" sentinel that means "don't override." We block the
+    // combo's signal while populating so the initial fill doesn't
+    // count as a user pick.
+    ui->appStyleComboBox->blockSignals(true);
+    ui->appStyleComboBox->addItem(tr("Default"), QString());
+    const QStringList styleKeys = QStyleFactory::keys();
+    for (const QString &k : styleKeys)
+        ui->appStyleComboBox->addItem(k, k);
+    const int savedIdx = ui->appStyleComboBox->findData(PREF_INST->appStyle);
+    ui->appStyleComboBox->setCurrentIndex(savedIdx >= 0 ? savedIdx : 0);
+    ui->appStyleComboBox->blockSignals(false);
+    connect(ui->appStyleComboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &PreferencesDialog::appStyleComboBox_currentIndexChanged);
+
+    ui->useStyledTreeCheckBox->setChecked(PREF_INST->useStyledTree);
+    connect(ui->useStyledTreeCheckBox, &QCheckBox::toggled,
+            this, &PreferencesDialog::useStyledTreeCheckBox_toggled);
 }
 
 PreferencesDialog::~PreferencesDialog()
@@ -192,6 +213,19 @@ void PreferencesDialog::editModeCheckBoxToggled(bool checked)
     PREF_INST->editableDiffView   = ui->diffViewEditCheckBox->isChecked();
     PREF_INST->save();
     emit PREF_INST->editModeChanged();
+}
+
+void PreferencesDialog::appStyleComboBox_currentIndexChanged(int index)
+{
+    PREF_INST->appStyle = ui->appStyleComboBox->itemData(index).toString();
+    PREF_INST->save();
+}
+
+void PreferencesDialog::useStyledTreeCheckBox_toggled(bool checked)
+{
+    PREF_INST->useStyledTree = checked;
+    PREF_INST->save();
+    emit PREF_INST->styledTreeChanged();
 }
 
 void PreferencesDialog::shortcut_changed(QStandardItem *item)

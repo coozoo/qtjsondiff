@@ -60,6 +60,14 @@
        </item>
        <item>
         <property name="text">
+         <string>Style</string>
+        </property>
+        <property name="icon">
+         <iconset theme="preferences-desktop-theme"/>
+        </property>
+       </item>
+       <item>
+        <property name="text">
          <string>JSON Editing</string>
         </property>
         <property name="icon">
@@ -409,6 +417,83 @@
                </widget>
               </item>
              </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="stylePage">
+        <layout class="QGridLayout" name="gridLayout_style">
+         <item row="0" column="0">
+          <widget class="QGroupBox" name="styleGroupBox">
+           <property name="title">
+            <string>Style</string>
+           </property>
+           <layout class="QVBoxLayout" name="styleVBox">
+            <item>
+             <layout class="QHBoxLayout" name="appStyleHBox">
+              <item>
+               <widget class="QLabel" name="appStyleLabel">
+                <property name="text">
+                 <string>Application style:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="appStyleComboBox">
+                <property name="toolTip">
+                 <string>Pick the Qt style used by the whole application. &quot;Default&quot; lets Qt choose the platform default.</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="appStyleHSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QLabel" name="appStyleRestartLabel">
+              <property name="text">
+               <string>Style change takes effect after restart.</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: gray; font-style: italic;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="useStyledTreeCheckBox">
+              <property name="text">
+               <string>Use styled tree view</string>
+              </property>
+              <property name="toolTip">
+               <string>When on, JSON tree views get custom branch icons and hover/select gradients from qss/qjsontreeview.qss. Off (default) uses the plain platform look.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="styleVSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
             </item>
            </layout>
           </widget>
