@@ -39,6 +39,10 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     myMenu.addSeparator();
     singleExpandSelectedRecursively = myMenu.addAction(expandSelectedRecursively_string);
     singleCollapseSelectedRecursively = myMenu.addAction(collapseSelectedRecursively_string);
+    myMenu.addSeparator();
+    // Edit-mode-only — visibility flipped on/off in showContextMenu.
+    addChildAction  = myMenu.addAction(tr("Add child"));
+    deleteRowAction = myMenu.addAction(tr("Delete row"));
 
     expandSelectedRecursively = multiSelectMenu.addAction(expandSelectedRecursively_string);
     collapseSelectedRecursively = multiSelectMenu.addAction(collapseSelectedRecursively_string);
@@ -236,16 +240,31 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     //treeview->setMinimumSize(500,500);
 
-    //read treeview stylesheet file from app resources
-    QFile file(":/qss/treeview.qss");
-    if (file.open(QIODevice::ReadOnly))
-        {
-            QString styleSheet = file.readAll();
-            file.close();
-            //apply stylesheet to treeview
-            treeview->setStyleSheet(styleSheet);
-        }
-    treeview->ensurePolished();
+    // Optional custom QSS for the tree view. Off by default — matches
+    // the pre-Style-prefs look (plain platform QTreeView). When
+    // Preferences::useStyledTree is on we load qss/qjsontreeview.qss
+    // (custom branch icons + hover/select gradients). Re-applied live
+    // whenever the user flips the checkbox in Preferences.
+    auto applyStyledTree = [this]() {
+        if (PREF_INST->useStyledTree)
+            {
+                QFile file(":/qss/qjsontreeview.qss");
+                if (file.open(QIODevice::ReadOnly))
+                    {
+                        treeview->setStyleSheet(
+                            QString::fromUtf8(file.readAll()));
+                        file.close();
+                    }
+            }
+        else
+            {
+                treeview->setStyleSheet(QString());
+            }
+        treeview->ensurePolished();
+    };
+    applyStyledTree();
+    connect(PREF_INST, &Preferences::styledTreeChanged,
+            this, applyStyledTree);
     treeview->setContextMenuPolicy(Qt::CustomContextMenu);
 
     //some arangments to make drag'n'drop posible
@@ -471,7 +490,94 @@ void QJsonContainer::on_model_changed()
 
 void QJsonContainer::setEditable(bool editable)
 {
+    mIsEditable = editable;
     model->setEditable(editable);
+
+    // Tree-level item DnD is on iff the model is editable. Both
+    // directions (drag-out, drop-in) are gated together. The file-URL
+    // drop on the surrounding groupbox is untouched — the tree's
+    // default dragEnter handler will ignore MIME types not advertised
+    // by the model (we only advertise our custom type), so file drags
+    // propagate through to the groupbox event filter unchanged.
+    if (editable)
+    {
+        treeview->setDragEnabled(true);
+        treeview->setAcceptDrops(true);
+        treeview->setDropIndicatorShown(true);
+        treeview->setDragDropMode(QAbstractItemView::DragDrop);
+        treeview->setDefaultDropAction(Qt::CopyAction);
+    }
+    else
+    {
+        treeview->setDragEnabled(false);
+        treeview->setAcceptDrops(false);
+        treeview->setDropIndicatorShown(false);
+        treeview->setDragDropMode(QAbstractItemView::NoDragDrop);
+    }
+}
+
+QModelIndex QJsonContainer::addChildOf(const QModelIndex &parent)
+{
+    if (!mIsEditable) return QModelIndex();
+
+    // Invalid parent → root. itemFromIndex returns nullptr for invalid
+    // indexes, so the type / child-count probes go through rootType()
+    // and rowCount() which both treat invalid as root automatically.
+    QJsonValue::Type parentType;
+    if (parent.isValid())
+    {
+        QJsonTreeItem *p = model->itemFromIndex(parent);
+        if (!p) return QModelIndex();
+        parentType = p->type();
+    }
+    else
+    {
+        parentType = model->rootType();
+    }
+    if (parentType != QJsonValue::Object && parentType != QJsonValue::Array)
+        return QModelIndex();
+
+    // Default key. Arrays auto-key by position inside
+    // QJsonModel::appendChildFromJson, so any value works here; objects
+    // need a unique key so we don't immediately collide with a sibling
+    // (QJsonDocument would de-dupe on serialize, hiding the new entry).
+    QString key;
+    if (parentType == QJsonValue::Object)
+    {
+        QSet<QString> used;
+        const int n = model->rowCount(parent);
+        for (int i = 0; i < n; ++i)
+        {
+            QModelIndex childIdx = model->index(i, 0, parent);
+            QJsonTreeItem *c = model->itemFromIndex(childIdx);
+            if (c) used.insert(c->key());
+        }
+        key = "new_key";
+        for (int k = 1; used.contains(key); ++k)
+            key = QString("new_key_%1").arg(k);
+    }
+
+    QModelIndex newIdx = model->appendChildFromJson(parent, key,
+                                                   QJsonValue(QString()));
+    if (!newIdx.isValid()) return newIdx;
+
+    // Surface the new row: expand the parent, select the new child,
+    // start in-place editing on the most useful column.
+    if (parent.isValid())
+        treeview->expand(parent);
+    treeview->setCurrentIndex(newIdx);
+    treeview->scrollTo(newIdx);
+    // Objects: edit the key (so the user names it). Arrays: keys are
+    // positional, jump straight to the value column.
+    const int col = (parentType == QJsonValue::Array) ? 2 : 0;
+    treeview->edit(newIdx.siblingAtColumn(col));
+    return newIdx;
+}
+
+bool QJsonContainer::removeAt(const QModelIndex &target)
+{
+    if (!mIsEditable) return false;
+    return model->removeRowAt(target);
 }
 
 void QJsonContainer::showGoto(bool show)
@@ -555,6 +661,21 @@ void QJsonContainer::showContextMenu(const QPoint &point)
         }
     copyJsonByPath->setEnabled(isContainer);
     copySelectedJsonValuePlain->setEnabled(isContainer);
+
+    // Add/Delete row: shown only in editable mode. "Add child" enables
+    // when the click target is a container (or empty space → root,
+    // which is always a container after loadJson). "Delete row"
+    // enables on any non-root row.
+    if (addChildAction)
+    {
+        addChildAction->setVisible(mIsEditable);
+        addChildAction->setEnabled(!idx.isValid() || isContainer);
+    }
+    if (deleteRowAction)
+    {
+        deleteRowAction->setVisible(mIsEditable);
+        deleteRowAction->setEnabled(idx.isValid() && idx.parent().isValid());
+    }
 
     // for QAbstractScrollArea and derived classes you would use:
     // QPoint globalPos = myWidget->viewport()->mapToGlobal(pos);
@@ -641,6 +762,17 @@ void QJsonContainer::showContextMenu(const QPoint &point)
                             QModelIndex index = selection.at(i);
                             expandRecursively(index, treeview, false);
                         }
+                }
+            else if (selectedItem == addChildAction)
+                {
+                    // Empty-space click resolves to the root container
+                    // via the invalid index → itemFromIndex(QModelIndex())
+                    // path inside addChildOf.
+                    addChildOf(idx);
+                }
+            else if (selectedItem == deleteRowAction)
+                {
+                    removeAt(idx);
                 }
         }
     else

@@ -54,7 +54,7 @@ window geometry.
 ## Edit mode
 
 Edit mode was added on branch `edit`. It is off by default to preserve
-the widget's prior read-only behaviour.
+the widget's prior read-only behavior.
 
 - `QJsonModel::setEditable(bool)` is the master switch.
   `MainWindow` calls `messageJsonCont->setEditable(true)` on the
@@ -179,7 +179,7 @@ Pattern for version-guarded code:
 #endif
 ```
 
-If a change requires Qt 6-only behaviour and a fallback isn't
+If a change requires Qt 6-only behavior and a fallback isn't
 practical, raise it before introducing the dependency.
 
 ## Things to be careful about

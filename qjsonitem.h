@@ -45,9 +45,17 @@ public:
     DiffColorType colorType() const { return mColorType; }
     QModelIndex idxRelation();
     void clearChildren();
-    
+
     QList<QJsonTreeItem*> takeChildren();
     void setChildren(const QList<QJsonTreeItem*>& children);
+
+    // Single-child structural helpers. Used by QJsonModel's
+    // begin/endInsertRows and begin/endRemoveRows paths so mChilds
+    // is only ever off-by-one during the transaction (never emptied
+    // then refilled), which keeps rowCount() consistent for any
+    // proxy or observer that queries the model mid-transition.
+    void insertChild(int row, QJsonTreeItem *item);
+    QJsonTreeItem *takeChildAt(int row);
     
     static QJsonValue::Type stringToType(const QString& typeName);
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);

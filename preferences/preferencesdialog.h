@@ -42,6 +42,9 @@ private slots:
     void tabsPosition_button_clicked(QAbstractButton* button);
     void showJsonButtonPosition_clicked(QAbstractButton* button);
     void shortcut_changed(QStandardItem *item);
+    void editModeCheckBoxToggled(bool checked);
+    void appStyleComboBox_currentIndexChanged(int index);
+    void useStyledTreeCheckBox_toggled(bool checked);
 };
 
 #endif // PREFERENCESDIALOG_H

@@ -83,6 +83,20 @@ public:
     QHBoxLayout *browse_layout;
     void setBrowseVisible(bool state);
     void setEditable(bool editable);
+
+    // Single-tree add/delete (Phase B+ wiring). Public so tests can
+    // exercise them without going through the context menu. Caller
+    // passes the parent (for add) or the target row (for delete).
+    // - addChildOf appends a default String entry to the parent
+    //   (which must be Object or Array). For objects it generates a
+    //   unique "new_key" / "new_key_1" / ... ; for arrays the model
+    //   auto-keys by position. The new row is selected + scrolled to.
+    // - removeAt removes the target row. Rejects root + invalid.
+    // Both no-op when the container is not in editable mode (so
+    // integrators can keep wiring them to shortcuts without checking
+    // edit state themselves).
+    QModelIndex addChildOf(const QModelIndex &parent);
+    bool        removeAt(const QModelIndex &target);
     QPushButton *showjson_pushbutton;
     QAction *findNext_toolbutton;
     QAction *findPrevious_toolbutton;
@@ -127,6 +141,9 @@ private:
     QAction *copySelectedJsonValuePlain;
     QAction *singleExpandSelectedRecursively;
     QAction *singleCollapseSelectedRecursively;
+    QAction *addChildAction = nullptr;       // Phase B+: edit-mode-only
+    QAction *deleteRowAction = nullptr;      // Phase B+: edit-mode-only
+    bool     mIsEditable = false;
     QMenu multiSelectMenu;
     QAction *expandSelected;
     QAction *collapseSelected;
