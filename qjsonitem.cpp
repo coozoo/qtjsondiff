@@ -53,6 +53,17 @@ QList<QJsonTreeItem *> QJsonTreeItem::takeChildren()
 void QJsonTreeItem::setChildren(const QList<QJsonTreeItem *> &children)
 {
     mChilds = children;
+    // Reparent every child. Several callers (insertChildFromJson,
+    // type-conversion paths in QJsonModel::setData) hand us a list
+    // that mixes existing children (whose mParent is already `this`)
+    // with freshly-built ones (mParent = nullptr from
+    // QJsonTreeItem::load()). Without this loop the new nodes leave
+    // mParent dangling, and QJsonModel::parent() crashes on the next
+    // paint (parentItem->row() dereferences null).
+    for (QJsonTreeItem *c : mChilds)
+    {
+        if (c) c->setParent(this);
+    }
 }
 
 
@@ -60,6 +71,22 @@ void QJsonTreeItem::appendChild(QJsonTreeItem *item)
 {
     item->setParent(this);
     mChilds.append(item);
+}
+
+void QJsonTreeItem::insertChild(int row, QJsonTreeItem *item)
+{
+    if (!item) return;
+    if (row < 0) row = 0;
+    if (row > mChilds.size()) row = mChilds.size();
+    item->setParent(this);
+    mChilds.insert(row, item);
+}
+
+QJsonTreeItem *QJsonTreeItem::takeChildAt(int row)
+{
+    if (row < 0 || row >= mChilds.size())
+        return nullptr;
+    return mChilds.takeAt(row);
 }
 
 QJsonTreeItem *QJsonTreeItem::child(int row)

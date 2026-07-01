@@ -2,7 +2,9 @@
  */
 #include "mainwindow.h"
 #include "commandlineparser.h"
+#include "preferences/preferences.h"
 #include <QApplication>
+#include <QStyleFactory>
 #include <QTranslator>
 #include <QStandardPaths>
 #include <QFileInfo>
@@ -10,7 +12,7 @@
 #include <QTimer>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.91";
+const QString APP_VERSION = "0.92";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -109,6 +111,13 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationName("ini");
     QApplication::setApplicationName("qtjsondiff");
     QApplication::setApplicationVersion(APP_VERSION);
+
+    // Apply persisted Qt style before any widgets get constructed so
+    // every widget polishes against the right QStyle. Empty pref means
+    // "leave Qt's default alone." setStyle silently no-ops on an
+    // unknown key (e.g. a style the user uninstalled).
+    if (!PREF_INST->appStyle.isEmpty())
+        QApplication::setStyle(PREF_INST->appStyle);
 
     MainWindow w;
     // CLI options

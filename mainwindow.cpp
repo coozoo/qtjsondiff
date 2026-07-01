@@ -21,10 +21,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->openLast_action, &QAction::toggled, this, &MainWindow::openLast_action_toggled);
 
     messageJsonCont = new QJsonContainer(ui->jsonview_tab);
-    messageJsonCont->setEditable(true);
+    messageJsonCont->setEditable(PREF_INST->editableSingleTree);
     //messageJsonCont->setBrowseVisible(false);
     messageJsonCont->loadJson(QString("{\"empty\":\"empty\"}"));
     differ = new QJsonDiff(ui->compare_tab);
+    differ->setDiffEditable(PREF_INST->editableDiffView);
+    // Live update: the Preferences dialog toggles checkboxes and emits
+    // editModeChanged so we re-apply without restart.
+    connect(PREF_INST, &Preferences::editModeChanged, this, [this]()
+    {
+        messageJsonCont->setEditable(PREF_INST->editableSingleTree);
+        differ->setDiffEditable(PREF_INST->editableDiffView);
+    });
     QJsonDocument data22 = QJsonDocument::fromJson("{\"empty\":\"empty\"}");
     differ->loadJsonLeft(data22);
     QJsonDocument data11 = QJsonDocument::fromJson("{\"empty\":\"empty\"}");

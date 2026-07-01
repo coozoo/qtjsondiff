@@ -20,8 +20,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Check commit message
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == *"[skip ci]"* ]]; then
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]]; then
             echo "Skipping workflow"
             exit 1
           fi
@@ -47,32 +49,26 @@ jobs:
         id: build
       - name: Generate release notes
         id: generate_notes
+        shell: bash
         run: |
+          set -euo pipefail
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
-            echo "Generating notes since last tag: $LAST_TAG"
-            COMMIT_LOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"* %s (%h)")
+            git log "${LAST_TAG}..HEAD" --pretty=format:"* %s (%h)" > release_notes.md
           else
-            echo "No previous tag found. Generating notes for all commits."
-            COMMIT_LOG=$(git log --pretty=format:"* %s (%h)")
+            git log --pretty=format:"* %s (%h)" > release_notes.md
           fi
-
-          {
-            echo "changelog_body<<EOF"
-            echo "$COMMIT_LOG"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-      - name: Debug changelog body
+      - name: Debug release notes
         run: |
-          echo "--- Start of Changelog Body ---"
-          echo "${{ steps.generate_notes.outputs.changelog_body }}"
-          echo "--- End of Changelog Body ---"
+          echo "--- Start release_notes.md ---"
+          sed -n '1,120p' release_notes.md
+          echo "--- End release_notes.md ---"
       - name: Create release
         if: github.ref == 'refs/heads/main'
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          body: ${{ steps.generate_notes.outputs.changelog_body }}
+          body_path: release_notes.md
           tag_name: ${{ steps.build.outputs.VER_TAG_NAME }}_${{ github.ref }}
           name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
           draft: false
@@ -81,11 +77,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set build flags from PR tags or commit message
         id: set_flags
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
-            SRC="${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}"
+          if [[ "$EVENT_NAME" = "pull_request" ]]; then
+            SRC="$PR_TITLE $PR_BODY"
           else
-            SRC="${{ github.event.head_commit.message }}"
+            SRC="$COMMIT_MSG"
           fi
 
           BUILD_MAC_DMG=0
@@ -137,7 +138,7 @@ jobs:
 #         sudo add-apt-repository ppa:beineri/opt-qt-5.15.4-focal -y
       - name: install qt into linux
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
-        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev zlib1g-dev libfuse2
+        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev zlib1g-dev libfuse2  qt6-image-formats-plugins
       - name: Set up GPG
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
