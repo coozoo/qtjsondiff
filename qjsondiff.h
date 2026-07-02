@@ -22,7 +22,10 @@
 
 class QPaintEvent;
 class QThread;
-class QProgressDialog;
+class QDialog;
+class QProgressBar;
+class QLabel;
+class QPushButton;
 class QAction;
 
 class QJsonDiff : public QWidget
@@ -118,6 +121,12 @@ private slots:
     void onCompareFinished(QSharedPointer<DiffNode> left, QSharedPointer<DiffNode> right);
     void onCompareCancelled();
     void onCompareProgressed(int done, int total);
+    // Runs the main-thread pre-work (reInitModel + snapshot) and posts
+    // compareAsync to the worker. Split out of on_compare_pushbutton_clicked
+    // so it can be QTimer::singleShot(0)'d — that way the just-shown
+    // progress dialog gets an event-loop turn to actually paint before
+    // we start blocking the main thread with the pre-work.
+    void runComparePreworkAndDispatch();
 
     // Refresh push + delete button visibility when the selection changes.
     void updateLeftPushAction();
@@ -160,12 +169,17 @@ private:
     // not touch these.
     JsonDiffEngine  *mEngine = nullptr;
     QThread         *mWorkerThread = nullptr;
-    // QPointer auto-nulls when the dialog is destroyed. Needed because
-    // QProgressDialog::setValue() pumps the event loop on a modal dialog,
-    // and the queued finished() can drain mid-pump, calling deleteLater
-    // on this dialog — the in-flight onCompareProgressed must observe
-    // the null and bail before its next dialog method call.
-    QPointer<QProgressDialog> mProgressDialog;
+    // Custom modal progress dialog — a QDialog with a QProgressBar +
+    // label + Cancel button, no QProgressDialog. QProgressDialog's
+    // internal state machine (shown_once flag, forceTimer interaction,
+    // setValue's event-loop pump, autoClose triggers) made it flaky
+    // across the reset → show → progress path we need each Compare.
+    // QPointer auto-nulls if the dialog is destroyed while the queued
+    // finished() drains inside a repaint pump.
+    QPointer<QDialog>       mProgressDialog;
+    QProgressBar           *mProgressBar   = nullptr;
+    QLabel                 *mProgressLabel = nullptr;
+    QPushButton            *mProgressCancel = nullptr;
     bool             mCompareCancelledByUser = false;
     // Re-entrancy guard against rapid re-click on the Compare button (or
     // the ALT+C shortcut) while a previous compare is still in flight.
