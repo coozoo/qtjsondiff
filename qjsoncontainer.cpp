@@ -152,6 +152,25 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     find_lineEdit->setPlaceholderText(tr("Serach for..."));
     find_lineEdit->setToolTip(tr("Enter text and press enter to search"));
     find_lineEdit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
+    // Thin progress bar directly under the search input. Fires while
+    // findModelText is walking the tree; goes idle once the index is
+    // built — also serves as a visual "search is ready" cue.
+    mSearchProgress = new QProgressBar();
+    mSearchProgress->setMaximumHeight(3);
+    mSearchProgress->setTextVisible(false);
+    mSearchProgress->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    mSearchProgress->hide();
+
+    // Wrap line-edit + progress bar in a compact widget so the toolbar
+    // can host them as one item. Zero margins/spacing so the bar hugs
+    // the line-edit's bottom edge.
+    auto *findWrapper = new QWidget();
+    auto *findWrapperLayout = new QVBoxLayout(findWrapper);
+    findWrapperLayout->setContentsMargins(0, 0, 0, 0);
+    findWrapperLayout->setSpacing(0);
+    findWrapperLayout->addWidget(find_lineEdit);
+    findWrapperLayout->addWidget(mSearchProgress);
     findNext_toolbutton = new QAction(toolbar);
     QIcon findNext_icon = QIcon(createPixmapFromText(tr(">>")));
     findNext_toolbutton->setText(tr("Search Next"));
@@ -174,7 +193,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     toolbar->addAction(switchview_action);
     toolbar->addAction(expandAll_Checkbox);
     toolbar->addSeparator();
-    toolbar->addWidget(find_lineEdit);
+    toolbar->addWidget(findWrapper);
     toolbar->addAction(findPrevious_toolbutton);
     toolbar->addAction(findNext_toolbutton);
     toolbar->addAction(findCaseSensitivity_toolbutton);
@@ -913,7 +932,23 @@ void QJsonContainer::on_findCaseSensitivity_toolbutton_clicked()
 {
     currentFindIndexesList.clear();
     currentFindText = find_lineEdit->text();
+    // Same show/hide bracket as findTextJsonIndexHandler — the case-
+    // sensitivity toggle re-runs findModelText from scratch, so the
+    // user should get the same visual "indexing" cue.
+    const int totalNodes = countTreeNodes(model, QModelIndex());
+    mSearchProgressCounter = 0;
+    if (mSearchProgress)
+    {
+        mSearchProgress->setRange(0, totalNodes > 0 ? totalNodes : 1);
+        mSearchProgress->setValue(0);
+        mSearchProgress->show();
+    }
     currentFindIndexesList = findModelText(model, QModelIndex());
+    if (mSearchProgress)
+    {
+        mSearchProgress->setValue(mSearchProgress->maximum());
+        mSearchProgress->hide();
+    }
     currentFindIndexId = -1;
 }
 
@@ -938,7 +973,23 @@ void QJsonContainer::findTextJsonIndexHandler(bool direction)
         {
             currentFindIndexesList.clear();
             currentFindText = find_lineEdit->text();
+            // Show the thin progress bar under the search input while
+            // findModelText walks the tree. Determinate range = total
+            // node count so the fill correlates with actual progress.
+            const int totalNodes = countTreeNodes(model, QModelIndex());
+            mSearchProgressCounter = 0;
+            if (mSearchProgress)
+            {
+                mSearchProgress->setRange(0, totalNodes > 0 ? totalNodes : 1);
+                mSearchProgress->setValue(0);
+                mSearchProgress->show();
+            }
             currentFindIndexesList = findModelText(model, QModelIndex());
+            if (mSearchProgress)
+            {
+                mSearchProgress->setValue(mSearchProgress->maximum());
+                mSearchProgress->hide();
+            }
             currentFindIndexId = -1;
             qDebug() << "##################" << currentFindIndexesList;
         }
@@ -1523,6 +1574,19 @@ QStringList QJsonContainer::extractItemTextFromModel(const QModelIndex &parent)
     return retval;
 }
 
+int QJsonContainer::countTreeNodes(QJsonModel *model, const QModelIndex &parent) const
+{
+    if (!model) return 0;
+    int total = 0;
+    const int n = model->rowCount(parent);
+    for (int i = 0; i < n; ++i)
+    {
+        QModelIndex idx = model->index(i, 0, parent);
+        total += 1 + countTreeNodes(model, idx);
+    }
+    return total;
+}
+
 QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModelIndex &parent)
 {
     QList<QModelIndex> retindex;
@@ -1563,6 +1627,20 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
                             retindex << idx0;
 
                         }
+                    // Progress tick per visited node. Every 200 nodes we
+                    // update the bar and drain user-events-free ticks
+                    // through the event loop so the bar can repaint mid-
+                    // walk. ExcludeUserInputEvents keeps a stray click
+                    // from re-entering the search handler while we're
+                    // still building the index.
+                    ++mSearchProgressCounter;
+                    if (mSearchProgress && mSearchProgress->isVisible()
+                            && (mSearchProgressCounter % 200) == 0)
+                    {
+                        mSearchProgress->setValue(mSearchProgressCounter);
+                        QCoreApplication::processEvents(
+                            QEventLoop::ExcludeUserInputEvents);
+                    }
                     retindex << findModelText(model, idx0);
                 }
         }

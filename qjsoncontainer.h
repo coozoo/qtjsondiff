@@ -33,6 +33,7 @@
 #include <zlib.h>
 
 #include <QWidgetAction>
+#include <QProgressBar>
 
 typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
@@ -128,6 +129,16 @@ private:
     QString currentFindText;
     int currentFindIndexId;
     void resetCurrentFind();
+    // Thin progress bar directly under find_lineEdit that lights up
+    // while findModelText walks the tree. Also serves as the "search
+    // is indexed / ready" visual cue — off = idle, filling = indexing.
+    QProgressBar *mSearchProgress = nullptr;
+    // Live counter used by findModelText to feed mSearchProgress. Zeroed
+    // before the walk, incremented on each visited node.
+    int mSearchProgressCounter = 0;
+    // Count every visitable node under `parent` (recursive rowCount sum).
+    // Used to size mSearchProgress before findModelText starts.
+    int countTreeNodes(QJsonModel *model, const QModelIndex &parent) const;
     void findTextJsonIndexHandler(bool direction);
     int currentGotoIndexId;
     QMenu myMenu;
