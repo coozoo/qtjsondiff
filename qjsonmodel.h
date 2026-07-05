@@ -45,6 +45,10 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QJsonTreeItem* itemFromIndex(const QModelIndex &index) const;
+    // Root item accessor. Same object mRootItem points to internally.
+    // Needed by JsonDiffEngine::apply so it can splice phantom rows
+    // under the root when arrayAlignment produces top-level phantoms.
+    QJsonTreeItem* rootItem() const { return mRootItem; }
     void setIcon(const QJsonValue::Type& type, const QIcon& icon);
     bool hasParseError() const { return mHasParseError; }
     QString lastErrorMessage() const { return mLastErrorMessage; }
@@ -92,6 +96,15 @@ public:
                                     int row,
                                     const QString &key,
                                     const QJsonValue &source);
+
+    // Insert a phantom (placeholder) row under `parent` at `row`.
+    // Used by JsonDiffEngine::apply to line up matched items on the
+    // two sides after an array/object alignment. Emits proper
+    // begin/endInsertRows so QTreeView's persistent-index-based state
+    // (expansion, selection, scroll anchor) is preserved for the rows
+    // at and after the insertion point. Returns the new item, or
+    // nullptr if `parent` doesn't resolve.
+    QJsonTreeItem *insertPhantomRow(const QModelIndex &parent, int row);
 
     // --- Drag-and-drop ------------------------------------------------
     // Item-level DnD between two QJsonContainer trees (e.g. the two

@@ -39,6 +39,7 @@ Some features:
     - **Comparison Modes**:
       * **Full Path**: (Default, Fast) Compares items based on their absolute path.
       * **Parent+Child Pair**: (Slow) Finds the first occurrence of a parent-child pair anywhere in the JSON, useful for structurally different but content-similar JSONs.
+    - **Smart Array** (optional): compare arrays and objects by content instead of by position. Reordered lists still pair correctly, and any item that exists on only one side shows up as a ghost row on the other side so matched pairs stay lined up row-for-row for sync-scroll and side-by-side reading. Fill in the **Match key** field (e.g. `id`) to prefer that field as the item's identity when comparing arrays of objects.
     - **Rich Clipboard Support**:
       * **Copy Row**: Copies the selected item's text ("Key Type Value").
       * **Copy Rows**: Copies the entire tree content for pasting into spreadsheets.
@@ -242,15 +243,24 @@ If you want to run a comparison without the widget (for example in a CLI tool or
 DiffNode left  = JsonDiffEngine::snapshot(leftModel);
 DiffNode right = JsonDiffEngine::snapshot(rightModel);
 
-// run the compare (Mode::FullPath or Mode::ParentChildPair)
+// simple positional compare (Mode::FullPath or Mode::ParentChildPair)
 JsonDiffEngine::compare(left, right, JsonDiffEngine::Mode::FullPath);
 
+// or turn Smart Array on — match items by content instead of by
+// index, so reordered arrays pair correctly and missing items
+// surface as ghost rows on the opposite side. The third argument
+// is the match-key (empty = compare items by their whole content)
+// and the fourth is the Smart Array switch.
+JsonDiffEngine::compare(left, right, JsonDiffEngine::Mode::FullPath,
+                        /*matchKey=*/"id", /*arrayOverlay=*/true);
+
 // apply the result back onto the models so the tree views show colors
+// and (under Smart Array) ghost rows for the missing items.
 JsonDiffEngine::apply(left,  leftModel,  rightModel);
 JsonDiffEngine::apply(right, rightModel, leftModel);
 ```
 
-That's all you need for a basic compare. `QJsonDiff` does the same thing internally on a background thread with a progress dialog.
+That's all you need for a basic compare. `QJsonDiff` does the same thing internally on a background thread with a progress dialog. The toolbar controls above the diff view are `modeCombo` (QComboBox — Full Path / Parent+Child), `arrayOverlay_checkbox` (QCheckBox — Smart Array), and `matchKey_lineEdit` (QLineEdit); all three are public members if you want to drive them from your own code.
 
 
 ## Comparison modes
@@ -280,7 +290,26 @@ Using the same example above, Parent+Child pair would say "`user.id` exists on b
 
 Useful when two JSONs describe the same data but are structured differently, or when you care about *values* more than *exact tree shape*. The trade-off is speed: every left-side item walks the entire right side looking for a match, so very large or very different JSONs can take a long time.
 
-You can switch between modes at any time with the **Use Full Path** checkbox above the diff view.
+You can switch between modes at any time with the **compare-mode combobox** above the diff view.
+
+### Smart Array
+
+Positional modes (Full Path, Parent+Child) match array items by their index. A single missing item makes everything after it look different, even when the items are byte-for-byte identical. When **Smart Array** is on, arrays and objects are compared by content: items with the same content pair up regardless of position, and any item that exists on only one side shows up as a ghost row on the other side so matched pairs stay aligned row-for-row.
+
+- **Arrays**: each item's content is used as its identity — two items pair up if their content signatures match. If you fill in the **Match key** field (`id`, or a comma-separated list like `id,eventId,marketId`), objects that carry any of those fields pair by that field's value first, which is useful when items are objects with a natural identifier.
+- **Objects**: children pair by key at their own level; source order is preserved.
+- **Missing items become ghost rows** on the opposite side, so row *N* on the left lines up with row *N* on the right for every matched pair. Sync-scroll and visual side-by-side reading work again on shifted arrays.
+
+Example — the whole point of the feature:
+
+```json
+left:  { "arr": [ "A", "B", "C", "D" ] }
+right: { "arr": [ "A", "B", "X", "C", "D" ] }
+```
+
+With Smart Array off, items are paired by index: `A` with `A`, `B` with `B`, `C` with `X`, `D` with `C`, and the right's `D` is left over — so three of the five items are flagged as different even though every letter appears on both sides. Turn **Smart Array** on and the pairing becomes A↔A, B↔B, C↔C, D↔D; the extra `X` is shown as a real item on the right and a ghost row on the left at the same visual position.
+
+Smart Array is off by default (preserves prior positional behavior). Toggle it whenever the JSON is array-heavy or the arrays are known to be reordered.
 
 
 ### Supported Build Tags

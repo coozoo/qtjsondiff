@@ -7,15 +7,49 @@
 #include <QGroupBox>
 #include <QTime>
 #include <QThread>
-#include <QProgressDialog>
+#include <QDialog>
+#include <QProgressBar>
+#include <QLabel>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QAction>
 #include <QToolBar>
 #include <QItemSelectionModel>
 #include <QStyle>
 #include <QApplication>
+#include <QEventLoop>
+#include <QLineEdit>
+#include <QComboBox>
+#include <QPaintEvent>
 #include "qjsonitem.h"
 #include "jsondiffengine.h"
 #include "preferences/preferences.h"
+
+namespace {
+
+// QDialog that fires a one-shot callback the first time its paintEvent
+// runs. Lets QJsonDiff defer main-thread-blocking pre-work until the
+// dialog is actually on screen.
+class FirstPaintDialog : public QDialog
+{
+public:
+    using QDialog::QDialog;
+    std::function<void()> onFirstPaint;
+protected:
+    void paintEvent(QPaintEvent *e) override
+    {
+        QDialog::paintEvent(e);
+        if (onFirstPaint)
+        {
+            auto cb = std::move(onFirstPaint);
+            onFirstPaint = nullptr;
+            cb();
+        }
+    }
+};
+
+} // namespace
 
 QJsonDiff::QJsonDiff(QWidget *parent):
     QWidget(parent)
@@ -76,11 +110,56 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     syncScroll_checkbox->setText(tr("Sync Scrolls"));
     syncScroll_checkbox->setToolTip(tr("Try to sync left and right scrolling areas"));
     button_layout->addWidget(syncScroll_checkbox,0,1);
-    useFullPath_checkbox=new QCheckBox(button_groupbox);
-    useFullPath_checkbox->setText(tr("Use Full Path"));
-    useFullPath_checkbox->setChecked(true);
-    useFullPath_checkbox->setToolTip(tr("Otherwise try to find child+parent pair anywhere in JSON tree"));
-    button_layout->addWidget(useFullPath_checkbox,0,2);
+    // Legacy checkbox pointers — kept for source compatibility with
+    // integrators reading them, hidden in the new UI. Their checked
+    // state is kept in sync with modeCombo below so external reads
+    // still return the "am I in FullPath / SmartArray?" answer.
+    // Compare mode picker.
+    modeCombo = new QComboBox(button_groupbox);
+    modeCombo->addItem(tr("Full Path"),
+                       int(JsonDiffEngine::Mode::FullPath));
+    modeCombo->addItem(tr("Parent+Child"),
+                       int(JsonDiffEngine::Mode::ParentChildPair));
+    modeCombo->setToolTip(tr(
+        "Compare mode.\n"
+        "  Full Path: match by absolute key+type path (fast, strict).\n"
+        "  Parent+Child: match by (parent key, key) anywhere in tree."));
+    button_layout->addWidget(modeCombo, 0, 2);
+
+    // Smart Array checkbox — layers LCS-style children pairing on top
+    // of the positional walker. When on, paired Arrays get LCS
+    // alignment (with the match-key if given) and paired Objects get
+    // source-order alignment; both produce phantom rows on the
+    // opposite side to keep matched items lined up 1:1.
+    arrayOverlay_checkbox = new QCheckBox(button_groupbox);
+    arrayOverlay_checkbox->setText(tr("Smart Array"));
+    arrayOverlay_checkbox->setToolTip(tr(
+        "After the positional match, align each paired container's\n"
+        "children by content (bipartite LCS on arrays, key-match on\n"
+        "objects). Missing items surface as ghost rows on the opposite\n"
+        "side so matched pairs stay row-aligned for sync-scroll and\n"
+        "side-by-side reading."));
+    button_layout->addWidget(arrayOverlay_checkbox, 0, 3);
+    matchKey_lineEdit = new QLineEdit(button_groupbox);
+    matchKey_lineEdit->setPlaceholderText(tr("Match key (e.g. id)"));
+    matchKey_lineEdit->setToolTip(tr("Optional: when comparing arrays of objects, prefer matching by this field name before falling back to weight"));
+    matchKey_lineEdit->setClearButtonEnabled(true);
+    // Fixed size policy so it never eats layout stretch; a helper
+    // resizes to fit current text (or placeholder when empty) as the
+    // user types.
+    matchKey_lineEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    auto resizeMatchKey = [this]() {
+        const QFontMetrics fm(matchKey_lineEdit->font());
+        const QString shown = matchKey_lineEdit->text().isEmpty()
+                                ? matchKey_lineEdit->placeholderText()
+                                : matchKey_lineEdit->text();
+        // +40px for clear-button icon + text-frame padding.
+        matchKey_lineEdit->setFixedWidth(fm.horizontalAdvance(shown) + 40);
+    };
+    connect(matchKey_lineEdit, &QLineEdit::textChanged, this,
+            [resizeMatchKey](const QString&) { resizeMatchKey(); });
+    resizeMatchKey();
+    button_layout->addWidget(matchKey_lineEdit, 0, 4);
     checkboxSpacer=new QSpacerItem(5, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
     button_layout->addItem(checkboxSpacer,0,0,1,1);
     button_groupbox->setLayout(button_layout);
@@ -99,7 +178,28 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     connect(left_cont,&QJsonContainer::sJsonFileLoaded,this,&QJsonDiff::reinitRightModel);
     connect(right_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitLeftModel()));
     connect(left_cont,SIGNAL(jsonUpdated()),this,SLOT(reinitRightModel()));
-    connect(useFullPath_checkbox,&QCheckBox::stateChanged,this,&QJsonDiff::on_useFullPath_checkbox_stateChanged);
+
+    // Hydrate mode + Smart Array + match-key from persisted prefs.
+    modeCombo->setCurrentIndex(qBound(0, PREF_INST->compareMode, modeCombo->count() - 1));
+    arrayOverlay_checkbox->setChecked(PREF_INST->arrayOverlay);
+    matchKey_lineEdit->setText(PREF_INST->matchKey);
+
+    connect(modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int idx) {
+        PREF_INST->compareMode = idx;
+        PREF_INST->save();
+        // reInit the left model on mode swap so the tree re-hydrates
+        // from plaintext without stale-color leftovers.
+        reinitLeftModel();
+    });
+    connect(arrayOverlay_checkbox, &QCheckBox::stateChanged, this, [](int st) {
+        PREF_INST->arrayOverlay = (st == Qt::Checked);
+        PREF_INST->save();
+    });
+    connect(matchKey_lineEdit, &QLineEdit::textChanged, this, [](const QString &s) {
+        PREF_INST->matchKey = s;
+        PREF_INST->save();
+    });
     /*//good but not enough for this case
     connect(left_cont->getTreeView()->verticalScrollBar(), SIGNAL(valueChanged(int)),
             right_cont->getTreeView()->verticalScrollBar(), SLOT(setValue(int)));
@@ -327,9 +427,11 @@ void QJsonDiff::setupCompareWorker()
             mCurrentPhase = tr("Pairing items"); break;
         case JsonDiffEngine::Phase::ResolvingColors:
             mCurrentPhase = tr("Resolving colors"); break;
+        case JsonDiffEngine::Phase::AligningContainers:
+            mCurrentPhase = tr("Aligning arrays and objects"); break;
         }
-        if (mProgressDialog)
-            mProgressDialog->setLabelText(formatProgressLabel());
+        if (mProgressLabel)
+            mProgressLabel->setText(formatProgressLabel());
     }, Qt::QueuedConnection);
 
     // Note: we deliberately do NOT connect QThread::finished to
@@ -381,6 +483,7 @@ void QJsonDiff::teardownCompareWorker()
 
 void QJsonDiff::on_compare_pushbutton_clicked()
 {
+    qDebug() << "[compare-dlg] Compare button clicked";
 
     // Re-entrancy gate: rapid re-click (or ALT+C re-fire) during the
     // setValue(0) event-pump below would otherwise queue a second
@@ -389,8 +492,100 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     mComparing = true;
     compare_pushbutton->setEnabled(false);
 
+    // Custom modal progress dialog — plain QDialog + QProgressBar +
+    // label + Cancel button. QProgressDialog has too much hidden state
+    // (shown_once, forceTimer, autoClose triggers, setValue's own
+    // event-pump) and we couldn't get it to reliably reappear on a
+    // second Compare click. A hand-rolled dialog gives us the show/hide
+    // semantics we actually want.
+    //
+    // Show it BEFORE the main-thread pre-work (reInitModel + snapshot)
+    // — those steps can take seconds on large JSONs. Without an early
+    // show the user sees a frozen UI, then a dialog flash at the end
+    // when the event loop finally drains.
+    mCompareCancelledByUser = false;
+    if (mProgressDialog)
+    {
+        mProgressDialog->hide();
+        mProgressDialog->deleteLater();
+        mProgressDialog = nullptr;
+        mProgressBar    = nullptr;
+        mProgressLabel  = nullptr;
+        mProgressCancel = nullptr;
+    }
+    auto *dlg = new FirstPaintDialog(this);
+    mProgressDialog = dlg;
+    mProgressDialog->setWindowTitle(tr("Comparing JSON"));
+    mProgressDialog->setWindowModality(Qt::ApplicationModal);
+    // No system close button — the only exit is the Cancel button
+    // (which routes through requestCancel + our teardown).
+    mProgressDialog->setWindowFlags(mProgressDialog->windowFlags()
+                                    & ~Qt::WindowCloseButtonHint);
+
+    mProgressLabel  = new QLabel(mProgressDialog);
+    mProgressBar    = new QProgressBar(mProgressDialog);
+    mProgressCancel = new QPushButton(tr("Cancel"), mProgressDialog);
+    // Range (0, 0) puts the bar into busy-indicator mode while the
+    // pre-work runs (no per-node metric to feed a real percent).
+    mProgressBar->setRange(0, 0);
+    mProgressBar->setMinimumWidth(360);
+
+    auto *vbox   = new QVBoxLayout(mProgressDialog);
+    auto *btnRow = new QHBoxLayout;
+    vbox->addWidget(mProgressLabel);
+    vbox->addWidget(mProgressBar);
+    btnRow->addStretch(1);
+    btnRow->addWidget(mProgressCancel);
+    vbox->addLayout(btnRow);
+
+    connect(mProgressCancel, &QPushButton::clicked, this, [this]()
+    {
+        mCompareCancelledByUser = true;
+        if (mEngine) mEngine->requestCancel();
+        // Immediate feedback — the user has done their part.
+        if (mProgressLabel)  mProgressLabel->setText(tr("Cancelling…"));
+        if (mProgressCancel) mProgressCancel->setEnabled(false);
+    });
+
+    mCurrentPhase = tr("Preparing");
+    mCompareElapsed.start();
+    mProgressLabel->setText(formatProgressLabel());
+
+    // Kick pre-work only after the dialog has actually painted.
+    // QueuedConnection semantics: the callback returns before prework
+    // runs, so paintEvent finishes cleanly.
+    dlg->onFirstPaint = [this]()
+    {
+        qDebug() << "[compare-dlg] first paint @ +" << mCompareElapsed.elapsed() << "ms";
+        QMetaObject::invokeMethod(this, [this]()
+        {
+            runComparePreworkAndDispatch();
+        }, Qt::QueuedConnection);
+    };
+
+    mProgressDialog->show();
+    mProgressDialog->raise();
+    mProgressDialog->activateWindow();
+    qDebug() << "[compare-dlg] show() called @ +0ms";
+}
+
+void QJsonDiff::runComparePreworkAndDispatch()
+{
+    qDebug() << "[compare-dlg] prework start @ +" << mCompareElapsed.elapsed() << "ms";
+
+    // Guard: if the user cancelled between the click handler returning
+    // and this deferred callback firing, respect that and tear down.
+    if (mCompareCancelledByUser)
+    {
+        onCompareCancelled();
+        return;
+    }
+
+    QElapsedTimer prep;
+    prep.start();
     left_cont->reInitModel();
     right_cont->reInitModel();
+    qDebug() << "[compare-dlg] reInitModel done in" << prep.restart() << "ms (both sides)";
 
     QJsonModel *leftModel  = left_cont->getJsonModel();
     QJsonModel *rightModel = right_cont->getJsonModel();
@@ -400,59 +595,45 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     // contract in jsondiffengine.h.
     auto leftSnap  = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(leftModel));
     auto rightSnap = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(rightModel));
+    qDebug() << "[compare-dlg] snapshot done in" << prep.elapsed() << "ms (both sides)";
 
-    const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
-        ? JsonDiffEngine::Mode::FullPath
-        : JsonDiffEngine::Mode::ParentChildPair;
+    const JsonDiffEngine::Mode mode = static_cast<JsonDiffEngine::Mode>(
+        modeCombo ? modeCombo->currentIndex()
+                  : int(JsonDiffEngine::Mode::FullPath));
     mLastMode = mode;
 
-    // Modal progress dialog blocks user input until compare completes
-    // or is cancelled. We deliberately CREATE A FRESH DIALOG each compare
-    // — reusing one via reset() + setValue(0) hits QProgressDialog's
-    // internal state machine (shown_once flag, forceTimer interaction)
-    // and can leave the widget painted-but-not-modal when the worker
-    // emits finished() before the show event finishes processing. Fresh
-    // allocation avoids that entire failure mode at zero meaningful cost.
-    mCompareCancelledByUser = false;
-    if (mProgressDialog)
+    // Late Cancel guard — snapshotting takes non-trivial time on large
+    // JSONs and the user may have clicked Cancel while it was running.
+    if (mCompareCancelledByUser)
     {
-        mProgressDialog->hide();
-        mProgressDialog->deleteLater();
-        mProgressDialog = nullptr;
+        onCompareCancelled();
+        return;
     }
-    mProgressDialog = new QProgressDialog(this);
-    mProgressDialog->setWindowTitle(tr("Comparing JSON"));
-    mProgressDialog->setCancelButtonText(tr("Cancel"));
-    mProgressDialog->setWindowModality(Qt::ApplicationModal);
-    mProgressDialog->setAutoClose(false);
-    mProgressDialog->setAutoReset(false);
-    mProgressDialog->setMinimumDuration(0);
-    mProgressDialog->setRange(0, mode == JsonDiffEngine::Mode::FullPath ? 6 : 3);
-    connect(mProgressDialog, &QProgressDialog::canceled, this, [this]()
-    {
-        mCompareCancelledByUser = true;
-        if (mEngine) mEngine->requestCancel();
-    });
-    mCurrentPhase = tr("Starting");
-    mCompareElapsed.start();
-    mProgressDialog->setLabelText(formatProgressLabel());
-    mProgressDialog->show();
 
     mEngine->resetCancel();
+    mEngine->setArrayOverlay(arrayOverlay_checkbox
+                             && arrayOverlay_checkbox->isChecked());
+    mEngine->setMatchKey(matchKey_lineEdit ? matchKey_lineEdit->text() : QString());
     QMetaObject::invokeMethod(mEngine, "compareAsync", Qt::QueuedConnection,
         Q_ARG(QSharedPointer<DiffNode>, leftSnap),
         Q_ARG(QSharedPointer<DiffNode>, rightSnap),
         Q_ARG(JsonDiffEngine::Mode, mode));
+    qDebug() << "[compare-dlg] compareAsync dispatched @ +" << mCompareElapsed.elapsed() << "ms";
 }
 
 void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
                                   QSharedPointer<DiffNode> right)
 {
+    qDebug() << "[compare-dlg] onCompareFinished entered @ +" << mCompareElapsed.elapsed() << "ms";
     if (mProgressDialog)
     {
         mProgressDialog->hide();
         mProgressDialog->deleteLater();
         mProgressDialog = nullptr;
+        mProgressBar    = nullptr;
+        mProgressLabel  = nullptr;
+        mProgressCancel = nullptr;
+        qDebug() << "[compare-dlg] hide+deleteLater @ +" << mCompareElapsed.elapsed() << "ms";
     }
 
     // Release the re-entrancy gate and the visual lock on the Compare
@@ -471,8 +652,17 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
 
     QJsonModel *leftModel  = left_cont->getJsonModel();
     QJsonModel *rightModel = right_cont->getJsonModel();
+
+    // End-of-compare timing block — where does the tail time go?
+    // Left in place because these numbers are useful the next time
+    // somebody investigates "why did Compare take N seconds"; the
+    // qDebug is stripped from release via QT_NO_DEBUG_OUTPUT.
+    QElapsedTimer et;
+    et.start();
     JsonDiffEngine::apply(*left,  leftModel,  rightModel);
+    const qint64 tApplyLeft = et.restart();
     JsonDiffEngine::apply(*right, rightModel, leftModel);
+    const qint64 tApplyRight = et.restart();
 
     // Keep the snapshots alive — Phase A targeted recompare runs on
     // these without ever rebuilding from the model.
@@ -480,19 +670,35 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
     mRightSnap = right;
 
     left_cont->gotoIndexHandler(true);
+    const qint64 tGotoLeft = et.restart();
     right_cont->gotoIndexHandler(true);
+    const qint64 tGotoRight = et.restart();
 
     updateLeftPushAction();
     updateRightPushAction();
+    const qint64 tUpdateActions = et.elapsed();
+
+    qDebug().nospace()
+        << "[compare-finish] applyLeft=" << tApplyLeft << "ms"
+        << " applyRight=" << tApplyRight << "ms"
+        << " gotoLeft=" << tGotoLeft << "ms"
+        << " gotoRight=" << tGotoRight << "ms"
+        << " updateActions=" << tUpdateActions << "ms"
+        << " total=" << (tApplyLeft + tApplyRight + tGotoLeft + tGotoRight + tUpdateActions) << "ms";
 }
 
 void QJsonDiff::onCompareCancelled()
 {
+    qDebug() << "[compare-dlg] onCompareCancelled entered @ +" << mCompareElapsed.elapsed() << "ms";
     if (mProgressDialog)
     {
         mProgressDialog->hide();
         mProgressDialog->deleteLater();
         mProgressDialog = nullptr;
+        mProgressBar    = nullptr;
+        mProgressLabel  = nullptr;
+        mProgressCancel = nullptr;
+        qDebug() << "[compare-dlg] cancel: hide+deleteLater @ +" << mCompareElapsed.elapsed() << "ms";
     }
     mComparing = false;
     compare_pushbutton->setEnabled(true);
@@ -512,16 +718,14 @@ QString QJsonDiff::formatProgressLabel() const
 
 void QJsonDiff::onCompareProgressed(int done, int total)
 {
-    // setValue() pumps the event loop on a modal dialog. Inside that
-    // pump the queued finished() can drain — onCompareFinished then
-    // deleteLater()s our dialog and the QPointer auto-nulls. Re-check
-    // after every dialog call so we don't touch a destroyed widget.
-    if (!mProgressDialog) return;
-    mProgressDialog->setRange(0, total);
-    if (!mProgressDialog) return;
-    mProgressDialog->setValue(done);
-    if (!mProgressDialog) return;
-    mProgressDialog->setLabelText(formatProgressLabel());
+    // Plain QProgressBar setValue doesn't pump the event loop (unlike
+    // QProgressDialog's), so no reentrancy race here — the dialog
+    // can't get destroyed mid-call by an in-flight finished().
+    if (!mProgressBar || !mProgressLabel) return;
+    if (mProgressBar->maximum() != total)
+        mProgressBar->setRange(0, total);
+    mProgressBar->setValue(done);
+    mProgressLabel->setText(formatProgressLabel());
 }
 
 void QJsonDiff::startComparison()
@@ -536,12 +740,16 @@ void QJsonDiff::startComparison()
     DiffNode leftSnap  = JsonDiffEngine::snapshot(leftModel);
     DiffNode rightSnap = JsonDiffEngine::snapshot(rightModel);
 
-    const JsonDiffEngine::Mode mode = useFullPath_checkbox->isChecked()
-        ? JsonDiffEngine::Mode::FullPath
-        : JsonDiffEngine::Mode::ParentChildPair;
+    const JsonDiffEngine::Mode mode = static_cast<JsonDiffEngine::Mode>(
+        modeCombo ? modeCombo->currentIndex()
+                  : int(JsonDiffEngine::Mode::FullPath));
     mLastMode = mode;
 
-    JsonDiffEngine::compare(leftSnap, rightSnap, mode);
+    const bool overlay = arrayOverlay_checkbox
+                         && arrayOverlay_checkbox->isChecked();
+    const QString matchKey = matchKey_lineEdit ? matchKey_lineEdit->text()
+                                               : QString();
+    JsonDiffEngine::compare(leftSnap, rightSnap, mode, matchKey, overlay);
 
     JsonDiffEngine::apply(leftSnap,  leftModel,  rightModel);
     JsonDiffEngine::apply(rightSnap, rightModel, leftModel);
@@ -607,12 +815,6 @@ void QJsonDiff::on_righttreeview_clicked(const QModelIndex&)
 
 }
 
-
-void QJsonDiff::on_useFullPath_checkbox_stateChanged(int)
-{
-    qDebug()<<"on_useFullPath_checkbox_checkStateChanged";
-    reinitLeftModel();
-}
 
 // load json file
 void QJsonDiff::loadRightJsonFile(const QString &target)

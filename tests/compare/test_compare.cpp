@@ -14,6 +14,7 @@
 #include <QTest>
 #include <QWidget>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QSignalSpy>
 #include <QMimeData>
 
@@ -74,7 +75,9 @@ private:
                         const QString& rightJson,
                         bool useFullPath)
     {
-        diff->useFullPath_checkbox->setChecked(useFullPath);
+        diff->modeCombo->setCurrentIndex(
+            useFullPath ? int(JsonDiffEngine::Mode::FullPath)
+                        : int(JsonDiffEngine::Mode::ParentChildPair));
         diff->loadJsonLeft(QJsonDocument::fromJson(leftJson.toUtf8()));
         diff->loadJsonRight(QJsonDocument::fromJson(rightJson.toUtf8()));
         diff->startComparison();

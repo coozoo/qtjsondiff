@@ -177,6 +177,8 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     }
 
     if ((role == Qt::DecorationRole) && (index.column() == 0)){
+        if (item->isPhantom())
+            return QVariant();
         return mTypeIcons.value(item->type());
     }
 
@@ -185,13 +187,23 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
+        // Phantoms are alignment-only spacer rows. Render as blank
+        // in every column so they can't be mistaken for real content
+        // (a phantom under an Array would otherwise show its positional
+        // "0"/"1"/... as if it were a real index).
+        if (item->isPhantom())
+            return QString();
         if (index.column() == 0)
             return QString("%1").arg(item->key());
         if (index.column() == 1)
         {
             if (item->type()==QJsonValue::Array)
             {
-                return QString("Array[%1]").arg(item->childCount());
+                int real = 0;
+                for (int i = 0; i < item->childCount(); ++i)
+                    if (!item->child(i)->isPhantom())
+                        ++real;
+                return QString("Array[%1]").arg(real);
             }
             else
             {
@@ -212,6 +224,8 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
         return false;
 
     QJsonTreeItem *item = itemFromIndex(index);
+    if (item && item->isPhantom())
+        return false;
     const QString valStr = value.toString();
 
     // Handle column 1: Type change
@@ -439,6 +453,11 @@ Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
 
     QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
 
+    // Phantoms are read-only placeholders; strip Selectable/Enabled?
+    // No — the view still needs to size and paint them. Just deny edit.
+    if (item->isPhantom())
+        return flags;
+
     // Type is editable, but not for the root item
     if (index.column() == 1 && item->parent()) {
         flags |= Qt::ItemIsEditable;
@@ -596,6 +615,7 @@ void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
         QJsonObject obj;
         for (int i = 0; i < childCount; ++i) {
             QJsonTreeItem *child = item->child(i);
+            if (child->isPhantom()) continue;
             QJsonValue childValue;
             generateJson(child, childValue);
             obj.insert(child->key(), childValue);
@@ -605,6 +625,7 @@ void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
         QJsonArray arr;
         for (int i = 0; i < childCount; ++i) {
             QJsonTreeItem *child = item->child(i);
+            if (child->isPhantom()) continue;
             QJsonValue childValue;
             generateJson(child, childValue);
             arr.append(childValue);
@@ -898,6 +919,33 @@ QModelIndex QJsonModel::insertChildFromJson(const QModelIndex &parent,
     emit modelChanged();
     emit dataUpdated();
     return index(row, 0, parent0);
+}
+
+QJsonTreeItem *QJsonModel::insertPhantomRow(const QModelIndex &parent, int row)
+{
+    QJsonTreeItem *parentItem = parent.isValid() ? itemFromIndex(parent)
+                                                  : mRootItem;
+    if (!parentItem)
+        return nullptr;
+    const int count = parentItem->childCount();
+    if (row < 0 || row > count) row = count;
+
+    // Column-0 form of `parent` — beginInsertRows follows Qt convention
+    // that structural signals reference the column-0 index of the
+    // parent (matches insertChildFromJson above).
+    const QModelIndex parent0 = parent.isValid() ? parent.siblingAtColumn(0)
+                                                 : QModelIndex();
+
+    beginInsertRows(parent0, row, row);
+    auto *ph = new QJsonTreeItem(parentItem);
+    ph->setKey(QString::number(row));
+    ph->setType(QJsonValue::Null);
+    ph->setValue(QString());
+    ph->setPhantom(true);
+    ph->setColorType(DiffColorType::NotPresent);
+    parentItem->insertChild(row, ph);
+    endInsertRows();
+    return ph;
 }
 
 // ---------------------------------------------------------------------

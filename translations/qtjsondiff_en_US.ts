@@ -354,13 +354,13 @@ Available styles:
     </message>
     <message>
         <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1846"/>
+        <location filename="../qjsoncontainer.cpp" line="1849"/>
         <source>Start of json has been reached! Next item will be from the end</source>
         <translation></translation>
     </message>
     <message>
         <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1846"/>
+        <location filename="../qjsoncontainer.cpp" line="1849"/>
         <source>End of json has been reached! Next item will be from the start</source>
         <translation></translation>
     </message>
@@ -447,12 +447,12 @@ Available styles:
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1859"/>
+        <location filename="../qjsoncontainer.cpp" line="1862"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Documents identical!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1864"/>
+        <location filename="../qjsoncontainer.cpp" line="1867"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
@@ -516,119 +516,160 @@ It can be helpful for comparison when order does not relevant</source>
 <context>
     <name>QJsonDiff</name>
     <message>
-        <location filename="../qjsondiff.cpp" line="71"/>
+        <location filename="../qjsondiff.cpp" line="105"/>
         <source>Compare</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="72"/>
+        <location filename="../qjsondiff.cpp" line="106"/>
         <source>Start comparison (ALT+C)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="76"/>
+        <location filename="../qjsondiff.cpp" line="110"/>
         <source>Sync Scrolls</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="80"/>
-        <source>Use Full Path</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../qjsondiff.cpp" line="82"/>
-        <source>Otherwise try to find child+parent pair anywhere in JSON tree</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../qjsondiff.cpp" line="319"/>
+        <location filename="../qjsondiff.cpp" line="419"/>
         <source>Building paths</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="321"/>
+        <location filename="../qjsondiff.cpp" line="421"/>
         <source>Matching paths</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="323"/>
+        <location filename="../qjsondiff.cpp" line="423"/>
         <source>Comparing values</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="325"/>
+        <location filename="../qjsondiff.cpp" line="425"/>
         <source>Indexing right tree</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="327"/>
+        <location filename="../qjsondiff.cpp" line="427"/>
         <source>Pairing items</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="329"/>
+        <location filename="../qjsondiff.cpp" line="429"/>
         <source>Resolving colors</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="424"/>
+        <location filename="../qjsondiff.cpp" line="518"/>
         <source>Comparing JSON</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="436"/>
-        <source>Starting</source>
+        <location filename="../qjsondiff.cpp" line="119"/>
+        <source>Full Path</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="505"/>
+        <location filename="../qjsondiff.cpp" line="121"/>
+        <source>Parent+Child</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="123"/>
+        <source>Compare mode.
+  Full Path: match by absolute key+type path (fast, strict).
+  Parent+Child: match by (parent key, key) anywhere in tree.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="135"/>
+        <source>Smart Array</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="136"/>
+        <source>After the positional match, align each paired container&apos;s
+children by content (bipartite LCS on arrays, key-match on
+objects). Missing items surface as ghost rows on the opposite
+side so matched pairs stay row-aligned for sync-scroll and
+side-by-side reading.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="144"/>
+        <source>Match key (e.g. id)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="145"/>
+        <source>Optional: when comparing arrays of objects, prefer matching by this field name before falling back to weight</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="431"/>
+        <source>Aligning arrays and objects</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="546"/>
+        <source>Cancelling…</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="550"/>
+        <source>Preparing</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="711"/>
         <source>Running comparison</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="510"/>
+        <location filename="../qjsondiff.cpp" line="716"/>
         <source>%1… (%2s)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="685"/>
+        <location filename="../qjsondiff.cpp" line="887"/>
         <source>Push to right</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="686"/>
+        <location filename="../qjsondiff.cpp" line="888"/>
         <source>Push selected row into the matching row on the right side (overwrites)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="692"/>
+        <location filename="../qjsondiff.cpp" line="894"/>
         <source>Push to left</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="693"/>
+        <location filename="../qjsondiff.cpp" line="895"/>
         <source>Push selected row into the matching row on the left side (overwrites)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="700"/>
-        <location filename="../qjsondiff.cpp" line="707"/>
+        <location filename="../qjsondiff.cpp" line="902"/>
+        <location filename="../qjsondiff.cpp" line="909"/>
         <source>Delete here</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="701"/>
-        <location filename="../qjsondiff.cpp" line="708"/>
+        <location filename="../qjsondiff.cpp" line="903"/>
+        <location filename="../qjsondiff.cpp" line="910"/>
         <source>Remove the selected row from this side. If it had a peer on the other side, the peer becomes NotPresent.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="425"/>
+        <location filename="../qjsondiff.cpp" line="527"/>
         <source>Cancel</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="77"/>
+        <location filename="../qjsondiff.cpp" line="111"/>
         <source>Try to sync left and right scrolling areas</source>
         <translation></translation>
     </message>
