@@ -1547,6 +1547,9 @@ QList<QModelIndex> QJsonContainer::findModelText(QJsonModel *model, const QModel
 
             if (idx0.isValid())
                 {
+                    QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx0.internalPointer());
+                    if (item && item->isPhantom())
+                        continue;
                     //retval << idx0.data(Qt::DisplayRole).toString() +QString("|")+idx2.data(Qt::DisplayRole).toString();
                     qDebug() << idx0.data(Qt::DisplayRole).toString();
                     //retval << extractStringsFromModel(model, idx0);
@@ -1921,6 +1924,8 @@ QList<QModelIndex> QJsonContainer::fillGotoList(QJsonModel *model, const QModelI
             if (idx0.isValid())
                 {
                     QJsonTreeItem *item = model->itemFromIndex(idx0);
+                    if (item && item->isPhantom())
+                        continue;
                     DiffColorType bg = item->colorType();
                     if (bg != DiffColorType::None && bg != DiffColorType::Identical && (item->type() != QJsonValue::Object && item->type() != QJsonValue::Array))
                         {

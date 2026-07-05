@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QPair>
 #include <QJsonValue>
 #include <QSharedPointer>
 
@@ -34,9 +35,20 @@ struct DiffNode
     QString             value;
     QList<DiffNode>     children;
 
+    // Cached fingerprint used by upcoming array alignment. Postorder
+    // populated by snapshotChildren so we don't recompute on every visit.
+    qint64              weight = 0;
+
     // Outputs (filled by compare()):
     DiffColorType       color = DiffColorType::None;
     QList<int>          relationPath;  // empty == no cross-link
+
+    // Per-side view of the LCS alignment for this Array's children.
+    // Empty on non-Array nodes and on Array nodes without a paired
+    // Array peer. Each entry is (myChildIdx, peerChildIdx); -1 on
+    // either side signals an orphan on the other. Consumed later by
+    // apply() to place phantom rows.
+    QList<QPair<int, int>>  arrayAlignment;
 };
 
 Q_DECLARE_METATYPE(DiffNode)
@@ -63,7 +75,8 @@ public:
         ComparingValues,    // FullPath: per-pair value/childCount compare
         IndexingRightTree,  // ParentChildPair: build hash of right tree
         PairingItems,       // ParentChildPair: walk left, find peers
-        ResolvingColors    // both modes: ancestor Moderate promotion
+        ResolvingColors,    // both modes: ancestor Moderate promotion
+        AligningContainers  // overlay: LCS-align paired Arrays/Objects
     };
     Q_ENUM(Phase)
 
@@ -102,12 +115,49 @@ public:
 
     // Fills color + relationPath in place. Used by tests, used as the
     // body of compareAsync(). No thread or signal interaction.
-    static void compare(DiffNode &left, DiffNode &right, Mode mode);
+    // `matchKey`: when non-empty, alignArrayPair prefers matching array
+    // children by that field's value first (falls back to weight for
+    // items that don't carry it).
+    // `arrayOverlay`: when true, run alignPairedContainersPostPass
+    // after the positional walk so paired Arrays AND paired Objects
+    // get LCS-style children pairing and phantom-row placeholders on
+    // the opposite side.
+    static void compare(DiffNode &left, DiffNode &right, Mode mode,
+                        const QString &matchKey = QString(),
+                        bool arrayOverlay = false);
 
     // Convert a snapshot subtree to QJsonValue. Used to hand a peer's
     // content to QJsonModel::replaceFromJson() without dragging a
     // DiffNode dependency into qjsonmodel.h.
     static QJsonValue toJsonValue(const DiffNode &node);
+
+    // Fingerprint of a snapshot node's VALUE (no key). Same formula as
+    // QJsonContainer::countStringWeight applied to a canonical, key-sorted
+    // stringification. Two subtrees equal as JSON produce equal weights.
+    // Used by upcoming array alignment.
+    static qint64 weightOf(const DiffNode &node);
+
+    // LCS-based alignment of two weight sequences. Returns a merged
+    // sequence of (leftIdx, rightIdx) pairs. -1 on either side signals
+    // "unmatched" — that slot is a phantom on the missing side.
+    // Matched pairs come from the Longest Common Subsequence of the
+    // weight lists. Order is left-orphans first, then right-orphans,
+    // between each pair of anchors (also drained at the end).
+    static QList<QPair<int, int>> alignByWeight(const QList<qint64> &left,
+                                                const QList<qint64> &right);
+
+    // Same LCS shape, but the per-element fingerprint prefers a
+    // user-supplied primary-key field when both sides' children are
+    // objects: an Object with a child keyed `matchKey` uses that
+    // child's cached weight as its identity, so two objects with the
+    // same primary-key value match even if the rest of their content
+    // differs. Objects without the field, and non-objects, fall through
+    // to their full-node weight. When `matchKey` is empty, this
+    // collapses to plain alignByWeight on the children's weights.
+    static QList<QPair<int, int>> alignByWeightWithKey(
+                        const QList<DiffNode> &left,
+                        const QList<DiffNode> &right,
+                        const QString &matchKey);
 
     // --- Phase A: targeted edit-and-recompare ------------------------
 
@@ -222,6 +272,18 @@ public slots:
                       QSharedPointer<DiffNode> right,
                       JsonDiffEngine::Mode mode);
 
+    // Optional primary-key field name for array-of-objects matching.
+    // Empty = plain weight LCS. Consumed by the async path only.
+    void setMatchKey(const QString &key) { mMatchKey = key; }
+    QString matchKey() const { return mMatchKey; }
+
+    // Overlay flag for the async path. When true AND mode is FullPath /
+    // ParentChildPair, the engine runs a post-pass that LCS-aligns each
+    // pair of paired Arrays. Independent of mAlignArrays; the latter
+    // still forces content-first when set.
+    void setArrayOverlay(bool on) { mArrayOverlay = on; }
+    bool arrayOverlay() const { return mArrayOverlay; }
+
 signals:
     void progressed(int done, int total);
     // Emitted at each algorithm-phase boundary so the host can update
@@ -234,6 +296,8 @@ signals:
 
 private:
     std::atomic<bool> mCancelRequested{false};
+    bool mArrayOverlay = false;
+    QString mMatchKey;
 };
 
 #endif // JSONDIFFENGINE_H

@@ -27,6 +27,8 @@ class QProgressBar;
 class QLabel;
 class QPushButton;
 class QAction;
+class QLineEdit;
+class QComboBox;
 
 class QJsonDiff : public QWidget
 {
@@ -58,7 +60,18 @@ public:
     QShortcut *compare_shortcut;
     void expandIt();
     QCheckBox *syncScroll_checkbox;
-    QCheckBox *useFullPath_checkbox;
+    // Compare controls:
+    // modeCombo: Full Path / Parent+Child. Drives which positional
+    //   walker the engine runs.
+    // arrayOverlay_checkbox: "Smart Array" — layer LCS-style children
+    //   pairing on top of the positional mode, for both arrays and
+    //   objects, with phantom rows on the opposite side.
+    // matchKey_lineEdit: optional field name(s) that the array LCS
+    //   prefers when matching arrays of objects (weight fallback for
+    //   items without the field).
+    QComboBox *modeCombo               = nullptr;
+    QCheckBox *arrayOverlay_checkbox   = nullptr;
+    QLineEdit *matchKey_lineEdit       = nullptr;
     QSpacerItem *checkboxSpacer;
 
     int prevLeftScroll;
@@ -109,7 +122,6 @@ public slots:
     void on_righttreeview_clicked(const QModelIndex&);
     void on_lefttreeview_scroll_valuechanged(int);
     void on_righttreeview_scroll_valuechanged(int);
-    void on_useFullPath_checkbox_stateChanged(int);
     void reinitRightModel();
     void reinitLeftModel();
     void loadRightJsonFile(const QString &target);

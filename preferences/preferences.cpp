@@ -70,6 +70,11 @@ void Preferences::load()
     appStyle      = s.value("Style/app_style").toString();
     useStyledTree = s.value("Style/use_styled_tree", false).toBool();
 
+    matchKey     = s.value("Compare/match_key",     QString()).toString();
+    arrayOverlay = s.value("Compare/array_overlay", false).toBool();
+    // 0 = FullPath (default), 1 = ParentChildPair.
+    compareMode  = s.value("Compare/mode", 0).toInt();
+
     bool needToSaveDefaults = !s.contains("Shortcuts/copy_row");
 
     for (const auto &info : shortcutInfos) {
@@ -114,6 +119,10 @@ void Preferences::save()
 
     s.setValue("Style/app_style",        appStyle);
     s.setValue("Style/use_styled_tree",  useStyledTree);
+
+    s.setValue("Compare/match_key",     matchKey);
+    s.setValue("Compare/mode",          compareMode);
+    s.setValue("Compare/array_overlay", arrayOverlay);
 
     for (auto it = shortcuts.constBegin(); it != shortcuts.constEnd(); ++it) {
         s.setValue("Shortcuts/" + it.key(), it.value());

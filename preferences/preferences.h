@@ -85,6 +85,20 @@ public:
     QMap<QString, QKeySequence> shortcuts;
     static const QList<ShortcutInfo> shortcutInfos;
 
+    // Compare-side alignment settings.
+    // compareMode: 0=FullPath, 1=ParentChildPair. Matches
+    // JsonDiffEngine::Mode; stored as int so preferences.h doesn't
+    // need to include the engine header.
+    // arrayOverlay: "Smart Array" checkbox — LCS-style children
+    // alignment on top of the positional mode, for both arrays and
+    // objects, with phantom rows on the opposite side to line up
+    // matched items 1:1.
+    // matchKey: optional field name that alignArrayPair prefers when
+    // both sides' array children are objects. Empty = weight-only.
+    int     compareMode;
+    bool    arrayOverlay;
+    QString matchKey;
+
 signals:
     void shortcutsUpdated();
     void editModeChanged();
