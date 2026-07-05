@@ -12,7 +12,7 @@
 #include <QTimer>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.93";
+const QString APP_VERSION = "0.94";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {

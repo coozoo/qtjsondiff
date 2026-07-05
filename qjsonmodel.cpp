@@ -429,6 +429,11 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
     emit modelChanged();
+    // Key or value edited — search index and goto list on the container
+    // are keyed off the model's text. Notify so QJsonContainer::
+    // on_model_dataUpdated clears its caches; without this a search
+    // for the old text keeps finding the edited row.
+    emit dataUpdated();
     return true;
 }
 
