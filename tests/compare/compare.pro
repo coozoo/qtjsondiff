@@ -20,6 +20,9 @@ SOURCES += \
     ../../jsondiffengine.cpp \
     ../../jsonitemdelegate.cpp \
     ../../jsonsyntaxhighlighter.cpp \
+    ../../httprequestconfig.cpp \
+    ../../httprequestconfigwidget.cpp \
+    ../../httprequestconfigdialog.cpp \
     ../../preferences/preferences.cpp
 
 HEADERS += \
@@ -30,6 +33,9 @@ HEADERS += \
     ../../jsondiffengine.h \
     ../../jsonitemdelegate.h \
     ../../jsonsyntaxhighlighter.h \
+    ../../httprequestconfig.h \
+    ../../httprequestconfigwidget.h \
+    ../../httprequestconfigdialog.h \
     ../../preferences/preferences.h
 
 RESOURCES += ../../qjsontreeview.qrc

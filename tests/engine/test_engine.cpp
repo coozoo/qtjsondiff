@@ -1,6 +1,6 @@
 // Engine-direct tests for JsonDiffEngine.
 //
-// Drives the engine on hand-built DiffNode snapshots — no QJsonDiff
+// Drives the engine on hand-built DiffNode snapshots - no QJsonDiff
 // widget, no QApplication, no QtNetwork. These exist so the algorithm
 // has a fast, no-GUI test surface independent of the widget tests.
 //
@@ -21,7 +21,7 @@
 namespace
 {
 // RAII guard: stops a worker QThread on scope exit. Used by the async
-// tests so a QVERIFY-early-return path can't leave the thread running —
+// tests so a QVERIFY-early-return path can't leave the thread running -
 // otherwise the QThread destructor would QFATAL with "Destroyed while
 // thread is still running" and trash the next test.
 struct ThreadStopper
@@ -129,7 +129,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // compare() — hand-built snapshots, both modes
+    // compare() - hand-built snapshots, both modes
     // ------------------------------------------------------------------
 
     void identicalScalars_data()
@@ -300,12 +300,12 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // apply() — pushes snapshot state back onto a real QJsonModel
+    // apply() - pushes snapshot state back onto a real QJsonModel
     // ------------------------------------------------------------------
 
     // ------------------------------------------------------------------
     // Async path: engine on a worker QThread, queued signal/slot.
-    // Verifies cross-thread plumbing — DiffNode marshalled across thread
+    // Verifies cross-thread plumbing - DiffNode marshalled across thread
     // boundary, finished/cancelled/progressed routed via Qt::Queued.
     // ------------------------------------------------------------------
 
@@ -326,7 +326,7 @@ private slots:
         // boundary. FullPath: Building paths, Matching paths,
         // Comparing values, Resolving colors. ParentChild: Indexing
         // right tree, Pairing items, Resolving colors. Verify the
-        // FullPath path here — exact set + ordering.
+        // FullPath path here - exact set + ordering.
         QJsonModel left, right;
         left.loadJson(R"({"a":1,"b":2})");
         right.loadJson(R"({"a":1,"b":3})");
@@ -413,7 +413,7 @@ private slots:
         QVERIFY(finishedSpy.wait(5000));
         QCOMPARE(finishedSpy.count(), 1);
 
-        // Same shared object came back — the trees were mutated in place,
+        // Same shared object came back - the trees were mutated in place,
         // not copied. Verify the color reached our local pointer too.
         QCOMPARE(L->children[0].color, DiffColorType::Identical);
 
@@ -516,7 +516,7 @@ private slots:
         // After compare + full apply, b.d is Huge, b is Moderate, root
         // is Moderate. Verify applyPath along path=[1,1] (b.d) touches
         // exactly the ancestors and the leaf while leaving unrelated
-        // siblings' color/idxRelation intact — no layoutChanged fires.
+        // siblings' color/idxRelation intact - no layoutChanged fires.
         QJsonModel ml;
         ml.loadJson(R"({"a":1,"b":{"c":1,"d":2},"e":3})");
         QJsonModel mr;
@@ -538,13 +538,13 @@ private slots:
         QCOMPARE(ml.itemFromIndex(bcL)->colorType(), DiffColorType::Identical);
         QCOMPARE(ml.itemFromIndex(eL) ->colorType(), DiffColorType::Identical);
 
-        // Corrupt siblings' state — applyPath must NOT overwrite them
+        // Corrupt siblings' state - applyPath must NOT overwrite them
         // (they're outside the path). If applyPath walked the whole
         // tree it would restore these from the snapshot.
         ml.itemFromIndex(bcL)->setColorType(DiffColorType::None);
         ml.itemFromIndex(eL) ->setColorType(DiffColorType::None);
 
-        // No layoutChanged should fire on a targeted applyPath — the
+        // No layoutChanged should fire on a targeted applyPath - the
         // whole point of the fast path is to avoid the persistent-
         // index remap. Dataupdated is emitted for the counter widget.
         QSignalSpy layoutSpy(&ml, &QAbstractItemModel::layoutChanged);
@@ -559,7 +559,7 @@ private slots:
         // Path targets refreshed from snapshot.
         QCOMPARE(ml.itemFromIndex(bdL)->colorType(), DiffColorType::Huge);
         QCOMPARE(ml.itemFromIndex(bL) ->colorType(), DiffColorType::Moderate);
-        // Off-path siblings were left corrupted — applyPath did NOT
+        // Off-path siblings were left corrupted - applyPath did NOT
         // touch them, proving it walked only the path.
         QCOMPARE(ml.itemFromIndex(bcL)->colorType(), DiffColorType::None);
         QCOMPARE(ml.itemFromIndex(eL) ->colorType(), DiffColorType::None);
@@ -567,7 +567,7 @@ private slots:
 
     // ------------------------------------------------------------------
     // Phase A: copyPeer + recomparePair
-    // Targeted edit-and-recompare — what the diff-edit overlay button
+    // Targeted edit-and-recompare - what the diff-edit overlay button
     // will drive. Tests the snapshot-side logic in isolation; the
     // widget-side glue lands in test_compare later.
     // ------------------------------------------------------------------
@@ -606,13 +606,13 @@ private slots:
         // Everything else came from the peer.
         QCOMPARE(dst.type,  QJsonValue::Double);
         QCOMPARE(dst.value, QString("42"));
-        // color is deliberately untouched — recomparePair sets it.
+        // color is deliberately untouched - recomparePair sets it.
         QCOMPARE(dst.color, DiffColorType::Huge);
     }
 
     void recomparePairFlipsHugeLeafToIdenticalAfterCopy()
     {
-        // {"a": "old"} vs {"a": "new"} — "a" is Huge on both sides.
+        // {"a": "old"} vs {"a": "new"} - "a" is Huge on both sides.
         DiffNode L = makeRoot();
         L.children.append(makeScalar("a", QJsonValue::String, "old"));
         DiffNode R = makeRoot();
@@ -692,7 +692,7 @@ private slots:
     void recomparePairPreservesRelationPath()
     {
         // Cross-link must still resolve after the edit (the matched
-        // peer is at the same path — copying value doesn't change
+        // peer is at the same path - copying value doesn't change
         // tree shape).
         DiffNode L = makeRoot();
         L.children.append(makeScalar("k", QJsonValue::String, "old"));
@@ -726,7 +726,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Phase B — resolveDstParentPath, insertPeer, removePeer
+    // Phase B - resolveDstParentPath, insertPeer, removePeer
     // ------------------------------------------------------------------
 
     void resolveDstParentRejectsRootPath()
@@ -773,8 +773,8 @@ private slots:
 
     void resolveDstParentRejectsWhenParentAlsoNotPresent()
     {
-        // {"a":{"b":1}} vs {} — "a" doesn't exist on right; both "a"
-        // and "a/b" are NotPresent on left. Pushing "a/b" must fail —
+        // {"a":{"b":1}} vs {} - "a" doesn't exist on right; both "a"
+        // and "a/b" are NotPresent on left. Pushing "a/b" must fail -
         // its parent has no peer to insert into.
         DiffNode L = makeRoot();
         DiffNode a_l = makeContainer("a", QJsonValue::Object);
@@ -816,7 +816,7 @@ private slots:
         QCOMPARE(R.children[1].key,                  QString("extra"));
         QCOMPARE(R.children[1].color,                DiffColorType::Identical);
         QCOMPARE(R.children[1].relationPath,         (QList<int>{1}));
-        // Interior — must also be cross-linked.
+        // Interior - must also be cross-linked.
         QCOMPARE(R.children[1].children[0].key,       QString("deep"));
         QCOMPARE(R.children[1].children[0].color,     DiffColorType::Identical);
         QCOMPARE(R.children[1].children[0].relationPath, (QList<int>{1, 0}));
@@ -917,7 +917,7 @@ private slots:
     void removePeerArrayRenumbersSurvivorKeys()
     {
         // Both sides have a 3-element array. Delete the middle element
-        // on the left — survivors' keys must shift "0","2" → "0","1"
+        // on the left - survivors' keys must shift "0","2" → "0","1"
         // so a subsequent FullPath compare matches by position.
         DiffNode L = makeRoot();
         DiffNode arr_l = makeContainer("arr", QJsonValue::Array);
@@ -945,7 +945,7 @@ private slots:
 
     void removePeerObjectKeysUnchanged()
     {
-        // Object children carry meaningful keys — deletion must NOT
+        // Object children carry meaningful keys - deletion must NOT
         // touch survivor keys.
         DiffNode L = makeRoot();
         L.children.append(makeScalar("a", QJsonValue::Double, "1"));
@@ -1036,7 +1036,7 @@ private slots:
 
         QVERIFY(JsonDiffEngine::resnapshotSubtree(L, {0}, &ml, R));
 
-        // Peer of L[0] (R[0]) is left intact — recomparePair handles
+        // Peer of L[0] (R[0]) is left intact - recomparePair handles
         // its color after this call. Its DESCENDANT was orphaned.
         QCOMPARE(R.children[0].children[0].color,        DiffColorType::NotPresent);
         QVERIFY (R.children[0].children[0].relationPath.isEmpty());
@@ -1079,18 +1079,18 @@ private slots:
         // would get from a fresh Compare.
         //
         // ParentChildPair pairs items by parent.key+key+type, which can
-        // place peers at different indices on the two sides — that
+        // place peers at different indices on the two sides - that
         // structural skew is also what made the old "approximate"
         // ancestor walk land on the wrong subtree.
         //
         // Setup: left {"a":{"x":1,"y":9},"z":2},
         //        right {"z":2,"a":{"x":1,"y":8}}.
         // After Compare (ParentChildPair):
-        //   L.a [0]   pairs R.a [1] — same size, Identical → Moderate
+        //   L.a [0]   pairs R.a [1] - same size, Identical → Moderate
         //                            after fixColors promotes via y.
-        //   L.a.x [0,0] pairs R.a.x [1,0] — Identical.
-        //   L.a.y [0,1] pairs R.a.y [1,1] — Huge (9 vs 8).
-        //   L.z [1]   pairs R.z [0] — Identical.
+        //   L.a.x [0,0] pairs R.a.x [1,0] - Identical.
+        //   L.a.y [0,1] pairs R.a.y [1,1] - Huge (9 vs 8).
+        //   L.z [1]   pairs R.z [0] - Identical.
         DiffNode L = makeRoot();
         DiffNode a_l = makeContainer("a", QJsonValue::Object);
         a_l.children.append(makeScalar("x", QJsonValue::Double, "1"));
@@ -1115,7 +1115,7 @@ private slots:
         QVERIFY(JsonDiffEngine::removePeer(L, {0, 1}, R,
                                            JsonDiffEngine::Mode::ParentChildPair));
 
-        // R.a.y is the orphan — no peer on the (now-smaller) src side.
+        // R.a.y is the orphan - no peer on the (now-smaller) src side.
         QCOMPARE(R.children[1].children[1].color, DiffColorType::NotPresent);
         QVERIFY (R.children[1].children[1].relationPath.isEmpty());
         // Sizes differ (L.a has 1 child, R.a still has 2) → both `a`
@@ -1158,7 +1158,7 @@ private slots:
         QVERIFY (R.children[1].children[1].relationPath.isEmpty());
         // Root's color: NotPresent descendants don't promote ancestors
         // in this engine (matches original fixColors). Root stays at
-        // Identical/None — the "extra subtree" is shown by the per-row
+        // Identical/None - the "extra subtree" is shown by the per-row
         // NotPresent coloring, not by an ancestor tint.
     }
 
@@ -1183,7 +1183,7 @@ private slots:
         // Same JSON with keys serialized in different order must weigh
         // the same. Load-order comes from QJsonDocument which sorts
         // object keys, so we can't easily force a different order via
-        // loadJson — instead build DiffNodes by hand.
+        // loadJson - instead build DiffNodes by hand.
         DiffNode a;
         a.type = QJsonValue::Object;
         a.children.append(makeScalar("alpha", QJsonValue::String, "one"));
@@ -1208,7 +1208,7 @@ private slots:
     void weightIgnoresKey()
     {
         // Two scalars with the SAME value but different keys must
-        // weigh the same — alignment needs to match "same value at
+        // weigh the same - alignment needs to match "same value at
         // different position", so the key must not contribute.
         DiffNode a = makeScalar("first",  QJsonValue::String, "same");
         DiffNode b = makeScalar("second", QJsonValue::String, "same");
@@ -1428,7 +1428,7 @@ private slots:
 
     void alignByWeightWithKeyCommaSeparatedList()
     {
-        // matchKey="id,eventId" — L uses "id", R uses "eventId";
+        // matchKey="id,eventId" - L uses "id", R uses "eventId";
         // both should still pair when values match.
         QList<DiffNode> L, R;
         {
@@ -1463,7 +1463,7 @@ private slots:
         // L has one item WITH id, one WITHOUT.
         // R has one item WITH id (matching L's id), one WITHOUT
         //   (matching L's no-key by full-node weight).
-        // Both bucket-pair independently — 2 matches, no cross-pair.
+        // Both bucket-pair independently - 2 matches, no cross-pair.
         QList<DiffNode> L, R;
         auto makeIdObj = [](const QString &id) {
             DiffNode o; o.type = QJsonValue::Object;
@@ -1579,7 +1579,7 @@ private slots:
     void alignReorderedMatchesAll()
     {
         // Left [1, 2, 3], Right [3, 2, 1]. Bipartite matches all three
-        // regardless of order — the whole point of the algorithm switch.
+        // regardless of order - the whole point of the algorithm switch.
         const QList<qint64> L = {1, 2, 3};
         const QList<qint64> R = {3, 2, 1};
         const auto out = JsonDiffEngine::alignByWeight(L, R);
@@ -1646,7 +1646,7 @@ private slots:
     {
         // arrayAlignment now populates on both Object AND Array
         // containers under content-first (align mode). Scalars must
-        // stay empty — nothing to align inside a leaf.
+        // stay empty - nothing to align inside a leaf.
         QJsonModel ml;
         ml.loadJson(R"({"obj":{"k":"v"}})");
         QJsonModel mr;
@@ -1736,9 +1736,9 @@ private slots:
         // id, some drift in other fields.
         //   L: [{id:100,val:"A"}, {id:200,val:"B"}, {id:300,val:"C"}]
         //   R: [{id:300,val:"C2"}, {id:100,val:"A"}, {id:200,val:"B"}]
-        //     — position 0,1,2 → id 100,200,300 on left
-        //     — position 0,1,2 → id 300,100,200 on right (rotated)
-        //     — id 300 has drift on val ("C" vs "C2"), 100/200 identical
+        //     - position 0,1,2 → id 100,200,300 on left
+        //     - position 0,1,2 → id 300,100,200 on right (rotated)
+        //     - id 300 has drift on val ("C" vs "C2"), 100/200 identical
         QJsonModel ml, mr;
         ml.loadJson(R"({"arr":[{"id":100,"val":"A"},{"id":200,"val":"B"},{"id":300,"val":"C"}]})");
         mr.loadJson(R"({"arr":[{"id":300,"val":"C2"},{"id":100,"val":"A"},{"id":200,"val":"B"}]})");
@@ -1758,7 +1758,7 @@ private slots:
             if (ml.itemFromIndex(k)->key() == "arr") { arrIdx = k; break; }
         }
         QVERIFY(arrIdx.isValid());
-        QCOMPARE(ml.rowCount(arrIdx), 3);  // no phantoms — all paired
+        QCOMPARE(ml.rowCount(arrIdx), 3);  // no phantoms - all paired
 
         // For each left child, walk into it and check colors.
         auto colorOfKeyChild = [&](const QModelIndex &parent,
@@ -1813,7 +1813,7 @@ private slots:
         // "0 matches on 3-vs-3" case: array children whose top-level
         // keys don't include the field the user typed.
         QJsonModel ml, mr;
-        // Same content, different order — should all pair.
+        // Same content, different order - should all pair.
         ml.loadJson(R"({"a":[{"name":"X","v":1},{"name":"Y","v":2}]})");
         mr.loadJson(R"({"a":[{"name":"Y","v":2},{"name":"X","v":1}]})");
 
@@ -1895,7 +1895,7 @@ private slots:
     {
         // Exact shape but the id field is called "eventId" not "id".
         // With matchKey="id" my algorithm falls back to full-node
-        // weight, which differs due to the "name" drift — 0 matches.
+        // weight, which differs due to the "name" drift - 0 matches.
         // This documents the field-name limitation.
         QJsonModel ml, mr;
         ml.loadJson(R"({"arr":[
@@ -1928,7 +1928,7 @@ private slots:
     {
         // Top-level array has objects with id; each object contains an
         // inner array whose children don't have id. The top-level
-        // matches by id; the inner array pairs by weight — succeeds
+        // matches by id; the inner array pairs by weight - succeeds
         // when reordered without drift.
         QJsonModel ml, mr;
         ml.loadJson(R"({"events":[
@@ -2057,7 +2057,7 @@ private slots:
         JsonDiffEngine::apply(L, &ml, &mr);
         JsonDiffEngine::apply(R, &mr, &ml);
 
-        // Both sides should still have exactly 2 rows in arr — no phantoms.
+        // Both sides should still have exactly 2 rows in arr - no phantoms.
         QModelIndex arrL, arrR;
         for (int i = 0; i < ml.rowCount(); ++i)
         {
@@ -2119,7 +2119,7 @@ private slots:
         // sequence should place a phantom at the missing position on
         // the right side so both trees line up row-for-row.
         //   L: {"id":1,"items":[A,B,C]}
-        //   R: {"id":1,"items":[A,C]}       — B missing
+        //   R: {"id":1,"items":[A,C]}       - B missing
         QJsonModel ml, mr;
         ml.loadJson(R"({"outer":[{"id":1,"items":["A","B","C"]}]})");
         mr.loadJson(R"({"outer":[{"id":1,"items":["A","C"]}]})");
@@ -2201,7 +2201,7 @@ private slots:
     void applyLeavesModelUnchangedWithoutAlign()
     {
         // When compare is called without arrayOverlay=true, apply() must
-        // NOT produce phantoms — preserves the positional-mode regression
+        // NOT produce phantoms - preserves the positional-mode regression
         // floor and matches the "Smart Array checkbox off" case.
         QJsonModel ml, mr;
         ml.loadJson(R"({"arr":[1,2,3]})");
@@ -2236,7 +2236,7 @@ private slots:
     void snapshotSkipsExistingPhantoms()
     {
         // A model that already has phantoms (from a previous apply)
-        // must snapshot as if the phantoms weren't there — otherwise
+        // must snapshot as if the phantoms weren't there - otherwise
         // the next compare would treat them as real orphans and stack
         // more phantoms on top.
         QJsonModel ml, mr;
@@ -2250,7 +2250,7 @@ private slots:
         JsonDiffEngine::apply(R1, &mr, &ml);
         // Right model now has 3 rows with a phantom at index 1.
 
-        // Re-snapshot right — the phantom must be filtered out.
+        // Re-snapshot right - the phantom must be filtered out.
         DiffNode R2 = JsonDiffEngine::snapshot(&mr);
         DiffNode *arr = childByKey(R2, "arr");
         QVERIFY(arr);
@@ -2262,7 +2262,7 @@ private slots:
     void compareAsyncCarriesArrayAlignmentAcrossThread()
     {
         // Same input as the sync test but via compareAsync + queued
-        // signal — proves the DiffNode metatype marshalling survives
+        // signal - proves the DiffNode metatype marshalling survives
         // the new field.
         JsonDiffEngine engine;
         engine.setArrayOverlay(true);
@@ -2363,7 +2363,7 @@ private slots:
     void overlayParentChildPairSameFixture()
     {
         // Same fixture, PCP+overlay. Under PCP alone, array children
-        // match by (parent.key, index) — same shift bug as FullPath.
+        // match by (parent.key, index) - same shift bug as FullPath.
         // Overlay must produce the same clean pairing.
         QJsonModel ml, mr;
         ml.loadJson(R"({"arr":["A","B","C","D"]})");
@@ -2484,7 +2484,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Object phantoms — same UX as array phantoms, key-matched.
+    // Object phantoms - same UX as array phantoms, key-matched.
     // ------------------------------------------------------------------
 
     void overlayObjectMissingKeyGetsPhantomOnRight()

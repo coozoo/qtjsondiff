@@ -5,6 +5,7 @@
  *              it's possible to perform search in text view and json view
  */
 #include "qjsoncontainer.h"
+#include "httprequestconfigdialog.h"
 #include "jsonsyntaxhighlighter.h"
 #include "jsonitemdelegate.h"
 
@@ -40,7 +41,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     singleExpandSelectedRecursively = myMenu.addAction(expandSelectedRecursively_string);
     singleCollapseSelectedRecursively = myMenu.addAction(collapseSelectedRecursively_string);
     myMenu.addSeparator();
-    // Edit-mode-only — visibility flipped on/off in showContextMenu.
+    // Edit-mode-only - visibility flipped on/off in showContextMenu.
     addChildAction  = myMenu.addAction(tr("Add child"));
     deleteRowAction = myMenu.addAction(tr("Delete row"));
 
@@ -155,7 +156,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     // Thin progress bar directly under the search input. Fires while
     // findModelText is walking the tree; goes idle once the index is
-    // built — also serves as a visual "search is ready" cue.
+    // built - also serves as a visual "search is ready" cue.
     mSearchProgress = new QProgressBar();
     mSearchProgress->setMaximumHeight(3);
     mSearchProgress->setTextVisible(false);
@@ -226,6 +227,18 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     browse_toolButton->setIcon(QFileIconProvider().icon(QFileIconProvider::File));
     browse_toolButton->setToolTip(tr("Open file"));
     browse_toolButton->setFixedSize(28, 28);
+    configureRequest_toolButton = new QToolButton(browse_groupBox);
+    // Theme icon on Linux (breeze/adwaita usually provide it); fall
+    // back to a Unicode gear glyph so Windows/macOS aren't blank.
+    QIcon gearIcon = QIcon::fromTheme(QStringLiteral("preferences-system"));
+    if (gearIcon.isNull())
+        configureRequest_toolButton->setText(QStringLiteral("⚙"));
+    else
+        configureRequest_toolButton->setIcon(gearIcon);
+    configureRequest_toolButton->setToolTip(
+        tr("Configure HTTP request (headers, method, body).\n"
+           "Applied only when the address is a URL."));
+    configureRequest_toolButton->setFixedSize(28, 28);
     refresh_toolButton = new QToolButton(browse_groupBox);
     refresh_toolButton->setIcon(QIcon(QPixmap(":/images/refresh.png")));
     refresh_toolButton->setToolTip(tr("Reload"));
@@ -234,6 +247,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     qDebug() << "treeview_layout adding widgets";
     browse_layout->addWidget(filePath_lineEdit, 1);
     browse_layout->addWidget(browse_toolButton, 0);
+    browse_layout->addWidget(configureRequest_toolButton, 0);
     browse_layout->addWidget(refresh_toolButton, 1);
     browse_groupBox->setLayout(browse_layout);
     treeview_layout->addWidget(browse_groupBox, 0);
@@ -259,7 +273,7 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     //treeview->setMinimumSize(500,500);
 
-    // Optional custom QSS for the tree view. Off by default — matches
+    // Optional custom QSS for the tree view. Off by default - matches
     // the pre-Style-prefs look (plain platform QTreeView). When
     // Preferences::useStyledTree is on we load qss/qjsontreeview.qss
     // (custom branch icons + hover/select gradients). Re-applied live
@@ -310,12 +324,22 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     applyShortcuts(); // Apply on startup
 
+    // Seed the request config with the built-in defaults so the
+    // first URL load still carries Accept-Language / Cache-Control /
+    // Accept-Encoding (matches pre-feature behavior), and so the
+    // gear-button dialog opens with those rows visible rather than
+    // an empty header list on first click.
+    mRequestConfig = HttpRequestConfig::defaults();
+    updateConfigureRequestButtonStyle();
+
     //connect right click(context menu) signal/slot
     connect(treeview, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showContextMenu(const QPoint &)));
     connect(treeview, SIGNAL(expanded(const QModelIndex &)), this, SLOT(on_treeview_item_expanded()));
     //connect(expandAll_Checkbox, SIGNAL(stateChanged(int)), this, SLOT(on_expandAll_checkbox_marked()));
     connect(expandAll_Checkbox, &QAction::triggered, this, &QJsonContainer::on_expandAll_checkbox_marked);
     connect(browse_toolButton, SIGNAL(clicked()), this, SLOT(on_browse_toolButton_clicked()));
+    connect(configureRequest_toolButton, &QToolButton::clicked,
+            this, &QJsonContainer::on_configureRequest_toolButton_clicked);
     connect(refresh_toolButton, &QToolButton::clicked, this, &QJsonContainer::on_refresh_toolButton_clicked);
     //connect(sortObj_toolButton, SIGNAL(clicked()), this, SLOT(on_sortObj_toolButton_clicked()));
     connect(sortObj_toolButton, &QAction::triggered, this, &QJsonContainer::on_sortObj_toolButton_clicked);
@@ -359,6 +383,7 @@ QJsonContainer::~QJsonContainer()
     browse_groupBox->deleteLater();
     filePath_lineEdit->deleteLater();
     browse_toolButton->deleteLater();
+    configureRequest_toolButton->deleteLater();
     browse_layout->deleteLater();
     treeview_layout->deleteLater();
     treeview_groupbox->deleteLater();
@@ -514,7 +539,7 @@ void QJsonContainer::setEditable(bool editable)
 
     // Tree-level item DnD is on iff the model is editable. Both
     // directions (drag-out, drop-in) are gated together. The file-URL
-    // drop on the surrounding groupbox is untouched — the tree's
+    // drop on the surrounding groupbox is untouched - the tree's
     // default dragEnter handler will ignore MIME types not advertised
     // by the model (we only advertise our custom type), so file drags
     // propagate through to the groupbox event filter unchanged.
@@ -932,7 +957,7 @@ void QJsonContainer::on_findCaseSensitivity_toolbutton_clicked()
 {
     currentFindIndexesList.clear();
     currentFindText = find_lineEdit->text();
-    // Same show/hide bracket as findTextJsonIndexHandler — the case-
+    // Same show/hide bracket as findTextJsonIndexHandler - the case-
     // sensitivity toggle re-runs findModelText from scratch, so the
     // user should get the same visual "indexing" cue.
     const int totalNodes = countTreeNodes(model, QModelIndex());
@@ -1488,9 +1513,10 @@ QByteArray QJsonContainer::gUncompress(const QByteArray &data)
 
 void QJsonContainer::getData()
 {
-    qDebug() << "Starting get";
+    const QString methodStr = HttpRequestConfig::methodName(mRequestConfig.method);
+    qDebug() << "Starting" << methodStr;
     QUrl serviceUrl = QUrl(filePath_lineEdit->text());
-    loadJson("{\"status\":\"Starting Get\",\"host\":\"" + serviceUrl.url() + "\"}");
+    loadJson("{\"status\":\"Starting " + methodStr + "\",\"host\":\"" + serviceUrl.url() + "\"}");
 
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     connect(networkManager, SIGNAL(finished(QNetworkReply *)), this, SLOT(serviceGetDataRequestFinished(QNetworkReply *)));
@@ -1501,12 +1527,94 @@ void QJsonContainer::getData()
             SslConfiguration.setProtocol(QSsl::AnyProtocol);
             request.setSslConfiguration(SslConfiguration);
         }
-    request.setRawHeader("Accept-Language", "en-US,en;q=0.8");
-    request.setRawHeader("Cache-Control", "no-cache");
-    request.setRawHeader("Accept-Encoding", "gzip, deflate");
-    loadJson("{\"status\":\"Sending Get\",\"host\":\"" + serviceUrl.url() + "\"}");
-    QNetworkReply *reply = networkManager->get(request);
+    // Headers come from mRequestConfig. defaults() carries the same
+    // three headers the previous hardcoded getData() set, so first-
+    // run behavior is unchanged when the user never opened the
+    // configure dialog.
+    mRequestConfig.applyTo(request);
+
+    loadJson("{\"status\":\"Sending " + methodStr + "\",\"host\":\"" + serviceUrl.url() + "\"}");
+    QNetworkReply *reply = nullptr;
+    switch (mRequestConfig.method)
+        {
+        case HttpRequestConfig::Get:
+            reply = networkManager->get(request);
+            break;
+        case HttpRequestConfig::Post:
+            reply = networkManager->post(request, mRequestConfig.body);
+            break;
+        case HttpRequestConfig::Put:
+            reply = networkManager->put(request, mRequestConfig.body);
+            break;
+        case HttpRequestConfig::Head:
+            reply = networkManager->head(request);
+            break;
+        case HttpRequestConfig::Delete:
+            // deleteResource has no body overload. Route through
+            // sendCustomRequest when a body is set - Qt allows it
+            // on DELETE and some APIs require it.
+            if (mRequestConfig.body.isEmpty())
+                reply = networkManager->deleteResource(request);
+            else
+                reply = networkManager->sendCustomRequest(
+                    request, QByteArrayLiteral("DELETE"), mRequestConfig.body);
+            break;
+        case HttpRequestConfig::Patch:
+            reply = networkManager->sendCustomRequest(
+                request, QByteArrayLiteral("PATCH"), mRequestConfig.body);
+            break;
+        }
     Q_UNUSED(reply)
+}
+
+HttpRequestConfig QJsonContainer::requestConfig() const
+{
+    return mRequestConfig;
+}
+
+void QJsonContainer::setRequestConfig(const HttpRequestConfig &config)
+{
+    mRequestConfig = config;
+    updateConfigureRequestButtonStyle();
+    emit requestConfigChanged(mRequestConfig);
+}
+
+void QJsonContainer::on_configureRequest_toolButton_clicked()
+{
+    HttpRequestConfigDialog dlg(this);
+    dlg.setConfig(mRequestConfig);
+    if (dlg.exec() == QDialog::Accepted)
+        {
+            setRequestConfig(dlg.config());
+        }
+}
+
+void QJsonContainer::updateConfigureRequestButtonStyle()
+{
+    if (!configureRequest_toolButton) return;
+    if (mRequestConfig.isDefault())
+        {
+            configureRequest_toolButton->setStyleSheet(QString());
+            configureRequest_toolButton->setToolTip(
+                tr("Configure HTTP request (headers, method, body).\n"
+                   "Applied only when the address is a URL."));
+        }
+    else
+        {
+            // Orange border catches the eye without repainting the
+            // whole button. Complements the tooltip below, which
+            // spells out exactly what's non-default.
+            configureRequest_toolButton->setStyleSheet(
+                QStringLiteral("QToolButton { border: 2px solid #ff8c00; }"));
+            configureRequest_toolButton->setToolTip(
+                tr("Configure HTTP request (headers, method, body).\n"
+                   "Custom request active: %1, %2 header(s)%3.")
+                    .arg(HttpRequestConfig::methodName(mRequestConfig.method))
+                    .arg(mRequestConfig.headers.size())
+                    .arg(mRequestConfig.body.isEmpty()
+                             ? QString()
+                             : tr(", body set")));
+        }
 }
 
 void QJsonContainer::serviceGetDataRequestFinished(QNetworkReply *reply)
@@ -1520,7 +1628,17 @@ void QJsonContainer::serviceGetDataRequestFinished(QNetworkReply *reply)
     if (reply->error() == QNetworkReply::NoError)
         {
             QByteArray bytes = reply->readAll();
-            if (reply->rawHeader("Content-Encoding") == QString("gzip"))
+            // Detect gzip by the two magic bytes (1F 8B) rather than
+            // the Content-Encoding header. Qt 6's QNetworkAccessManager
+            // auto-decompresses gzip when it added the Accept-Encoding
+            // request header itself, but leaves the response header
+            // intact - checking the header would then double-uncompress
+            // an already-plain body and produce empty output. Magic
+            // bytes are unambiguous: present iff we actually need to
+            // decompress.
+            if (bytes.size() >= 2
+                && static_cast<unsigned char>(bytes.at(0)) == 0x1F
+                && static_cast<unsigned char>(bytes.at(1)) == 0x8B)
                 {
                     bytes = gUncompress(bytes);
                 }

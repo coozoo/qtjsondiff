@@ -4,6 +4,49 @@
 #include "ui_mainwindow.h"
 #include "preferences/preferences.h"
 #include "preferences/preferencesdialog.h"
+#include "httprequestconfig.h"
+
+// Parse a cURL command string and hand the config to the given
+// container. Text can be inline (from --config) or file-loaded
+// (from --config-file); the CLI parser has already resolved the
+// source. When noHttpDefaults is false, any default header the
+// parsed cURL DIDN'T set is appended - so users don't lose gzip
+// decompression just because they wrote a short --config.
+static void applyCliConfigToContainer(QJsonContainer *container,
+                                      const QString &curlText,
+                                      bool noHttpDefaults)
+{
+    if (!container || curlText.isEmpty()) return;
+    bool ok = false;
+    HttpRequestConfig cfg = HttpRequestConfig::fromCurlText(curlText, &ok);
+    if (!ok)
+        {
+            qWarning() << "CLI config did not parse as a cURL command";
+            return;
+        }
+
+    if (!noHttpDefaults)
+        {
+            const HttpRequestConfig d = HttpRequestConfig::defaults();
+            for (const auto &defHdr : d.headers)
+                {
+                    bool userSetIt = false;
+                    for (const auto &userHdr : cfg.headers)
+                        {
+                            if (userHdr.first.compare(defHdr.first,
+                                                      Qt::CaseInsensitive) == 0)
+                                {
+                                    userSetIt = true;
+                                    break;
+                                }
+                        }
+                    if (!userSetIt)
+                        cfg.headers.append(defHdr);
+                }
+        }
+
+    container->setRequestConfig(cfg);
+}
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -46,13 +89,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionPreferences, &QAction::triggered,
             this, &MainWindow::actionPreferences_triggered);
 
+    // loadLastPaths is NOT called here anymore. main.cpp calls it
+    // BEFORE setDisplayMode: all three containers get their prev-
+    // session paths restored, then setDisplayMode overrides only
+    // the CLI-targeted container(s). So `qtjsondiff URL` shows
+    // your URL on the single-tree tab, and switching to the diff
+    // tab still shows what you had there last time.
+
+    restoreGeometry(PREF_INST->mainWindowGeometry);
+    restoreState(PREF_INST->mainWindowState);
+}
+
+void MainWindow::loadLastPathsIfEnabled()
+{
     if (ui->openLast_action->isChecked())
         {
             loadLastPaths();
         }
-
-    restoreGeometry(PREF_INST->mainWindowGeometry);
-    restoreState(PREF_INST->mainWindowState);
 }
 
 MainWindow::~MainWindow()
@@ -60,13 +113,23 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::setDisplayMode(const QStringList &files) {
+void MainWindow::setDisplayMode(const QStringList &files,
+                                const QString &configCurl,
+                                const QString &leftConfigCurl,
+                                const QString &rightConfigCurl,
+                                bool noHttpDefaults) {
     if (files.size() == 1) {
         ui->tabWidget->setCurrentWidget(ui->jsonview_tab);
+        // Apply the config BEFORE loadJsonFile so if the target is a
+        // URL, the very first request already carries the user's
+        // custom method/headers/body.
+        applyCliConfigToContainer(messageJsonCont, configCurl, noHttpDefaults);
         messageJsonCont->loadJsonFile(files.at(0));
     }
     else if (files.size() == 2) {
         ui->tabWidget->setCurrentWidget(ui->compare_tab);
+        applyCliConfigToContainer(differ->left_cont,  leftConfigCurl,  noHttpDefaults);
+        applyCliConfigToContainer(differ->right_cont, rightConfigCurl, noHttpDefaults);
         differ->loadLeftJsonFile(files.at(0));
         differ->loadRightJsonFile(files.at(1));
     }

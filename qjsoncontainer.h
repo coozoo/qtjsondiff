@@ -35,6 +35,8 @@
 #include <QWidgetAction>
 #include <QProgressBar>
 
+#include "httprequestconfig.h"
+
 typedef QList<QPair<QModelIndex, QColor> > QLinHeaderList;
 
 class JsonSyntaxHighlighter;
@@ -75,6 +77,7 @@ public:
     QLineEdit *filePath_lineEdit;
     QLineEdit *find_lineEdit;
     QToolButton* browse_toolButton;
+    QToolButton* configureRequest_toolButton;
     QToolButton* refresh_toolButton;
     QAction *sortObj_toolButton;
     QAction *switchview_action;
@@ -117,6 +120,14 @@ public:
     static int countStringWeight(const QString &inStr);
     static bool wayToSort(const QJsonValue &v1, const QJsonValue &v2);
     void getData();
+
+    // Request-configuration public API. See httprequestconfig.h for
+    // the data class. Custom headers/method/body take effect only
+    // when the address is a URL - file paths ignore this. Emits
+    // requestConfigChanged so integrators (or tests) can observe.
+    HttpRequestConfig requestConfig() const;
+    void setRequestConfig(const HttpRequestConfig &config);
+
     void showGoto(bool show);
     void diffAmountUpdate();
     void gotoIndexHandler(bool directionForward);
@@ -131,7 +142,7 @@ private:
     void resetCurrentFind();
     // Thin progress bar directly under find_lineEdit that lights up
     // while findModelText walks the tree. Also serves as the "search
-    // is indexed / ready" visual cue — off = idle, filling = indexing.
+    // is indexed / ready" visual cue - off = idle, filling = indexing.
     QProgressBar *mSearchProgress = nullptr;
     // Live counter used by findModelText to feed mSearchProgress. Zeroed
     // before the walk, incremented on each visited node.
@@ -139,6 +150,11 @@ private:
     // Count every visitable node under `parent` (recursive rowCount sum).
     // Used to size mSearchProgress before findModelText starts.
     int countTreeNodes(QJsonModel *model, const QModelIndex &parent) const;
+    // Reflect the current mRequestConfig on configureRequest_toolButton:
+    // default → plain look, non-default → orange border. Called after
+    // any mutation of mRequestConfig.
+    void updateConfigureRequestButtonStyle();
+    HttpRequestConfig mRequestConfig;
     void findTextJsonIndexHandler(bool direction);
     int currentGotoIndexId;
     QMenu myMenu;
@@ -173,11 +189,13 @@ signals:
     void sJsonFileLoaded(QString path);
     void jsonUpdated();
     void diffSelected(QModelIndex &index);
+    void requestConfigChanged(HttpRequestConfig config);
 
 private slots:
     void on_expandAll_checkbox_marked();
     void on_treeview_item_expanded();
     void on_browse_toolButton_clicked();
+    void on_configureRequest_toolButton_clicked();
     void on_refresh_toolButton_clicked();
     void on_showjson_pushbutton_clicked();
     void on_sortObj_toolButton_clicked();

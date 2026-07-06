@@ -27,7 +27,22 @@ public:
     QJsonContainer *messageJsonCont;
     QJsonDiff *differ;
 
-    void setDisplayMode(const QStringList &files);
+    // Optional CLI configs. Each is the cURL text (inline or
+    // file-loaded - the CLI parser has already resolved the source)
+    // to apply to the matching container before its URL is loaded.
+    // Empty strings are ignored.
+    void setDisplayMode(const QStringList &files,
+                        const QString &configCurl = QString(),
+                        const QString &leftConfigCurl = QString(),
+                        const QString &rightConfigCurl = QString(),
+                        bool noHttpDefaults = false);
+
+    // Public wrapper for main() to trigger the "restore-last-loaded
+    // paths on startup" behavior. Not called from the ctor anymore
+    // - main.cpp only invokes it when the CLI provided no
+    // positionals, so `qtjsondiff URL` doesn't also load the
+    // previous session's diff URLs into the diff tab.
+    void loadLastPathsIfEnabled();
 
 public slots:
     void containerFileLoaded(const QString &path);

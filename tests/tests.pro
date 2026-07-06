@@ -8,4 +8,5 @@ SUBDIRS = \
     conversions \
     compare \
     engine \
-    search
+    search \
+    httprequest
