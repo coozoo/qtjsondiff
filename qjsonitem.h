@@ -46,6 +46,13 @@ public:
     QModelIndex idxRelation();
     void clearChildren();
 
+    // Phantom rows: alignment-produced placeholders on the side that's
+    // missing a peer. Do NOT serialize back into JSON, do NOT allow
+    // per-cell editing. Populated by JsonDiffEngine::apply during a
+    // compare; cleared on any load/reset.
+    void setPhantom(bool p) { mIsPhantom = p; }
+    bool isPhantom() const  { return mIsPhantom; }
+
     QList<QJsonTreeItem*> takeChildren();
     void setChildren(const QList<QJsonTreeItem*>& children);
 
@@ -71,6 +78,7 @@ private:
     QJsonValue::Type mType;
     DiffColorType mColorType = DiffColorType::None;
     QModelIndex mIdxRelation;
+    bool mIsPhantom = false;
 
     QList<QJsonTreeItem*> mChilds;
     QJsonTreeItem * mParent;

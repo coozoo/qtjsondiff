@@ -177,6 +177,8 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     }
 
     if ((role == Qt::DecorationRole) && (index.column() == 0)){
+        if (item->isPhantom())
+            return QVariant();
         return mTypeIcons.value(item->type());
     }
 
@@ -185,13 +187,23 @@ QVariant QJsonModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
+        // Phantoms are alignment-only spacer rows. Render as blank
+        // in every column so they can't be mistaken for real content
+        // (a phantom under an Array would otherwise show its positional
+        // "0"/"1"/... as if it were a real index).
+        if (item->isPhantom())
+            return QString();
         if (index.column() == 0)
             return QString("%1").arg(item->key());
         if (index.column() == 1)
         {
             if (item->type()==QJsonValue::Array)
             {
-                return QString("Array[%1]").arg(item->childCount());
+                int real = 0;
+                for (int i = 0; i < item->childCount(); ++i)
+                    if (!item->child(i)->isPhantom())
+                        ++real;
+                return QString("Array[%1]").arg(real);
             }
             else
             {
@@ -212,6 +224,8 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
         return false;
 
     QJsonTreeItem *item = itemFromIndex(index);
+    if (item && item->isPhantom())
+        return false;
     const QString valStr = value.toString();
 
     // Handle column 1: Type change
@@ -393,7 +407,7 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
         emit dataChanged(index.siblingAtColumn(0), index.siblingAtColumn(columnCount() - 1), {Qt::DisplayRole, Qt::EditRole});
         emit modelChanged();
-        // Structural change — children may have been removed/inserted
+        // Structural change - children may have been removed/inserted
         // by the Object<->Array conversion logic above. Tell listeners
         // (QJsonContainer) to reset their cached find/goto QModelIndex
         // lists. Same reason as in replaceFromJson().
@@ -415,6 +429,11 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
 
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
     emit modelChanged();
+    // Key or value edited - search index and goto list on the container
+    // are keyed off the model's text. Notify so QJsonContainer::
+    // on_model_dataUpdated clears its caches; without this a search
+    // for the old text keeps finding the edited row.
+    emit dataUpdated();
     return true;
 }
 
@@ -439,6 +458,11 @@ Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
 
     QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
 
+    // Phantoms are read-only placeholders; strip Selectable/Enabled?
+    // No - the view still needs to size and paint them. Just deny edit.
+    if (item->isPhantom())
+        return flags;
+
     // Type is editable, but not for the root item
     if (index.column() == 1 && item->parent()) {
         flags |= Qt::ItemIsEditable;
@@ -461,7 +485,7 @@ Qt::ItemFlags QJsonModel::flags(const QModelIndex &index) const
     if (item->parent())
         flags |= Qt::ItemIsDragEnabled;
 
-    // Drop enabled when the item is a container — it can receive
+    // Drop enabled when the item is a container - it can receive
     // children. The root container is handled via the invalid parent
     // branch in canDropMimeData().
     if (item->type() == QJsonValue::Object || item->type() == QJsonValue::Array)
@@ -596,6 +620,7 @@ void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
         QJsonObject obj;
         for (int i = 0; i < childCount; ++i) {
             QJsonTreeItem *child = item->child(i);
+            if (child->isPhantom()) continue;
             QJsonValue childValue;
             generateJson(child, childValue);
             obj.insert(child->key(), childValue);
@@ -605,6 +630,7 @@ void QJsonModel::generateJson(QJsonTreeItem *item, QJsonValue &value) const {
         QJsonArray arr;
         for (int i = 0; i < childCount; ++i) {
             QJsonTreeItem *child = item->child(i);
+            if (child->isPhantom()) continue;
             QJsonValue childValue;
             generateJson(child, childValue);
             arr.append(childValue);
@@ -690,7 +716,7 @@ bool QJsonModel::replaceFromJson(const QModelIndex &target, const QJsonValue &so
                      target.siblingAtColumn(columnCount() - 1),
                      {Qt::DisplayRole, Qt::EditRole, Qt::DecorationRole});
     emit modelChanged();
-    // Structural change — children were removed/inserted. Tell listeners
+    // Structural change - children were removed/inserted. Tell listeners
     // (QJsonContainer) to reset cached find/goto QModelIndex lists and
     // refresh the diff counter, the same way they react to loadJson.
     emit dataUpdated();
@@ -720,7 +746,7 @@ QModelIndex QJsonModel::appendChildFromJson(const QModelIndex &parent,
     if (parentItem->type() == QJsonValue::Object && key.isEmpty())
     {
         qWarning() << "QJsonModel::appendChildFromJson: empty key for "
-                      "Object parent — rejecting to avoid silent "
+                      "Object parent - rejecting to avoid silent "
                       "QJsonObject::insert overwrite on serialize.";
         return QModelIndex();
     }
@@ -728,7 +754,7 @@ QModelIndex QJsonModel::appendChildFromJson(const QModelIndex &parent,
     // load() returns a wrapper whose own slot represents `source`:
     //  - scalar: type+value set on the wrapper directly; no children.
     //  - container: children built recursively; type left unset on the
-    //    wrapper (loadJson() patches that — we do the same here).
+    //    wrapper (loadJson() patches that - we do the same here).
     QJsonTreeItem *newChild = QJsonTreeItem::load(source);
     newChild->setType(source.type());
     newChild->setKey(parentItem->type() == QJsonValue::Array
@@ -773,7 +799,7 @@ bool QJsonModel::removeRowAt(const QModelIndex &target)
     beginRemoveRows(parent0, row, row);
     // Single-index takeChildAt keeps mChilds atomically off-by-one
     // during the transaction (as opposed to the older takeChildren/
-    // setChildren round-trip, which briefly emptied the list — a
+    // setChildren round-trip, which briefly emptied the list - a
     // window that would let a proxy or nested-event-loop observer
     // see rowCount()==0 mid-remove and violate the QAIM contract).
     QJsonTreeItem *removed = parentItem->takeChildAt(row);
@@ -800,7 +826,7 @@ bool QJsonModel::removeRowAt(const QModelIndex &target)
                                  {Qt::DisplayRole, Qt::EditRole});
             }
         }
-        // Array parent's column 1 shows "Array[N]" — N just changed.
+        // Array parent's column 1 shows "Array[N]" - N just changed.
         // Refresh so views without a full-tree repaint pick up the new
         // count. Mirrors what appendChildFromJson / insertChildFromJson
         // already do on the insert side.
@@ -853,7 +879,7 @@ QModelIndex QJsonModel::insertChildFromJson(const QModelIndex &parent,
     if (row < 0 || row > count) row = count;
 
     // Append fast-path delegates to appendChildFromJson for the trivial
-    // case and for object parents — object children are unordered by
+    // case and for object parents - object children are unordered by
     // key, so insert-at-row is the same as append plus a meaningless
     // visual position change.
     if (row == count || parentItem->type() == QJsonValue::Object)
@@ -900,13 +926,40 @@ QModelIndex QJsonModel::insertChildFromJson(const QModelIndex &parent,
     return index(row, 0, parent0);
 }
 
+QJsonTreeItem *QJsonModel::insertPhantomRow(const QModelIndex &parent, int row)
+{
+    QJsonTreeItem *parentItem = parent.isValid() ? itemFromIndex(parent)
+                                                  : mRootItem;
+    if (!parentItem)
+        return nullptr;
+    const int count = parentItem->childCount();
+    if (row < 0 || row > count) row = count;
+
+    // Column-0 form of `parent` - beginInsertRows follows Qt convention
+    // that structural signals reference the column-0 index of the
+    // parent (matches insertChildFromJson above).
+    const QModelIndex parent0 = parent.isValid() ? parent.siblingAtColumn(0)
+                                                 : QModelIndex();
+
+    beginInsertRows(parent0, row, row);
+    auto *ph = new QJsonTreeItem(parentItem);
+    ph->setKey(QString::number(row));
+    ph->setType(QJsonValue::Null);
+    ph->setValue(QString());
+    ph->setPhantom(true);
+    ph->setColorType(DiffColorType::NotPresent);
+    parentItem->insertChild(row, ph);
+    endInsertRows();
+    return ph;
+}
+
 // ---------------------------------------------------------------------
 // Drag-and-drop
 // ---------------------------------------------------------------------
 
 Qt::DropActions QJsonModel::supportedDragActions() const
 {
-    // Copy only — the source side keeps its node. The user's mental
+    // Copy only - the source side keeps its node. The user's mental
     // model for diff DnD is "duplicate this onto the other side",
     // not "move it" (which would leave a hole and break ordering on
     // the source tree).
@@ -930,7 +983,7 @@ QMimeData *QJsonModel::mimeData(const QModelIndexList &indexes) const
 {
     if (indexes.isEmpty()) return nullptr;
 
-    // Single-item drag only — the tree's selection is single by default
+    // Single-item drag only - the tree's selection is single by default
     // and packing multiple at once raises insertion-order questions we
     // don't want to answer for v1. Pick the first column-0 sibling.
     QModelIndex src;

@@ -33,7 +33,7 @@ void JsonItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) 
     // Read the item's canonical type name directly instead of parsing
     // the display string. The model's column-1 DisplayRole is
     // "Array[N]" for arrays (childcount suffix) and the bare type
-    // name otherwise — using QJsonTreeItem::typeName() side-steps
+    // name otherwise - using QJsonTreeItem::typeName() side-steps
     // the parse entirely and stays correct if more types are added.
     QJsonTreeItem *item = static_cast<QJsonTreeItem*>(index.internalPointer());
     if (item)

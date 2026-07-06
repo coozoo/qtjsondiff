@@ -4,30 +4,244 @@
 <context>
     <name>CommandLineParser</name>
     <message>
-        <location filename="../commandlineparser.cpp" line="21"/>
+        <location filename="../commandlineparser.cpp" line="22"/>
         <source>JSON files display and diff tool.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="31"/>
+        <location filename="../commandlineparser.cpp" line="32"/>
         <source>overwrite application theme style &lt;style&gt;. 
 Available styles: 
 </source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="32"/>
+        <location filename="../commandlineparser.cpp" line="33"/>
         <source>style</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="35"/>
+        <location filename="../commandlineparser.cpp" line="44"/>
+        <source>Inline cURL command describing method/headers/body for the single-tree URL. E.g. --config &quot;curl -X POST -H &apos;X-Foo: 1&apos; --data-raw &apos;{}&apos;&quot;. Valid only when a positional file/URL is given.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="48"/>
+        <location filename="../commandlineparser.cpp" line="57"/>
+        <location filename="../commandlineparser.cpp" line="66"/>
+        <source>curl-text</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="51"/>
+        <source>Same as --config but reads the cURL command from a file.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="52"/>
+        <location filename="../commandlineparser.cpp" line="61"/>
+        <location filename="../commandlineparser.cpp" line="70"/>
+        <source>path</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="55"/>
+        <source>Inline cURL command for the LEFT diff container. Valid only when the left positional file/URL is given.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="60"/>
+        <source>Same as --config-left but from a file.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="64"/>
+        <source>Inline cURL command for the RIGHT diff container. Valid only when the right positional file/URL is given.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="69"/>
+        <source>Same as --config-right but from a file.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="80"/>
+        <source>With --config* set, don&apos;t append the built-in default headers (Accept-Language, Cache-Control, Accept-Encoding) to the request. Send exactly and only the headers you typed.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="87"/>
         <source>File(s) to open. One file for tree view, two files for the diff. No file opens plain gui.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="58"/>
+        <location filename="../commandlineparser.cpp" line="117"/>
+        <source>--%1 and --%2 are mutually exclusive; pass only one.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="126"/>
+        <source>--%1: could not open %2: %3</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="150"/>
+        <source>--%1 (or its -file variant) requires the matching positional file/URL to be given as well.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="167"/>
+        <source>--config is for tree mode; use --config-left and/or --config-right in diff mode.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="173"/>
         <source>Wrong count of arguments used. See help:</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>HttpRequestConfigDialog</name>
+    <message>
+        <location filename="../httprequestconfigdialog.cpp" line="12"/>
+        <source>Configure HTTP request</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>HttpRequestConfigWidget</name>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="86"/>
+        <source>Method:</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="104"/>
+        <source>Headers</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="108"/>
+        <source>+ Add header</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="136"/>
+        <source>Body</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="142"/>
+        <source>Request body - used for POST/PUT/PATCH/DELETE.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="146"/>
+        <source>Form</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="152"/>
+        <source>Paste a cURL command (e.g. from browser devtools) or edit the one below. Switch tabs to apply.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="168"/>
+        <source>cURL</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="174"/>
+        <source>Save…</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="175"/>
+        <source>Load…</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="176"/>
+        <source>Reset</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="178"/>
+        <source>Save this request as a cURL text file (reusable preset).</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="180"/>
+        <source>Load a request from a cURL text file.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="182"/>
+        <source>Restore the built-in default GET (with default headers).</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="215"/>
+        <source>Header-Name</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="226"/>
+        <source>value</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="232"/>
+        <source>Remove this header</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="395"/>
+        <source>Couldn&apos;t parse this as a cURL command. The form still shows the previous state.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="418"/>
+        <source>Save request as cURL preset</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="420"/>
+        <location filename="../httprequestconfigwidget.cpp" line="441"/>
+        <source>cURL preset (*.curl *.txt);;All files (*)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="427"/>
+        <source>Save failed</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="428"/>
+        <source>Could not open %1 for writing:
+%2</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="439"/>
+        <source>Load request from cURL preset</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="448"/>
+        <location filename="../httprequestconfigwidget.cpp" line="459"/>
+        <source>Load failed</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="449"/>
+        <source>Could not open %1 for reading:
+%2</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="460"/>
+        <source>The file at %1 doesn&apos;t parse as a cURL command.</source>
         <translation></translation>
     </message>
 </context>
@@ -255,260 +469,278 @@ Available styles:
 <context>
     <name>QJsonContainer</name>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="31"/>
+        <location filename="../qjsoncontainer.cpp" line="32"/>
         <source>Copy Row</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="33"/>
+        <location filename="../qjsoncontainer.cpp" line="34"/>
         <source>Copy Path</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="145"/>
-        <location filename="../qjsoncontainer.cpp" line="1016"/>
+        <location filename="../qjsoncontainer.cpp" line="146"/>
+        <location filename="../qjsoncontainer.cpp" line="1092"/>
         <source>Show Json Text</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="129"/>
         <location filename="../qjsoncontainer.cpp" line="130"/>
-        <location filename="../qjsoncontainer.cpp" line="1230"/>
+        <location filename="../qjsoncontainer.cpp" line="131"/>
+        <location filename="../qjsoncontainer.cpp" line="1306"/>
         <source>Expand</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="32"/>
+        <location filename="../qjsoncontainer.cpp" line="33"/>
         <source>Copy all Rows</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="34"/>
+        <location filename="../qjsoncontainer.cpp" line="35"/>
         <source>Copy jq Path</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="35"/>
+        <location filename="../qjsoncontainer.cpp" line="36"/>
         <source>Copy Plain JSON</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="36"/>
+        <location filename="../qjsoncontainer.cpp" line="37"/>
         <source>Copy Pretty JSON</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="37"/>
+        <location filename="../qjsoncontainer.cpp" line="38"/>
         <source>Copy Plain selected JSON value</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="38"/>
+        <location filename="../qjsoncontainer.cpp" line="39"/>
         <source>Copy Pretty selected JSON</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="44"/>
+        <location filename="../qjsoncontainer.cpp" line="45"/>
         <source>Add child</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="45"/>
+        <location filename="../qjsoncontainer.cpp" line="46"/>
         <source>Delete row</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="134"/>
+        <location filename="../qjsoncontainer.cpp" line="135"/>
         <source>Sort</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="152"/>
+        <location filename="../qjsoncontainer.cpp" line="153"/>
         <source>Serach for...</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="153"/>
+        <location filename="../qjsoncontainer.cpp" line="154"/>
         <source>Enter text and press enter to search</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="159"/>
+        <location filename="../qjsoncontainer.cpp" line="179"/>
         <source>Find Next</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="169"/>
+        <location filename="../qjsoncontainer.cpp" line="189"/>
         <source>Check to make case sensitive</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="203"/>
+        <location filename="../qjsoncontainer.cpp" line="223"/>
         <source>Select file or use URL to load json data</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="204"/>
+        <location filename="../qjsoncontainer.cpp" line="224"/>
         <source>Select file or use full path/URL and hit enter to load json data</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1846"/>
+        <location filename="../qjsoncontainer.cpp" line="239"/>
+        <location filename="../qjsoncontainer.cpp" line="1599"/>
+        <source>Configure HTTP request (headers, method, body).
+Applied only when the address is a URL.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="1062"/>
+        <location filename="../qjsoncontainer.cpp" line="2045"/>
         <source>Start of json has been reached! Next item will be from the end</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1846"/>
+        <location filename="../qjsoncontainer.cpp" line="1062"/>
+        <location filename="../qjsoncontainer.cpp" line="2045"/>
         <source>End of json has been reached! Next item will be from the start</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="996"/>
+        <location filename="../qjsoncontainer.cpp" line="1072"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=red&gt;Text Not Found!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1027"/>
+        <location filename="../qjsoncontainer.cpp" line="1103"/>
         <source>Show Json View</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1042"/>
+        <location filename="../qjsoncontainer.cpp" line="1118"/>
         <source>Open File</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1043"/>
+        <location filename="../qjsoncontainer.cpp" line="1119"/>
         <source>Files (*.json *.jsn *.txt);;All Files (*)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="164"/>
+        <location filename="../qjsoncontainer.cpp" line="184"/>
         <source>Find Previous</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="212"/>
+        <location filename="../qjsoncontainer.cpp" line="244"/>
         <source>Reload</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="49"/>
+        <location filename="../qjsoncontainer.cpp" line="50"/>
         <source>Expand Selected</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="50"/>
+        <location filename="../qjsoncontainer.cpp" line="51"/>
         <source>Collapse Selected</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="28"/>
+        <location filename="../qjsoncontainer.cpp" line="29"/>
         <source>Expand Selected Tree</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="29"/>
+        <location filename="../qjsoncontainer.cpp" line="30"/>
         <source>Collapse Selected Tree</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="208"/>
+        <location filename="../qjsoncontainer.cpp" line="228"/>
         <source>Open file</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="146"/>
+        <location filename="../qjsoncontainer.cpp" line="147"/>
         <source>Switch between view modes</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="589"/>
+        <location filename="../qjsoncontainer.cpp" line="633"/>
         <source>-&gt;|</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="591"/>
-        <location filename="../qjsoncontainer.cpp" line="592"/>
+        <location filename="../qjsoncontainer.cpp" line="635"/>
+        <location filename="../qjsoncontainer.cpp" line="636"/>
         <source>Go to Next Diff</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="594"/>
+        <location filename="../qjsoncontainer.cpp" line="638"/>
         <source>|&lt;-</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="596"/>
-        <location filename="../qjsoncontainer.cpp" line="597"/>
+        <location filename="../qjsoncontainer.cpp" line="640"/>
+        <location filename="../qjsoncontainer.cpp" line="641"/>
         <source>Go to Previous Diff</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1859"/>
+        <location filename="../qjsoncontainer.cpp" line="1610"/>
+        <source>Configure HTTP request (headers, method, body).
+Custom request active: %1, %2 header(s)%3.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="1616"/>
+        <source>, body set</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="2058"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Documents identical!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1864"/>
+        <location filename="../qjsoncontainer.cpp" line="2063"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="135"/>
+        <location filename="../qjsoncontainer.cpp" line="136"/>
         <source>Sort objects inside array
 It can be helpful for comparison when order does not relevant</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="140"/>
+        <location filename="../qjsoncontainer.cpp" line="141"/>
         <source>Switch View</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="141"/>
+        <location filename="../qjsoncontainer.cpp" line="142"/>
         <source>Switch between tree/text view</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="156"/>
+        <location filename="../qjsoncontainer.cpp" line="176"/>
         <source>&gt;&gt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="157"/>
+        <location filename="../qjsoncontainer.cpp" line="177"/>
         <source>Search Next</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="161"/>
+        <location filename="../qjsoncontainer.cpp" line="181"/>
         <source>&lt;&lt;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="167"/>
+        <location filename="../qjsoncontainer.cpp" line="187"/>
         <source>Search case sensetive</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1106"/>
+        <location filename="../qjsoncontainer.cpp" line="1182"/>
         <source>&lt;b&gt;&lt;font color=&apos;red&apos;&gt;JSON parse error:&lt;/font&gt;&lt;/b&gt; </source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1221"/>
+        <location filename="../qjsoncontainer.cpp" line="1297"/>
         <source>Collapse</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="162"/>
+        <location filename="../qjsoncontainer.cpp" line="182"/>
         <source>Search Previous</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="600"/>
+        <location filename="../qjsoncontainer.cpp" line="644"/>
         <source>Amount of Differences (without root objects/arrays, means values only)</source>
         <translation></translation>
     </message>
@@ -516,119 +748,160 @@ It can be helpful for comparison when order does not relevant</source>
 <context>
     <name>QJsonDiff</name>
     <message>
-        <location filename="../qjsondiff.cpp" line="71"/>
+        <location filename="../qjsondiff.cpp" line="105"/>
         <source>Compare</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="72"/>
+        <location filename="../qjsondiff.cpp" line="106"/>
         <source>Start comparison (ALT+C)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="76"/>
+        <location filename="../qjsondiff.cpp" line="110"/>
         <source>Sync Scrolls</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="80"/>
-        <source>Use Full Path</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../qjsondiff.cpp" line="82"/>
-        <source>Otherwise try to find child+parent pair anywhere in JSON tree</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../qjsondiff.cpp" line="319"/>
+        <location filename="../qjsondiff.cpp" line="419"/>
         <source>Building paths</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="321"/>
+        <location filename="../qjsondiff.cpp" line="421"/>
         <source>Matching paths</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="323"/>
+        <location filename="../qjsondiff.cpp" line="423"/>
         <source>Comparing values</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="325"/>
+        <location filename="../qjsondiff.cpp" line="425"/>
         <source>Indexing right tree</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="327"/>
+        <location filename="../qjsondiff.cpp" line="427"/>
         <source>Pairing items</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="329"/>
+        <location filename="../qjsondiff.cpp" line="429"/>
         <source>Resolving colors</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="424"/>
+        <location filename="../qjsondiff.cpp" line="518"/>
         <source>Comparing JSON</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="436"/>
-        <source>Starting</source>
+        <location filename="../qjsondiff.cpp" line="119"/>
+        <source>Full Path</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="505"/>
+        <location filename="../qjsondiff.cpp" line="121"/>
+        <source>Parent+Child</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="123"/>
+        <source>Compare mode.
+  Full Path: match by absolute key+type path (fast, strict).
+  Parent+Child: match by (parent key, key) anywhere in tree.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="135"/>
+        <source>Smart Array</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="136"/>
+        <source>After the positional match, align each paired container&apos;s
+children by content (bipartite LCS on arrays, key-match on
+objects). Missing items surface as ghost rows on the opposite
+side so matched pairs stay row-aligned for sync-scroll and
+side-by-side reading.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="144"/>
+        <source>Match key (e.g. id)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="145"/>
+        <source>Optional: when comparing arrays of objects, prefer matching by this field name before falling back to weight</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="431"/>
+        <source>Aligning arrays and objects</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="546"/>
+        <source>Cancelling…</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="550"/>
+        <source>Preparing</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../qjsondiff.cpp" line="711"/>
         <source>Running comparison</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="510"/>
+        <location filename="../qjsondiff.cpp" line="716"/>
         <source>%1… (%2s)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="685"/>
+        <location filename="../qjsondiff.cpp" line="887"/>
         <source>Push to right</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="686"/>
+        <location filename="../qjsondiff.cpp" line="888"/>
         <source>Push selected row into the matching row on the right side (overwrites)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="692"/>
+        <location filename="../qjsondiff.cpp" line="894"/>
         <source>Push to left</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="693"/>
+        <location filename="../qjsondiff.cpp" line="895"/>
         <source>Push selected row into the matching row on the left side (overwrites)</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="700"/>
-        <location filename="../qjsondiff.cpp" line="707"/>
+        <location filename="../qjsondiff.cpp" line="902"/>
+        <location filename="../qjsondiff.cpp" line="909"/>
         <source>Delete here</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="701"/>
-        <location filename="../qjsondiff.cpp" line="708"/>
+        <location filename="../qjsondiff.cpp" line="903"/>
+        <location filename="../qjsondiff.cpp" line="910"/>
         <source>Remove the selected row from this side. If it had a peer on the other side, the peer becomes NotPresent.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="425"/>
+        <location filename="../qjsondiff.cpp" line="527"/>
         <source>Cancel</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qjsondiff.cpp" line="77"/>
+        <location filename="../qjsondiff.cpp" line="111"/>
         <source>Try to sync left and right scrolling areas</source>
         <translation></translation>
     </message>

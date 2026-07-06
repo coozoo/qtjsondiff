@@ -12,14 +12,14 @@
 #include <QTimer>
 #include <QtDebug>
 
-const QString APP_VERSION = "0.92";
+const QString APP_VERSION = "0.95";
 
 void qtJsonDiffLogger(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QByteArray localMsg = msg.toLocal8Bit();
     const char *file = context.file ? context.file : "";
     const char *function = context.function ? context.function : "";
-    // Keep the QByteArray alive in a local — the `const char *` form
+    // Keep the QByteArray alive in a local - the `const char *` form
     // would dangle as soon as the full-expression ended, and fprintf()
     // below would strlen() freed memory.
     QByteArray timestamp = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate).toUtf8();
@@ -127,9 +127,18 @@ int main(int argc, char *argv[])
         {
             return 0;
         }
+    // Restore last-loaded paths for all three containers first, so
+    // switching tabs still shows the previous session's content on
+    // whichever side the CLI didn't override. setDisplayMode then
+    // replaces just the CLI-targeted container(s).
+    w.loadLastPathsIfEnabled();
     if (appMode == Tree || appMode == Diff)
         {
-            w.setDisplayMode(cliParser.files());
+            w.setDisplayMode(cliParser.files(),
+                             cliParser.configCurl(),
+                             cliParser.leftConfigCurl(),
+                             cliParser.rightConfigCurl(),
+                             cliParser.noHttpDefaults());
         }
 
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());

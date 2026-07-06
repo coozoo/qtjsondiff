@@ -11,6 +11,7 @@
    * [Linux](#linux)
    * [Windows](#windows)
 * [Integrate it to your application](#integrate-it-to-your-application)
+* [Command line](#command-line)
 * [Comparison modes](#comparison-modes)
 
 
@@ -28,6 +29,7 @@ Some features:
 
     - **Dual View Modes**: Switch between a formatted JSON text view and an interactive tree view.
     - **Data Loading**: Load JSON from a file, a URL, or by pasting directly into the tree view (Ctrl+V).
+    - **Custom HTTP requests**: for URL sources, the gear button next to *Reload* opens a dialog to configure the HTTP method (GET/POST/PUT/PATCH/DELETE/HEAD), custom headers with autocomplete for common names, and the request body. Presets are stored as plain cURL text files (Save… / Load…), so you can paste `curl -X POST … -H '…' --data-raw '…'` straight from browser devtools "Copy as cURL". A **Reset** button restores the built-in default GET (with the three sensible default headers). When the config is non-default, the gear button gets an orange border so you can tell at a glance that reloading won't be a plain GET.
     - **Inline Editing** (opt-in): Edit keys, types and values directly within the tree view.
       Toggle from **Preferences → JSON Editing**.
       * **Single-tree tab**: right-click → *Add child* / *Delete row*.
@@ -39,6 +41,7 @@ Some features:
     - **Comparison Modes**:
       * **Full Path**: (Default, Fast) Compares items based on their absolute path.
       * **Parent+Child Pair**: (Slow) Finds the first occurrence of a parent-child pair anywhere in the JSON, useful for structurally different but content-similar JSONs.
+    - **Smart Array** (optional): compare arrays and objects by content instead of by position. Reordered lists still pair correctly, and any item that exists on only one side shows up as a ghost row on the other side so matched pairs stay lined up row-for-row for sync-scroll and side-by-side reading. Fill in the **Match key** field (e.g. `id`) to prefer that field as the item's identity when comparing arrays of objects.
     - **Rich Clipboard Support**:
       * **Copy Row**: Copies the selected item's text ("Key Type Value").
       * **Copy Rows**: Copies the entire tree content for pasting into spreadsheets.
@@ -167,12 +170,25 @@ You need to include those files:
 #include "qjsoncontainer.h"
 #include "qjsondiff.h"
 #include "jsondiffengine.h"          // only if you want to drive the compare engine directly
+#include "httprequestconfig.h"       // pulled in transitively by qjsoncontainer.h;
+                                     // include it explicitly if you build/read
+                                     // HttpRequestConfig values in your own code
 
 #include "preferences/preferences.h"
 #include "preferences/preferencesdialog.h"
 
 ```
 If you need just json tree view you can ignore `qjsondiff.h` and `jsondiffengine.h`.
+
+### Files you must build/link
+
+`QJsonContainer` itself opens the request-config dialog when the user clicks the gear button, so **the whole HTTP-request trio compiles and links unconditionally** with the widget:
+
+- `httprequestconfig.{h,cpp}` — data class + cURL parser
+- `httprequestconfigwidget.{h,cpp}` — reusable form + cURL tab
+- `httprequestconfigdialog.{h,cpp}` — thin QDialog wrapper used by the toolbar button
+
+Add all three `.cpp` files to your project's `SOURCES` (or their equivalent in your build system) and their headers to `HEADERS`. Skipping any of them will break the container's link step. There's no "no-network" build flavor — if you want to strip the feature, call `configureRequest_toolButton->hide()` on the container after construction.
 
 Declare pointers:
 ```cpp
@@ -232,6 +248,39 @@ messageJsonCont->removeAt(targetIndex);
 All of them no-op when their side's edit mode is off, so you can
 wire them up unconditionally.
 
+### Configuring HTTP requests programmatically
+
+When a `QJsonContainer` is loading a URL rather than a file, you can drive method, headers, and body via `HttpRequestConfig` — the same class the built-in gear-button dialog edits. Custom values apply only when the address is a URL; file paths ignore them.
+
+```cpp
+#include "httprequestconfig.h"
+
+HttpRequestConfig cfg;
+cfg.method = HttpRequestConfig::Post;
+cfg.headers.append(qMakePair(QStringLiteral("Authorization"),
+                             QStringLiteral("Bearer XYZ")));
+cfg.headers.append(qMakePair(QStringLiteral("Content-Type"),
+                             QStringLiteral("application/json")));
+cfg.body = "{\"greeting\":\"hi\"}";
+
+messageJsonCont->setRequestConfig(cfg);
+// or, to go back to a plain GET with the three sensible defaults:
+messageJsonCont->setRequestConfig(HttpRequestConfig::defaults());
+```
+
+The container also emits `requestConfigChanged(HttpRequestConfig)` when the user changes the config through the gear button on the toolbar (`configureRequest_toolButton`), so you can persist or forward it however you like.
+
+The text format used for the built-in **Save…** / **Load…** buttons on the request dialog *and* for the CLI's `--config*` flags is a normal cURL command:
+
+```bash
+curl -X POST 'https://api.example.com/foo' \
+  -H 'Authorization: Bearer XXX' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"key":"value"}'
+```
+
+You can paste this straight from browser devtools' *Copy as cURL*. Round-trip both ways in code with `HttpRequestConfig::fromCurlText(text, &ok)` and `.toCurlText()`. Presets are just files on disk — there's no separate preferences store to manage.
+
 If you want to run a comparison without the widget (for example in a CLI tool or a background job), you can use `JsonDiffEngine` directly:
 
 ```cpp
@@ -242,16 +291,88 @@ If you want to run a comparison without the widget (for example in a CLI tool or
 DiffNode left  = JsonDiffEngine::snapshot(leftModel);
 DiffNode right = JsonDiffEngine::snapshot(rightModel);
 
-// run the compare (Mode::FullPath or Mode::ParentChildPair)
+// simple positional compare (Mode::FullPath or Mode::ParentChildPair)
 JsonDiffEngine::compare(left, right, JsonDiffEngine::Mode::FullPath);
 
+// or turn Smart Array on — match items by content instead of by
+// index, so reordered arrays pair correctly and missing items
+// surface as ghost rows on the opposite side. The third argument
+// is the match-key (empty = compare items by their whole content)
+// and the fourth is the Smart Array switch.
+JsonDiffEngine::compare(left, right, JsonDiffEngine::Mode::FullPath,
+                        /*matchKey=*/"id", /*arrayOverlay=*/true);
+
 // apply the result back onto the models so the tree views show colors
+// and (under Smart Array) ghost rows for the missing items.
 JsonDiffEngine::apply(left,  leftModel,  rightModel);
 JsonDiffEngine::apply(right, rightModel, leftModel);
 ```
 
-That's all you need for a basic compare. `QJsonDiff` does the same thing internally on a background thread with a progress dialog.
+That's all you need for a basic compare. `QJsonDiff` does the same thing internally on a background thread with a progress dialog. The toolbar controls above the diff view are `modeCombo` (QComboBox — Full Path / Parent+Child), `arrayOverlay_checkbox` (QCheckBox — Smart Array), and `matchKey_lineEdit` (QLineEdit); all three are public members if you want to drive them from your own code.
 
+
+## Command line
+
+```
+qtjsondiff [--style <style>]
+           [--config <curl-text> | --config-file <path>]
+           [--config-left <curl-text> | --config-left-file <path>]
+           [--config-right <curl-text> | --config-right-file <path>]
+           [--no-http-defaults]
+           [file/URL [file/URL]]
+```
+
+- Zero positionals → the plain GUI opens.
+- One positional → single-tree view.
+- Two positionals → diff view.
+
+If the *Restore last-loaded paths on startup* option is enabled, containers the CLI doesn't address still restore their previous session's content — so `qtjsondiff URL` loads `URL` on the single-tree tab, and switching to the diff tab still shows the last diff you were on.
+
+Each `--config*` flag pair configures how the URL for one container is requested (method, headers, body). You pass it in **one of two ways**:
+
+- **Inline as text** — the value is a raw cURL command string: `--config "curl -X POST -H 'X-Foo: 1' --data-raw '{}'"`.
+- **From a file** — the `-file` variant reads the same cURL text from disk: `--config-file ~/api-configs/prod.curl`.
+
+Inline and `-file` for the same side are mutually exclusive. Each is only valid when its matching positional is given (`--config-left` needs two positionals, `--config` needs one, etc.).
+
+**Default headers are appended automatically.** Any of `Accept-Language: en-US,en;q=0.8`, `Cache-Control: no-cache`, `Accept-Encoding: gzip, deflate` that the cURL you typed doesn't set is added by qtjsondiff — this preserves things like gzip decompression even for short CLI configs. If any of those clash with what you passed, yours wins. Add `--no-http-defaults` to send exactly and only the headers you typed.
+
+The cURL text is exactly what you'd type in a shell, or what browser devtools produces under *Copy as cURL*. Examples:
+
+```bash
+# GET with custom headers — hit the GitHub API:
+qtjsondiff 'https://api.github.com/users/hadley/orgs' \
+           --config "curl -X GET -H 'X-Client: qtjsondiff'"
+
+# POST with a JSON body — httpbin echoes the request back:
+qtjsondiff 'https://httpbin.org/post' \
+           --config "curl -X POST \
+             -H 'Content-Type: application/json' \
+             --data-raw '{\"user\":\"hadley\",\"action\":\"login\"}'"
+
+# Diff two POSTs with different bodies against the same endpoint:
+qtjsondiff \
+  --config-left  "curl -X POST -H 'Content-Type: application/json' --data-raw '{\"user\":\"alice\",\"role\":\"admin\"}'" \
+  --config-right "curl -X POST -H 'Content-Type: application/json' --data-raw '{\"user\":\"bob\",\"role\":\"user\"}'" \
+  'https://httpbin.org/post' \
+  'https://httpbin.org/post'
+
+# File-loaded — reusable preset per side of the diff:
+qtjsondiff --config-left-file  ~/api-configs/prod.curl \
+           --config-right-file ~/api-configs/staging.curl \
+           https://prod.example.com/api/foo \
+           https://staging.example.com/api/foo
+```
+
+### Shell quoting reminder
+
+Inside the outer `"…"` around a `--config*` value:
+
+- `\"` is a literal `"` (use it inside JSON bodies).
+- `'…'` passes through as-is — the natural quoting for `-H` and `--data-raw` values.
+- Multi-line cURL with `\`-continuations is fine.
+
+Copy-paste from browser devtools' *Copy as cURL* almost always Just Works — just wrap the whole cURL blob in the outer `"…"` and escape any bare `"` inside.
 
 ## Comparison modes
 
@@ -280,7 +401,26 @@ Using the same example above, Parent+Child pair would say "`user.id` exists on b
 
 Useful when two JSONs describe the same data but are structured differently, or when you care about *values* more than *exact tree shape*. The trade-off is speed: every left-side item walks the entire right side looking for a match, so very large or very different JSONs can take a long time.
 
-You can switch between modes at any time with the **Use Full Path** checkbox above the diff view.
+You can switch between modes at any time with the **compare-mode combobox** above the diff view.
+
+### Smart Array
+
+Positional modes (Full Path, Parent+Child) match array items by their index. A single missing item makes everything after it look different, even when the items are byte-for-byte identical. When **Smart Array** is on, arrays and objects are compared by content: items with the same content pair up regardless of position, and any item that exists on only one side shows up as a ghost row on the other side so matched pairs stay aligned row-for-row.
+
+- **Arrays**: each item's content is used as its identity — two items pair up if their content signatures match. If you fill in the **Match key** field (`id`, or a comma-separated list like `id,eventId,marketId`), objects that carry any of those fields pair by that field's value first, which is useful when items are objects with a natural identifier.
+- **Objects**: children pair by key at their own level; source order is preserved.
+- **Missing items become ghost rows** on the opposite side, so row *N* on the left lines up with row *N* on the right for every matched pair. Sync-scroll and visual side-by-side reading work again on shifted arrays.
+
+Example — the whole point of the feature:
+
+```json
+left:  { "arr": [ "A", "B", "C", "D" ] }
+right: { "arr": [ "A", "B", "X", "C", "D" ] }
+```
+
+With Smart Array off, items are paired by index: `A` with `A`, `B` with `B`, `C` with `X`, `D` with `C`, and the right's `D` is left over — so three of the five items are flagged as different even though every letter appears on both sides. Turn **Smart Array** on and the pairing becomes A↔A, B↔B, C↔C, D↔D; the extra `X` is shown as a real item on the right and a ghost row on the left at the same visual position.
+
+Smart Array is off by default (preserves prior positional behavior). Toggle it whenever the JSON is array-heavy or the arrays are known to be reordered.
 
 
 ### Supported Build Tags

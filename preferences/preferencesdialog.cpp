@@ -65,7 +65,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
         ui->showJson_buttonGroup->button(-2)->setChecked(true);
     }
 
-    // JSON Editing page — sync checkbox state from current prefs and
+    // JSON Editing page - sync checkbox state from current prefs and
     // route toggles to a single slot that writes the right pref +
     // notifies listeners (MainWindow re-applies setEditable live).
     ui->singleTreeEditCheckBox->setChecked(PREF_INST->editableSingleTree);
@@ -75,7 +75,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     connect(ui->diffViewEditCheckBox,   &QCheckBox::toggled,
             this, &PreferencesDialog::editModeCheckBoxToggled);
 
-    // Style page — combobox lists every QStyle Qt knows about plus a
+    // Style page - combobox lists every QStyle Qt knows about plus a
     // "Default" sentinel that means "don't override." We block the
     // combo's signal while populating so the initial fill doesn't
     // count as a user pick.

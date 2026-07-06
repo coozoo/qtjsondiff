@@ -1,23 +1,24 @@
-# Black-box tests for QJsonDiff comparison logic.
-# Built standalone: `cd tests/compare && qmake6 && make`
-# Run with:        `QT_QPA_PLATFORM=offscreen ./tst_compare`
+# Search regression tests for QJsonContainer::findModelText.
+# Locks in current search behavior BEFORE ghost/phantom rows land in
+# the model so we can prove alignment doesn't break find.
+#
+# Built standalone: `cd tests/search && qmake6 && make`
+# Run with:        `QT_QPA_PLATFORM=offscreen ./tst_search`
 
 QT += testlib widgets network
 
 CONFIG += console testcase
 CONFIG -= app_bundle
 
-TARGET = tst_compare
+TARGET = tst_search
 
 INCLUDEPATH += ../..
 
 SOURCES += \
-    test_compare.cpp \
-    ../../qjsondiff.cpp \
+    test_search.cpp \
     ../../qjsoncontainer.cpp \
     ../../qjsonmodel.cpp \
     ../../qjsonitem.cpp \
-    ../../jsondiffengine.cpp \
     ../../jsonitemdelegate.cpp \
     ../../jsonsyntaxhighlighter.cpp \
     ../../httprequestconfig.cpp \
@@ -26,11 +27,9 @@ SOURCES += \
     ../../preferences/preferences.cpp
 
 HEADERS += \
-    ../../qjsondiff.h \
     ../../qjsoncontainer.h \
     ../../qjsonmodel.h \
     ../../qjsonitem.h \
-    ../../jsondiffengine.h \
     ../../jsonitemdelegate.h \
     ../../jsonsyntaxhighlighter.h \
     ../../httprequestconfig.h \

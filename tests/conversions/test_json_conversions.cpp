@@ -543,7 +543,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // replaceFromJson — Phase A "copy from peer" in-place replace
+    // replaceFromJson - Phase A "copy from peer" in-place replace
     // ------------------------------------------------------------------
 
     void replaceFromJsonScalarOverScalar()
@@ -652,7 +652,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // appendChildFromJson / removeRowAt — Phase B "add / delete row"
+    // appendChildFromJson / removeRowAt - Phase B "add / delete row"
     // ------------------------------------------------------------------
 
     void appendChildScalarToObject()
@@ -811,7 +811,7 @@ private slots:
         // I-001: Between beginRemoveRows and endRemoveRows the model
         // must report the pre-remove row count (Qt QAIM contract).
         // The pre-fix implementation did takeChildren() + setChildren()
-        // which briefly emptied the parent's mChilds — so an observer
+        // which briefly emptied the parent's mChilds - so an observer
         // that queried rowCount() mid-transaction saw 0.
         //
         // This test connects a lambda to rowsAboutToBeRemoved that
@@ -875,7 +875,7 @@ private slots:
         QJsonModel m;
         m.loadJson(R"({"a":1})");
         QVERIFY(!m.removeRowAt(QModelIndex()));     // invalid → rejected
-        // Root has no parent — removeRowAt rejects when item == mRootItem.
+        // Root has no parent - removeRowAt rejects when item == mRootItem.
         // We can't construct a "root" QModelIndex except as invalid, so
         // this is the same case as above; documenting via comment.
     }
@@ -883,7 +883,7 @@ private slots:
     void removeRowAtRenumbersArrayKeys()
     {
         // Array [10,20,30,40]: keys "0","1","2","3". Removing index 1
-        // must renumber to "0","1","2" — not "0","2","3".
+        // must renumber to "0","1","2" - not "0","2","3".
         QJsonModel m;
         m.loadJson(R"({"arr":[10,20,30,40]})");
         QModelIndex arr = childByKey(&m, QModelIndex(), "arr");
@@ -906,7 +906,7 @@ private slots:
 
     void removeRowAtNoRenumberForObjectKeys()
     {
-        // Object children carry meaningful keys — those must NOT change
+        // Object children carry meaningful keys - those must NOT change
         // when a sibling is deleted.
         QJsonModel m;
         m.loadJson(R"({"a":1,"b":2,"c":3})");
@@ -992,7 +992,7 @@ private slots:
 
     void testDndScalarRejectsDrops()
     {
-        // A scalar value cannot accept children — flag is off, and
+        // A scalar value cannot accept children - flag is off, and
         // canDropMimeData refuses.
         QJsonModel m;
         m.setEditable(true);
@@ -1024,8 +1024,8 @@ private slots:
         QVERIFY(m.dropMimeData(md, Qt::CopyAction, -1, -1, obj));
         delete md;
 
-        // Object parent: source key was "0" (array index) — pre-deduped
-        // because "0" doesn't exist in obj — so the new entry's key is
+        // Object parent: source key was "0" (array index) - pre-deduped
+        // because "0" doesn't exist in obj - so the new entry's key is
         // "0" and value is 42.
         QCOMPARE(m.rowCount(obj), 1);
         QModelIndex newChild = m.index(0, 0, obj);
@@ -1155,7 +1155,7 @@ private slots:
     void testDndFileUrlMimeIgnored()
     {
         // Sanity: a text/uri-list MIME payload (what a file drag carries)
-        // is rejected by the model — keeps the existing file-drop path on
+        // is rejected by the model - keeps the existing file-drop path on
         // the surrounding groupbox eventFilter free of contention.
         QJsonModel m;
         m.setEditable(true);
@@ -1165,6 +1165,120 @@ private slots:
         md.setData("text/uri-list", "file:///tmp/example.json\r\n");
         QVERIFY(!m.canDropMimeData(&md, Qt::CopyAction, -1, -1, QModelIndex()));
         QVERIFY(!m.dropMimeData(&md, Qt::CopyAction, -1, -1, QModelIndex()));
+    }
+
+    // -----------------------------------------------------------------
+    // Phase 4: phantom rows in QJsonModel
+    // -----------------------------------------------------------------
+
+    // Find the first-level child by key on a model. Returns nullptr if
+    // not found. Test helper only - the model's own itemFromIndex plus
+    // walk-children is fine for a single level.
+    static QJsonTreeItem* firstLevelChildByKey(QJsonModel &m, const QString &k)
+    {
+        const QModelIndex root = QModelIndex();
+        const int n = m.rowCount(root);
+        for (int i = 0; i < n; ++i)
+        {
+            QModelIndex idx = m.index(i, 0, root);
+            QJsonTreeItem *item = static_cast<QJsonTreeItem*>(idx.internalPointer());
+            if (item && item->key() == k)
+                return item;
+        }
+        return nullptr;
+    }
+
+    void phantomIsFalseByDefault()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"a":1,"b":2})");
+        QJsonTreeItem *a = firstLevelChildByKey(m, "a");
+        QVERIFY(a);
+        QVERIFY(!a->isPhantom());
+    }
+
+    void getJsonDocumentSkipsPhantomsInObject()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"real":1,"ghost":2})");
+        QJsonTreeItem *ghost = firstLevelChildByKey(m, "ghost");
+        QVERIFY(ghost);
+        ghost->setPhantom(true);
+
+        const QJsonDocument out = m.getJsonDocument();
+        QVERIFY(out.isObject());
+        const QJsonObject obj = out.object();
+        QVERIFY( obj.contains("real"));
+        QVERIFY(!obj.contains("ghost"));
+    }
+
+    void getJsonDocumentSkipsPhantomsInArray()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"arr":[10,20,30]})");
+        QJsonTreeItem *arr = firstLevelChildByKey(m, "arr");
+        QVERIFY(arr);
+        QCOMPARE(arr->childCount(), 3);
+        // Mark the middle element phantom.
+        arr->child(1)->setPhantom(true);
+
+        const QJsonDocument out = m.getJsonDocument();
+        const QJsonArray a = out.object().value("arr").toArray();
+        QCOMPARE(a.size(), 2);
+        QCOMPARE(a[0].toInt(), 10);
+        QCOMPARE(a[1].toInt(), 30);
+    }
+
+    void flagsRejectPhantomEdit()
+    {
+        QJsonModel m;
+        m.setEditable(true);
+        m.loadJson(R"({"a":1})");
+        QJsonTreeItem *a = firstLevelChildByKey(m, "a");
+        QVERIFY(a);
+        // Non-phantom scalar: value column is editable.
+        const int n = m.rowCount(QModelIndex());
+        QModelIndex valueIdx;
+        for (int i = 0; i < n; ++i)
+        {
+            QModelIndex k = m.index(i, 0, QModelIndex());
+            if (static_cast<QJsonTreeItem*>(k.internalPointer())->key() == "a")
+            {
+                valueIdx = m.index(i, 2, QModelIndex());
+                break;
+            }
+        }
+        QVERIFY(valueIdx.isValid());
+        QVERIFY(m.flags(valueIdx) & Qt::ItemIsEditable);
+
+        // Flip to phantom → editable bit drops off.
+        a->setPhantom(true);
+        QVERIFY(!(m.flags(valueIdx) & Qt::ItemIsEditable));
+    }
+
+    void setDataRejectsPhantom()
+    {
+        QJsonModel m;
+        m.setEditable(true);
+        m.loadJson(R"({"a":"hello"})");
+        QJsonTreeItem *a = firstLevelChildByKey(m, "a");
+        QVERIFY(a);
+        a->setPhantom(true);
+        // Value column write must fail and not change the item.
+        QModelIndex valueIdx;
+        const int n = m.rowCount(QModelIndex());
+        for (int i = 0; i < n; ++i)
+        {
+            QModelIndex k = m.index(i, 0, QModelIndex());
+            if (static_cast<QJsonTreeItem*>(k.internalPointer())->key() == "a")
+            {
+                valueIdx = m.index(i, 2, QModelIndex());
+                break;
+            }
+        }
+        QVERIFY(valueIdx.isValid());
+        QVERIFY(!m.setData(valueIdx, "goodbye", Qt::EditRole));
+        QCOMPARE(a->value(), QStringLiteral("hello"));
     }
 };
 

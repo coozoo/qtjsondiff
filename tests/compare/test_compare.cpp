@@ -14,6 +14,7 @@
 #include <QTest>
 #include <QWidget>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QSignalSpy>
 #include <QMimeData>
 
@@ -74,7 +75,9 @@ private:
                         const QString& rightJson,
                         bool useFullPath)
     {
-        diff->useFullPath_checkbox->setChecked(useFullPath);
+        diff->modeCombo->setCurrentIndex(
+            useFullPath ? int(JsonDiffEngine::Mode::FullPath)
+                        : int(JsonDiffEngine::Mode::ParentChildPair));
         diff->loadJsonLeft(QJsonDocument::fromJson(leftJson.toUtf8()));
         diff->loadJsonRight(QJsonDocument::fromJson(rightJson.toUtf8()));
         diff->startComparison();
@@ -96,7 +99,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Identical JSONs — both modes
+    // Identical JSONs - both modes
     // ------------------------------------------------------------------
 
     void identicalFullPath()
@@ -118,7 +121,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Single nested scalar diff — ancestors should be promoted to Moderate
+    // Single nested scalar diff - ancestors should be promoted to Moderate
     // ------------------------------------------------------------------
 
     void nestedScalarDiffFullPath()
@@ -167,7 +170,7 @@ private slots:
     // ------------------------------------------------------------------
     // Same key path, different value type.
     // Full-path mode treats this as missing on both sides (path includes
-    // type — per README). Parent+child mode treats it as a Huge diff
+    // type - per README). Parent+child mode treats it as a Huge diff
     // because the second pass in findIndexInModel matches on key/parent
     // alone after the typed match fails.
     // These are the *currently observable* contracts; lock them in.
@@ -213,7 +216,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Deeply nested structural difference — ancestor chain promoted
+    // Deeply nested structural difference - ancestor chain promoted
     // ------------------------------------------------------------------
 
     void deepNestedDiffFullPath()
@@ -295,7 +298,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Phase A — edit-in-diff: push selected value INTO peer
+    // Phase A - edit-in-diff: push selected value INTO peer
     // ------------------------------------------------------------------
 
     void editPushLeftScalarToRight()
@@ -364,7 +367,7 @@ private slots:
     void editPushKeepsAncestorModerateWhenSiblingDiffers()
     {
         // {"a":{"b":"old","c":"x"}} vs {"a":{"b":"new","c":"y"}}
-        // Push b only — a stays Moderate because c is still Huge.
+        // Push b only - a stays Moderate because c is still Huge.
         loadAndCompare(R"({"a":{"b":"old","c":"x"}})",
                        R"({"a":{"b":"new","c":"y"}})", true);
         diff->setDiffEditable(true);
@@ -385,7 +388,7 @@ private slots:
         // Explicitly reset edit mode (the diff widget is shared across
         // tests via initTestCase, so a previous test may have toggled
         // it on). The point of this test: the slot ISN'T gated by
-        // editable — only the overlay button visibility is. The check
+        // editable - only the overlay button visibility is. The check
         // below confirms the slot still works programmatically.
         diff->setDiffEditable(false);
         QCOMPARE(diff->isDiffEditable(), false);
@@ -395,7 +398,7 @@ private slots:
         diff->getLeftTreeView()->setCurrentIndex(leftK);
         diff->pushLeftSelectionToRight();
 
-        // The slot itself is not gated — that's by design (programmatic
+        // The slot itself is not gated - that's by design (programmatic
         // use). The overlay is what enforces the user-facing edit-mode
         // gate. Both sides Identical after this call.
         QCOMPARE(colorAt(L, {"k"}),                     DiffColorType::Identical);
@@ -454,7 +457,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Phase B — edit-in-diff: push NotPresent INTO other side (insert)
+    // Phase B - edit-in-diff: push NotPresent INTO other side (insert)
     //                          and delete-here from one side
     // ------------------------------------------------------------------
 
@@ -506,7 +509,7 @@ private slots:
     void editPushNotPresentSubtreeCrossLinksInteriors()
     {
         // Pushing a NotPresent CONTAINER must light up its interior
-        // children with idxRelation too — not just the top.
+        // children with idxRelation too - not just the top.
         loadAndCompare(R"({"keep":0,"big":{"x":1,"y":2}})",
                        R"({"keep":0})", true);
         diff->setDiffEditable(true);
@@ -554,14 +557,14 @@ private slots:
         QCOMPARE(leftPush->isEnabled(), true);
 
         // Clicking "deep/leaf" must still be a safe no-op (defence in
-        // depth — the slot itself should refuse even if the action got
+        // depth - the slot itself should refuse even if the action got
         // triggered programmatically).
         diff->getLeftTreeView()->setCurrentIndex(resolvePath(L, {"deep","leaf"}));
         diff->pushLeftSelectionToRight();
         QVERIFY(!exists(R, {"deep"}));
         QVERIFY(!exists(R, {"deep","leaf"}));
 
-        // Then push the parent — both should land in one step.
+        // Then push the parent - both should land in one step.
         diff->getLeftTreeView()->setCurrentIndex(resolvePath(L, {"deep"}));
         diff->pushLeftSelectionToRight();
         QVERIFY(exists(R, {"deep","leaf"}));
@@ -605,7 +608,7 @@ private slots:
     void editDeletePairedRowOrphansPeer()
     {
         // Deleting a Huge-paired row on left turns the right peer into
-        // NotPresent (not "removed" on right too — the symmetric
+        // NotPresent (not "removed" on right too - the symmetric
         // delete is the user's separate next click).
         loadAndCompare(R"({"k":"old","x":"same"})",
                        R"({"k":"new","x":"same"})", true);
@@ -625,7 +628,7 @@ private slots:
     }
 
     // ------------------------------------------------------------------
-    // Phase B+ — single-tree Add child / Delete row on QJsonContainer
+    // Phase B+ - single-tree Add child / Delete row on QJsonContainer
     // ------------------------------------------------------------------
 
     void containerAddChildToRootObject()
@@ -747,7 +750,7 @@ private slots:
     void editInlineKeyRenameDetachesPair()
     {
         // Renaming a paired key detaches: both sides go NotPresent
-        // (the slot now names a different item — re-pairing requires
+        // (the slot now names a different item - re-pairing requires
         // a fresh Compare).
         loadAndCompare(R"({"k":"v"})", R"({"k":"v"})", true);
         diff->setDiffEditable(true);
@@ -768,7 +771,7 @@ private slots:
         // {"k":{"x":1}} == {"k":{"x":1}}: identical with paired x.
         // Change LEFT k's type from Object to String via setData.
         // Expect: left k = Huge, left k's old child "x" disappears
-        // from the model AND from the snapshot — and right's "x"
+        // from the model AND from the snapshot - and right's "x"
         // gets orphaned to NotPresent (the cross-link points into a
         // subtree that no longer exists).
         loadAndCompare(R"({"k":{"x":1}})", R"({"k":{"x":1}})", true);
@@ -812,7 +815,7 @@ private slots:
     void editDeleteArrayElementRenumbers()
     {
         // {"arr":[10,20,30]} vs {"arr":[10,20,30]}, delete arr[1] on
-        // left → left's array becomes [10,30] with keys "0","1" — not
+        // left → left's array becomes [10,30] with keys "0","1" - not
         // "0","2". Right's "1" becomes NotPresent (orphaned peer) and
         // right's "2" relationPath slides from {0,2} → {0,1}.
         loadAndCompare(R"({"arr":[10,20,30]})",
@@ -883,7 +886,7 @@ private slots:
         QVERIFY(newOnRight.isValid());
         QCOMPARE(R->itemFromIndex(newOnRight)->colorType(),
                  DiffColorType::NotPresent);
-        // No cross-link — left side has nothing matched here.
+        // No cross-link - left side has nothing matched here.
         QVERIFY(!R->itemFromIndex(newOnRight)->idxRelation().isValid());
 
         // Sanity: pre-existing matched siblings keep their color.
@@ -895,7 +898,7 @@ private slots:
     {
         // Drop a new entry into a matched nested object. The dropped
         // node is NotPresent, and the matched parent's pair color
-        // refreshes — the parent now has more children on one side.
+        // refreshes - the parent now has more children on one side.
         loadAndCompare(R"({"obj":{"x":1}})",
                        R"({"obj":{"x":1}})", true);
         diff->setDiffEditable(true);
@@ -942,7 +945,7 @@ private slots:
         QVERIFY(R->dropMimeData(md, Qt::CopyAction, -1, -1, QModelIndex()));
         delete md;
 
-        // "keep" matched-peer link survives — we asserted on the
+        // "keep" matched-peer link survives - we asserted on the
         // pre-drop pair, drop only adds a new node; existing
         // relationPaths are untouched by the snapshot splice.
         QCOMPARE(colorAt(L, {"keep"}), DiffColorType::Identical);

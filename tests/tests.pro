@@ -7,4 +7,6 @@ CONFIG  += ordered
 SUBDIRS = \
     conversions \
     compare \
-    engine
+    engine \
+    search \
+    httprequest
