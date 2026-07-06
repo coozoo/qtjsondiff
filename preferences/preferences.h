@@ -61,7 +61,7 @@ public:
     QColor syntaxKeywordColor;
     QColor syntaxValueColor;
 
-    // Inline-editing toggles. Off by default — integrators that want the
+    // Inline-editing toggles. Off by default - integrators that want the
     // original read-only widget contract see no behavior change. The
     // demo app's MainWindow reads these on startup and re-reads them
     // whenever editModeChanged fires (live update from the dialog).
@@ -69,13 +69,13 @@ public:
     bool editableDiffView;
 
     // Application QStyle override. Empty string means "don't override"
-    // (let Qt pick its platform default). Requires restart — Qt's
+    // (let Qt pick its platform default). Requires restart - Qt's
     // QApplication::setStyle() reparents palettes mid-flight and the
     // result is uneven across already-built widgets, so we only apply
     // this in main() before MainWindow is constructed.
     QString appStyle;
 
-    // Custom tree stylesheet toggle. Off by default — the widget then
+    // Custom tree stylesheet toggle. Off by default - the widget then
     // looks like the platform's plain QTreeView, matching the
     // pre-Style-prefs behavior. On, qjsoncontainer applies
     // qss/qjsontreeview.qss (custom branch icons, hover/select
@@ -89,7 +89,7 @@ public:
     // compareMode: 0=FullPath, 1=ParentChildPair. Matches
     // JsonDiffEngine::Mode; stored as int so preferences.h doesn't
     // need to include the engine header.
-    // arrayOverlay: "Smart Array" checkbox — LCS-style children
+    // arrayOverlay: "Smart Array" checkbox - LCS-style children
     // alignment on top of the positional mode, for both arrays and
     // objects, with phantom rows on the opposite side to line up
     // matched items 1:1.

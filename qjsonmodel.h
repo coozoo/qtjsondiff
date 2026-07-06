@@ -58,12 +58,12 @@ public:
 
     void setEditable(bool editable);
 
-    // Replace the item at `target` with `source` in place — type, value,
+    // Replace the item at `target` with `source` in place - type, value,
     // and children are overwritten. The target's *key* is preserved
     // (the key identifies the item's position in its parent).
     // Used by the diff-edit "copy from peer" flow. Emits proper
     // begin/endRemoveRows + begin/endInsertRows + dataChanged so views
-    // keep their selection and scroll state — no model reset.
+    // keep their selection and scroll state - no model reset.
     // Returns false if `target` is invalid or `source` is undefined.
     bool replaceFromJson(const QModelIndex &target, const QJsonValue &source);
 
@@ -77,7 +77,7 @@ public:
     // For Object parents, an empty `key` is rejected (returns invalid)
     // because QJsonObject::insert("", v) silently overwrites prior
     // empty-key siblings on serialize. For Array parents, `key` is
-    // ignored — the new child's key is set to its row index.
+    // ignored - the new child's key is set to its row index.
     // Returns the QModelIndex (column 0) of the new child, or invalid.
     QModelIndex appendChildFromJson(const QModelIndex &parent,
                                     const QString &key,
@@ -88,7 +88,7 @@ public:
     bool removeRowAt(const QModelIndex &target);
 
     // Insert a new child at row `row` of `parent`. Sibling of
-    // appendChildFromJson — same key/value semantics, but lets the
+    // appendChildFromJson - same key/value semantics, but lets the
     // caller pick the insertion position. Used by dropMimeData() so
     // mid-array drops land at the indicated row. `row` is clamped to
     // [0, childCount]; `row == childCount` is the append case.
@@ -110,7 +110,7 @@ public:
     // Item-level DnD between two QJsonContainer trees (e.g. the two
     // sides of a QJsonDiff). Carries a custom MIME type, copy-action
     // only. Gated by mIsEditable so the read-only contract is
-    // preserved for non-editable usages — flags() omits the drag/drop
+    // preserved for non-editable usages - flags() omits the drag/drop
     // bits and dropMimeData/canDropMimeData refuse. File-URL drops
     // (the existing groupbox file-drop) are NOT in mimeTypes() so the
     // tree's default dragEnter handler ignores them and they

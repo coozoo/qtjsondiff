@@ -110,7 +110,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     syncScroll_checkbox->setText(tr("Sync Scrolls"));
     syncScroll_checkbox->setToolTip(tr("Try to sync left and right scrolling areas"));
     button_layout->addWidget(syncScroll_checkbox,0,1);
-    // Legacy checkbox pointers — kept for source compatibility with
+    // Legacy checkbox pointers - kept for source compatibility with
     // integrators reading them, hidden in the new UI. Their checked
     // state is kept in sync with modeCombo below so external reads
     // still return the "am I in FullPath / SmartArray?" answer.
@@ -126,7 +126,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
         "  Parent+Child: match by (parent key, key) anywhere in tree."));
     button_layout->addWidget(modeCombo, 0, 2);
 
-    // Smart Array checkbox — layers LCS-style children pairing on top
+    // Smart Array checkbox - layers LCS-style children pairing on top
     // of the positional walker. When on, paired Arrays get LCS
     // alignment (with the match-key if given) and paired Objects get
     // source-order alignment; both produce phantom rows on the
@@ -222,7 +222,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
     setupPushButtons();
 
     // Inline-edit live diff refresh. Gated inside the slot on snapshot
-    // presence — pre-Compare edits are ignored. apply() bypasses the
+    // presence - pre-Compare edits are ignored. apply() bypasses the
     // model's setData() path and only fires layoutChanged, so there's
     // no dataChanged feedback loop from these handlers.
     connect(left_cont->getJsonModel(),  &QJsonModel::dataChanged,
@@ -231,7 +231,7 @@ QJsonDiff::QJsonDiff(QWidget *parent):
             this, &QJsonDiff::onRightModelDataChanged);
 
     // Structural inserts (item DnD between sides, context-menu Add
-    // child) — keep the snapshot in sync so the next diff interaction
+    // child) - keep the snapshot in sync so the next diff interaction
     // sees the new node. The slot marks the inserted subtree gray
     // (NotPresent) and bumps the drop parent's pair color if needed.
     connect(left_cont->getJsonModel(),  &QJsonModel::rowsInserted,
@@ -282,7 +282,7 @@ QJsonDiff::~QJsonDiff()
     // app exit because some of those owners (notably the parent
     // widget's own layout, common_layout) are destroyed in the parent
     // widget's ~QWidget body BEFORE ~QObject::deleteChildren reaches
-    // this QJsonDiff — leaving us holding dangling pointers.
+    // this QJsonDiff - leaving us holding dangling pointers.
 }
 
 void QJsonDiff::reinitLeftModel()
@@ -411,7 +411,7 @@ void QJsonDiff::setupCompareWorker()
     connect(mEngine, &JsonDiffEngine::phaseChanged,
             this, [this](JsonDiffEngine::Phase phase)
     {
-        // tr() wraps each branch so lupdate picks them up — engine
+        // tr() wraps each branch so lupdate picks them up - engine
         // stays UI-/translation-agnostic.
         switch (phase)
         {
@@ -450,7 +450,7 @@ void QJsonDiff::teardownCompareWorker()
         mProgressDialog->hide();
         // mProgressDialog has `this` as parent; QObject's child cleanup
         // will destroy it when ~QJsonDiff finishes. Calling deleteLater
-        // at shutdown is unsafe — the event loop is dying and the
+        // at shutdown is unsafe - the event loop is dying and the
         // posted DeferredDelete event has nowhere to land.
         mProgressDialog = nullptr;
     }
@@ -462,7 +462,7 @@ void QJsonDiff::teardownCompareWorker()
     {
         mWorkerThread->quit();
         mWorkerThread->wait();
-        // Worker is fully stopped — no thread can be touching the
+        // Worker is fully stopped - no thread can be touching the
         // engine. We deliberately do NOT moveToThread() back to the
         // main thread here: Qt requires moveToThread be invoked from
         // the object's *own* current thread, and the worker that owns
@@ -473,7 +473,7 @@ void QJsonDiff::teardownCompareWorker()
             delete mEngine;
             mEngine = nullptr;
         }
-        // mWorkerThread is a child of `this`. Don't `delete` it here —
+        // mWorkerThread is a child of `this`. Don't `delete` it here -
         // let QObject's child cleanup destroy it when ~QJsonDiff
         // finishes (avoids mutating this widget's children list
         // mid-destruction).
@@ -492,7 +492,7 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     mComparing = true;
     compare_pushbutton->setEnabled(false);
 
-    // Custom modal progress dialog — plain QDialog + QProgressBar +
+    // Custom modal progress dialog - plain QDialog + QProgressBar +
     // label + Cancel button. QProgressDialog has too much hidden state
     // (shown_once, forceTimer, autoClose triggers, setValue's own
     // event-pump) and we couldn't get it to reliably reappear on a
@@ -500,7 +500,7 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     // semantics we actually want.
     //
     // Show it BEFORE the main-thread pre-work (reInitModel + snapshot)
-    // — those steps can take seconds on large JSONs. Without an early
+    // - those steps can take seconds on large JSONs. Without an early
     // show the user sees a frozen UI, then a dialog flash at the end
     // when the event loop finally drains.
     mCompareCancelledByUser = false;
@@ -517,7 +517,7 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     mProgressDialog = dlg;
     mProgressDialog->setWindowTitle(tr("Comparing JSON"));
     mProgressDialog->setWindowModality(Qt::ApplicationModal);
-    // No system close button — the only exit is the Cancel button
+    // No system close button - the only exit is the Cancel button
     // (which routes through requestCancel + our teardown).
     mProgressDialog->setWindowFlags(mProgressDialog->windowFlags()
                                     & ~Qt::WindowCloseButtonHint);
@@ -542,7 +542,7 @@ void QJsonDiff::on_compare_pushbutton_clicked()
     {
         mCompareCancelledByUser = true;
         if (mEngine) mEngine->requestCancel();
-        // Immediate feedback — the user has done their part.
+        // Immediate feedback - the user has done their part.
         if (mProgressLabel)  mProgressLabel->setText(tr("Cancelling…"));
         if (mProgressCancel) mProgressCancel->setEnabled(false);
     });
@@ -591,7 +591,7 @@ void QJsonDiff::runComparePreworkAndDispatch()
     QJsonModel *rightModel = right_cont->getJsonModel();
 
     // Heap-allocate the snapshots so only the shared-pointer handles
-    // cross the worker-thread boundary — see compareAsync's payload
+    // cross the worker-thread boundary - see compareAsync's payload
     // contract in jsondiffengine.h.
     auto leftSnap  = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(leftModel));
     auto rightSnap = QSharedPointer<DiffNode>::create(JsonDiffEngine::snapshot(rightModel));
@@ -602,7 +602,7 @@ void QJsonDiff::runComparePreworkAndDispatch()
                   : int(JsonDiffEngine::Mode::FullPath));
     mLastMode = mode;
 
-    // Late Cancel guard — snapshotting takes non-trivial time on large
+    // Late Cancel guard - snapshotting takes non-trivial time on large
     // JSONs and the user may have clicked Cancel while it was running.
     if (mCompareCancelledByUser)
     {
@@ -653,7 +653,7 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
     QJsonModel *leftModel  = left_cont->getJsonModel();
     QJsonModel *rightModel = right_cont->getJsonModel();
 
-    // End-of-compare timing block — where does the tail time go?
+    // End-of-compare timing block - where does the tail time go?
     // Left in place because these numbers are useful the next time
     // somebody investigates "why did Compare take N seconds"; the
     // qDebug is stripped from release via QT_NO_DEBUG_OUTPUT.
@@ -664,7 +664,7 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
     JsonDiffEngine::apply(*right, rightModel, leftModel);
     const qint64 tApplyRight = et.restart();
 
-    // Keep the snapshots alive — Phase A targeted recompare runs on
+    // Keep the snapshots alive - Phase A targeted recompare runs on
     // these without ever rebuilding from the model.
     mLeftSnap  = left;
     mRightSnap = right;
@@ -702,7 +702,7 @@ void QJsonDiff::onCompareCancelled()
     }
     mComparing = false;
     compare_pushbutton->setEnabled(true);
-    // Discard partial — no apply (Phase 2 design Q3).
+    // Discard partial - no apply (Phase 2 design Q3).
 }
 
 QString QJsonDiff::formatProgressLabel() const
@@ -719,7 +719,7 @@ QString QJsonDiff::formatProgressLabel() const
 void QJsonDiff::onCompareProgressed(int done, int total)
 {
     // Plain QProgressBar setValue doesn't pump the event loop (unlike
-    // QProgressDialog's), so no reentrancy race here — the dialog
+    // QProgressDialog's), so no reentrancy race here - the dialog
     // can't get destroyed mid-call by an in-flight finished().
     if (!mProgressBar || !mProgressLabel) return;
     if (mProgressBar->maximum() != total)
@@ -735,7 +735,7 @@ void QJsonDiff::startComparison()
 
     // Synchronous compare path. Used by integrators that don't want the
     // built-in progress dialog and by the unit tests. The Compare button
-    // uses the threaded path with a modal progress dialog instead — see
+    // uses the threaded path with a modal progress dialog instead - see
     // on_compare_pushbutton_clicked().
     DiffNode leftSnap  = JsonDiffEngine::snapshot(leftModel);
     DiffNode rightSnap = JsonDiffEngine::snapshot(rightModel);
@@ -754,7 +754,7 @@ void QJsonDiff::startComparison()
     JsonDiffEngine::apply(leftSnap,  leftModel,  rightModel);
     JsonDiffEngine::apply(rightSnap, rightModel, leftModel);
 
-    // Cache snapshots for incremental Phase A edits — store moved copies
+    // Cache snapshots for incremental Phase A edits - store moved copies
     // on the heap so subsequent recomparePair calls operate on the same
     // graph the model now reflects.
     mLeftSnap  = QSharedPointer<DiffNode>::create(std::move(leftSnap));
@@ -851,7 +851,7 @@ void QJsonDiff::showJsonButtonPosition()
 }
 
 // -----------------------------------------------------------------------
-// Phase A — edit-in-diff
+// Phase A - edit-in-diff
 // -----------------------------------------------------------------------
 
 void QJsonDiff::setDiffEditable(bool editable)
@@ -937,7 +937,7 @@ void QJsonDiff::updatePushAction(QTreeView *view, QAction *action, QJsonModel *m
 {
     if (!action || !view || !model) return;
     // Visibility tracks edit mode. The action's slot is the user-
-    // facing affordance — it shouldn't fade in and out as the cursor
+    // facing affordance - it shouldn't fade in and out as the cursor
     // moves between rows. Enabledness reflects whether the current
     // selection can actually drive a push.
     action->setVisible(mDiffEditable);
@@ -962,7 +962,7 @@ void QJsonDiff::updatePushAction(QTreeView *view, QAction *action, QJsonModel *m
     // Without the resolve check we'd enable the arrow for chained-
     // missing rows (parent also NotPresent) where the click is a
     // confirmed no-op. Snapshot may not exist yet before the first
-    // compare — gate on that too.
+    // compare - gate on that too.
     if (c == DiffColorType::NotPresent && srcSnapRoot)
     {
         QList<int> dstParentPath;
@@ -1064,7 +1064,7 @@ bool QJsonDiff::pushFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx,
 
     const QJsonValue payload = JsonDiffEngine::toJsonValue(*srcNode);
 
-    // 2. In-place replace on the model — emits dataChanged + dataUpdated,
+    // 2. In-place replace on the model - emits dataChanged + dataUpdated,
     // so the container's find/goto caches reset automatically. Suppress
     // the rowsInserted hook for the duration: the snapshot bookkeeping
     // for the new children is done by copyPeer below, not by re-walking
@@ -1089,7 +1089,7 @@ bool QJsonDiff::pushFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx,
     JsonDiffEngine::apply(*srcSnapRoot, srcModel, dstModel);
     JsonDiffEngine::apply(*dstSnapRoot, dstModel, srcModel);
 
-    // 5. Refresh the push buttons — the row's color just flipped to
+    // 5. Refresh the push buttons - the row's color just flipped to
     // Identical, so the action that was visible on it should hide.
     updateLeftPushAction();
     updateRightPushAction();
@@ -1111,7 +1111,7 @@ bool QJsonDiff::pushInsertFromTo(QJsonModel *srcModel, const QModelIndex &srcIdx
 
     // Resolve the destination parent path on the OTHER snapshot via
     // the source-side parent's relationPath. If the parent isn't paired
-    // (e.g. it's also NotPresent), bail — the user needs to push the
+    // (e.g. it's also NotPresent), bail - the user needs to push the
     // missing parent first.
     QList<int> dstParentPath;
     if (!JsonDiffEngine::resolveDstParentPath(*srcSnapRoot, srcPath, dstParentPath))
@@ -1402,7 +1402,7 @@ void QJsonDiff::recomputeAfterRowsInserted(const QModelIndex &parent,
         if (!childIdx.isValid()) return;
         DiffNode newNode = JsonDiffEngine::snapshotIndex(myModel, childIdx);
         markAllNotPresent(newNode);
-        // Clamp the insert position — defensive against any future
+        // Clamp the insert position - defensive against any future
         // model that emits rowsInserted with a row past childCount.
         const int insertAt = qMin(row, int(parentSnap->children.size()));
         parentSnap->children.insert(insertAt, newNode);
@@ -1467,7 +1467,7 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
     if (!keyChanged && !typeChanged && !valueChanged) return;  // engine path already in sync
 
     // Sync snapshot scalar fields to model. Children get re-walked
-    // below if the type changed — Object↔Array conversion paths
+    // below if the type changed - Object↔Array conversion paths
     // restructure the model's children list and the snapshot has to
     // catch up so future incremental edits keep working.
     myNode->key   = modelKey;
@@ -1515,7 +1515,7 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
         }
     }
 
-    // Type change restructured the subtree — the full apply is needed
+    // Type change restructured the subtree - the full apply is needed
     // so views pick up the new/removed child rows. Value edits and key
     // renames only shift color+idxRelation along the edited path and
     // its ancestors, so the targeted applyPath saves the layoutChanged
@@ -1533,7 +1533,7 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
                                       peerPathAtEdit, myModel);
         else if (keyChanged)
         {
-            // Rename detached the pair — the peer went NotPresent too.
+            // Rename detached the pair - the peer went NotPresent too.
             // Its color/idxRelation changed but we don't have its path
             // handy any more (detachPair cleared it). Full apply on
             // the peer keeps behaviour identical to the pre-fix path;

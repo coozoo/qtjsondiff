@@ -201,7 +201,7 @@ private slots:
     void findModelTextSkipsPhantoms()
     {
         // If a matching row is flagged as phantom, it must NOT appear
-        // in the search results — phantoms are alignment aids, not
+        // in the search results - phantoms are alignment aids, not
         // user-visible content.
         load(R"({"real_hit": "yes", "ghost_hit": "yes"})");
         QJsonTreeItem *ghost = findTopLevel("ghost_hit");

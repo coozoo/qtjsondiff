@@ -63,7 +63,7 @@ public:
     // Compare controls:
     // modeCombo: Full Path / Parent+Child. Drives which positional
     //   walker the engine runs.
-    // arrayOverlay_checkbox: "Smart Array" — layer LCS-style children
+    // arrayOverlay_checkbox: "Smart Array" - layer LCS-style children
     //   pairing on top of the positional mode, for both arrays and
     //   objects, with phantom rows on the opposite side.
     // matchKey_lineEdit: optional field name(s) that the array LCS
@@ -135,7 +135,7 @@ private slots:
     void onCompareProgressed(int done, int total);
     // Runs the main-thread pre-work (reInitModel + snapshot) and posts
     // compareAsync to the worker. Split out of on_compare_pushbutton_clicked
-    // so it can be QTimer::singleShot(0)'d — that way the just-shown
+    // so it can be QTimer::singleShot(0)'d - that way the just-shown
     // progress dialog gets an event-loop turn to actually paint before
     // we start blocking the main thread with the pre-work.
     void runComparePreworkAndDispatch();
@@ -159,7 +159,7 @@ private slots:
     // Structural-insert feedback for item DnD (and any other
     // appendChildFromJson / insertChildFromJson caller while the diff
     // is live). New rows are added to the snapshot as NotPresent
-    // (gray) — they have no peer on the other side. If the drop
+    // (gray) - they have no peer on the other side. If the drop
     // parent itself was paired, its color is refreshed since its
     // child count diverged.
     void onLeftRowsInserted(const QModelIndex &parent, int first, int last);
@@ -181,7 +181,7 @@ private:
     // not touch these.
     JsonDiffEngine  *mEngine = nullptr;
     QThread         *mWorkerThread = nullptr;
-    // Custom modal progress dialog — a QDialog with a QProgressBar +
+    // Custom modal progress dialog - a QDialog with a QProgressBar +
     // label + Cancel button, no QProgressDialog. QProgressDialog's
     // internal state machine (shown_once flag, forceTimer interaction,
     // setValue's event-loop pump, autoClose triggers) made it flaky
@@ -196,7 +196,7 @@ private:
     // Re-entrancy guard against rapid re-click on the Compare button (or
     // the ALT+C shortcut) while a previous compare is still in flight.
     // Without it, QProgressDialog::setValue() pumps the event loop on a
-    // modal dialog before show() runs — that pump can deliver a queued
+    // modal dialog before show() runs - that pump can deliver a queued
     // second click, re-enter on_compare_pushbutton_clicked, queue a
     // second compareAsync, and leave the dialog in a state where finished
     // arrives before the second show() and the dialog hangs visible.
@@ -222,11 +222,11 @@ private:
     void recomputeAfterRowsInserted(const QModelIndex &parent,
                                     int first, int last, bool onLeft);
 
-    // Phase A — edit-in-diff state.
+    // Phase A - edit-in-diff state.
     bool                       mDiffEditable = false;
     // Re-entrancy guard for the rowsInserted snapshot hook. Set true
     // while pushFromTo / pushInsertFromTo do their own snapshot
-    // bookkeeping (insertPeer / copyPeer) — without this flag the
+    // bookkeeping (insertPeer / copyPeer) - without this flag the
     // model-side appendChildFromJson / replaceFromJson would trigger
     // onLeftRowsInserted / onRightRowsInserted and double-splice
     // (or splice a NotPresent placeholder that fights the

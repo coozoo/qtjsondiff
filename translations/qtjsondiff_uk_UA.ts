@@ -4,12 +4,12 @@
 <context>
     <name>CommandLineParser</name>
     <message>
-        <location filename="../commandlineparser.cpp" line="21"/>
+        <location filename="../commandlineparser.cpp" line="22"/>
         <source>JSON files display and diff tool.</source>
         <translation>Утиліта для відображення і читання JSON файлів.</translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="31"/>
+        <location filename="../commandlineparser.cpp" line="32"/>
         <source>overwrite application theme style &lt;style&gt;. 
 Available styles: 
 </source>
@@ -18,19 +18,235 @@ Available styles:
 </translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="32"/>
+        <location filename="../commandlineparser.cpp" line="33"/>
         <source>style</source>
         <translation>Стиль</translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="35"/>
+        <location filename="../commandlineparser.cpp" line="44"/>
+        <source>Inline cURL command describing method/headers/body for the single-tree URL. E.g. --config &quot;curl -X POST -H &apos;X-Foo: 1&apos; --data-raw &apos;{}&apos;&quot;. Valid only when a positional file/URL is given.</source>
+        <translation>Вбудована команда cURL, що описує метод/заголовки/тіло для URL-адреси одного дерева. Наприклад, --config &quot;curl -X POST -H &apos;X-Foo: 1&apos; --data-raw &apos;{}&apos;&quot;. Дійсна лише тоді, коли вказано позиційний файл/URL.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="48"/>
+        <location filename="../commandlineparser.cpp" line="57"/>
+        <location filename="../commandlineparser.cpp" line="66"/>
+        <source>curl-text</source>
+        <translation>текст-curl</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="51"/>
+        <source>Same as --config but reads the cURL command from a file.</source>
+        <translation>Те саме, що й --config, але зчитує команду cURL з файлу.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="52"/>
+        <location filename="../commandlineparser.cpp" line="61"/>
+        <location filename="../commandlineparser.cpp" line="70"/>
+        <source>path</source>
+        <translation>шлях</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="55"/>
+        <source>Inline cURL command for the LEFT diff container. Valid only when the left positional file/URL is given.</source>
+        <translation>Вбудована команда cURL для контейнера LEFT diff. Дійсна лише тоді, коли вказано позиційно файл/URL-адресу з ліва.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="60"/>
+        <source>Same as --config-left but from a file.</source>
+        <translation>Те саме, що й  --config-left, але зчитує команду з файлу.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="64"/>
+        <source>Inline cURL command for the RIGHT diff container. Valid only when the right positional file/URL is given.</source>
+        <translation>Вбудована команда cURL для контейнера RIGHT diff. Дійсна лише тоді, коли вказано позиційно файл/URL-адресу справа.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="69"/>
+        <source>Same as --config-right but from a file.</source>
+        <translation>Те саме, що й  --config-right, але зчитує команду з файлу.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="80"/>
+        <source>With --config* set, don&apos;t append the built-in default headers (Accept-Language, Cache-Control, Accept-Encoding) to the request. Send exactly and only the headers you typed.</source>
+        <translation>Якщо встановлено --config*, не додавати вбудовані заголовки за замовчуванням (Accept-Language, Cache-Control, Accept-Encoding) до запиту. Надсилати лише ті заголовки, які ви ввели.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="87"/>
         <source>File(s) to open. One file for tree view, two files for the diff. No file opens plain gui.</source>
         <translation>Відкрити файли. Один файл для перегляду JSON, два файла для порівняння. Жодного - GUI.</translation>
     </message>
     <message>
-        <location filename="../commandlineparser.cpp" line="58"/>
+        <location filename="../commandlineparser.cpp" line="117"/>
+        <source>--%1 and --%2 are mutually exclusive; pass only one.</source>
+        <translation>--%1 та --%2 є взаємовиключними; передайте лише один з них.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="126"/>
+        <source>--%1: could not open %2: %3</source>
+        <translation>--%1: не вдалося відкрити %2: %3</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="150"/>
+        <source>--%1 (or its -file variant) requires the matching positional file/URL to be given as well.</source>
+        <translation>--%1 (або його варіант -file) також вимагає вказання відповідного позиційного файлу/URL-адреси.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="167"/>
+        <source>--config is for tree mode; use --config-left and/or --config-right in diff mode.</source>
+        <translation>--config призначено для режиму дерева; використовуйте --config-left та/або --config-right у режимі diff.</translation>
+    </message>
+    <message>
+        <location filename="../commandlineparser.cpp" line="173"/>
         <source>Wrong count of arguments used. See help:</source>
         <translation>Неправильна кількість аргументів. Дивіться допомогу:</translation>
+    </message>
+</context>
+<context>
+    <name>HttpRequestConfigDialog</name>
+    <message>
+        <location filename="../httprequestconfigdialog.cpp" line="12"/>
+        <source>Configure HTTP request</source>
+        <translation>Конфігурація HTTP запиту</translation>
+    </message>
+</context>
+<context>
+    <name>HttpRequestConfigWidget</name>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="86"/>
+        <source>Method:</source>
+        <translation>Метод:</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="104"/>
+        <source>Headers</source>
+        <translation>Заголовки</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="108"/>
+        <source>+ Add header</source>
+        <translation>+ Додати звголовок</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="136"/>
+        <source>Body</source>
+        <translation>Тіло</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="142"/>
+        <source>Request body - used for POST/PUT/PATCH/DELETE.</source>
+        <translation>Тіло запиту - використовується для POST/PUT/PATCH/DELETE.</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="146"/>
+        <source>Form</source>
+        <translation>Форма</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="152"/>
+        <source>Paste a cURL command (e.g. from browser devtools) or edit the one below. Switch tabs to apply.</source>
+        <translation>Вставте команду cURL (наприклад, з інструментів розробника браузера) або відредагуйте наведену нижче. Перемкніть вкладки, щоб застосувати зміни.</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="168"/>
+        <source>cURL</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="174"/>
+        <source>Save…</source>
+        <translation>Зберегти...</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="175"/>
+        <source>Load…</source>
+        <translation>Заванажити...</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="176"/>
+        <source>Reset</source>
+        <translation>Скинути</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="178"/>
+        <source>Save this request as a cURL text file (reusable preset).</source>
+        <translation>Збережіть цей запит як текстовий файл cURL (перевикористовуйте налаштування).</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="180"/>
+        <source>Load a request from a cURL text file.</source>
+        <translation>Завантажити запит з текстового файлу cURL.</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="182"/>
+        <source>Restore the built-in default GET (with default headers).</source>
+        <translation>Відновіть вбудований стандартний GET (зі стандартними заголовками).</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="215"/>
+        <source>Header-Name</source>
+        <translation>Ім&apos;я заголовку</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="226"/>
+        <source>value</source>
+        <translation>значення</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="232"/>
+        <source>Remove this header</source>
+        <translation>Видалити цей заголовок</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="395"/>
+        <source>Couldn&apos;t parse this as a cURL command. The form still shows the previous state.</source>
+        <translation>Не вдалося захопити це як команду cURL. Форма все ще відображає попередній стан.</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="418"/>
+        <source>Save request as cURL preset</source>
+        <translation>Зберегти запит як налаштування cURL</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="420"/>
+        <location filename="../httprequestconfigwidget.cpp" line="441"/>
+        <source>cURL preset (*.curl *.txt);;All files (*)</source>
+        <translation>cURL налаштування (*.curl *.txt);;All files (*)</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="427"/>
+        <source>Save failed</source>
+        <translation>Помилка збереження</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="428"/>
+        <source>Could not open %1 for writing:
+%2</source>
+        <translation>Неможливо відкрити %1 для запису:
+%2</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="439"/>
+        <source>Load request from cURL preset</source>
+        <translation>Завантажити запит із налаштування cURL</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="448"/>
+        <location filename="../httprequestconfigwidget.cpp" line="459"/>
+        <source>Load failed</source>
+        <translation>Помилка завантаження</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="449"/>
+        <source>Could not open %1 for reading:
+%2</source>
+        <translation>Неможливо відкрити %1 для читання:
+%2</translation>
+    </message>
+    <message>
+        <location filename="../httprequestconfigwidget.cpp" line="460"/>
+        <source>The file at %1 doesn&apos;t parse as a cURL command.</source>
+        <translation>Файл %1 не читається як команда cURL.</translation>
     </message>
 </context>
 <context>
@@ -257,260 +473,280 @@ Available styles:
 <context>
     <name>QJsonContainer</name>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="31"/>
+        <location filename="../qjsoncontainer.cpp" line="32"/>
         <source>Copy Row</source>
         <translation>Скопіювати рядок</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="33"/>
+        <location filename="../qjsoncontainer.cpp" line="34"/>
         <source>Copy Path</source>
         <translation>Скопіювати шлях</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="145"/>
-        <location filename="../qjsoncontainer.cpp" line="1016"/>
+        <location filename="../qjsoncontainer.cpp" line="146"/>
+        <location filename="../qjsoncontainer.cpp" line="1092"/>
         <source>Show Json Text</source>
         <translation>Показати Json текст</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="129"/>
         <location filename="../qjsoncontainer.cpp" line="130"/>
-        <location filename="../qjsoncontainer.cpp" line="1230"/>
+        <location filename="../qjsoncontainer.cpp" line="131"/>
+        <location filename="../qjsoncontainer.cpp" line="1306"/>
         <source>Expand</source>
         <translation>Розгорнути</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="44"/>
+        <location filename="../qjsoncontainer.cpp" line="45"/>
         <source>Add child</source>
         <translation>Додати нащадка</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="45"/>
+        <location filename="../qjsoncontainer.cpp" line="46"/>
         <source>Delete row</source>
         <translation>Видалити рядок</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="134"/>
+        <location filename="../qjsoncontainer.cpp" line="135"/>
         <source>Sort</source>
         <translation>Сортувати</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="152"/>
+        <location filename="../qjsoncontainer.cpp" line="153"/>
         <source>Serach for...</source>
         <translation>Шукати на...</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="153"/>
+        <location filename="../qjsoncontainer.cpp" line="154"/>
         <source>Enter text and press enter to search</source>
         <translation>Введіть текст та натисніть Enter щоб шукати</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="159"/>
+        <location filename="../qjsoncontainer.cpp" line="179"/>
         <source>Find Next</source>
         <translation>Знайти Наступне</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="169"/>
+        <location filename="../qjsoncontainer.cpp" line="189"/>
         <source>Check to make case sensitive</source>
         <translation>Натисніть, щоб зважати на регістр</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="203"/>
+        <location filename="../qjsoncontainer.cpp" line="223"/>
         <source>Select file or use URL to load json data</source>
         <translation>Оберіть файл або вставте посилання, щоб завантажити json</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="204"/>
+        <location filename="../qjsoncontainer.cpp" line="224"/>
         <source>Select file or use full path/URL and hit enter to load json data</source>
         <translation>Оберіть файл або вставте повний шлях/веб посилання і натисніть Enter, щоб завантажити json</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1849"/>
+        <location filename="../qjsoncontainer.cpp" line="239"/>
+        <location filename="../qjsoncontainer.cpp" line="1599"/>
+        <source>Configure HTTP request (headers, method, body).
+Applied only when the address is a URL.</source>
+        <translation>Налаштуйте HTTP-запит (заголовки, метод, тіло).
+Застосовується лише тоді, коли адреса є URL-адресою.</translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="1062"/>
+        <location filename="../qjsoncontainer.cpp" line="2045"/>
         <source>Start of json has been reached! Next item will be from the end</source>
         <translation>Досягнуто початку! Наступний елемент буде з кінця</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="986"/>
-        <location filename="../qjsoncontainer.cpp" line="1849"/>
+        <location filename="../qjsoncontainer.cpp" line="1062"/>
+        <location filename="../qjsoncontainer.cpp" line="2045"/>
         <source>End of json has been reached! Next item will be from the start</source>
         <translation>Досягнуто кінця! Наступний елемент буде з початку</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="996"/>
+        <location filename="../qjsoncontainer.cpp" line="1072"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=red&gt;Text Not Found!&lt;/font&gt;&lt;/b&gt;</source>
         <translation>&lt;b&gt;&lt;font &quot;color&quot;=red&gt;Текст не знайдено!&lt;/font&gt;&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1027"/>
+        <location filename="../qjsoncontainer.cpp" line="1103"/>
         <source>Show Json View</source>
         <translation>Показати Json дерево</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1042"/>
+        <location filename="../qjsoncontainer.cpp" line="1118"/>
         <source>Open File</source>
         <translation>Відкрити файл</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1043"/>
+        <location filename="../qjsoncontainer.cpp" line="1119"/>
         <source>Files (*.json *.jsn *.txt);;All Files (*)</source>
         <translation>Файли (*.json *.jsn *.txt);;Всі файли (*)</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="164"/>
+        <location filename="../qjsoncontainer.cpp" line="184"/>
         <source>Find Previous</source>
         <translation>Знайти попереднє</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="212"/>
+        <location filename="../qjsoncontainer.cpp" line="244"/>
         <source>Reload</source>
         <translation>Перезавантажити JSON</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="49"/>
+        <location filename="../qjsoncontainer.cpp" line="50"/>
         <source>Expand Selected</source>
         <translation>Розгорнути обрані</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="50"/>
+        <location filename="../qjsoncontainer.cpp" line="51"/>
         <source>Collapse Selected</source>
         <translation>Згорнути обрані</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="28"/>
+        <location filename="../qjsoncontainer.cpp" line="29"/>
         <source>Expand Selected Tree</source>
         <translation>Розгорнути обране дерево</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="29"/>
+        <location filename="../qjsoncontainer.cpp" line="30"/>
         <source>Collapse Selected Tree</source>
         <translation>Згорнути обране дерево</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="208"/>
+        <location filename="../qjsoncontainer.cpp" line="228"/>
         <source>Open file</source>
         <translation>Відкрити файл</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="146"/>
+        <location filename="../qjsoncontainer.cpp" line="147"/>
         <source>Switch between view modes</source>
         <translation>Перемкнути режим перегляду</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="32"/>
+        <location filename="../qjsoncontainer.cpp" line="33"/>
         <source>Copy all Rows</source>
         <translation>Скопіювати всі рядки</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="34"/>
+        <location filename="../qjsoncontainer.cpp" line="35"/>
         <source>Copy jq Path</source>
         <translation>Скопіювати шлях jq</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="35"/>
+        <location filename="../qjsoncontainer.cpp" line="36"/>
         <source>Copy Plain JSON</source>
         <translation>Скопіювати неформатований Json</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="36"/>
+        <location filename="../qjsoncontainer.cpp" line="37"/>
         <source>Copy Pretty JSON</source>
         <translation>Скопіювати форматований Json</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="37"/>
+        <location filename="../qjsoncontainer.cpp" line="38"/>
         <source>Copy Plain selected JSON value</source>
         <translation>Скопіювати неформатований Json обране</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="38"/>
+        <location filename="../qjsoncontainer.cpp" line="39"/>
         <source>Copy Pretty selected JSON</source>
         <translation>Скопіювати форматований Json обране</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="589"/>
+        <location filename="../qjsoncontainer.cpp" line="633"/>
         <source>-&gt;|</source>
         <translation>-&gt;|</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="591"/>
-        <location filename="../qjsoncontainer.cpp" line="592"/>
+        <location filename="../qjsoncontainer.cpp" line="635"/>
+        <location filename="../qjsoncontainer.cpp" line="636"/>
         <source>Go to Next Diff</source>
         <translation>Йти до наступної різниці</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="594"/>
+        <location filename="../qjsoncontainer.cpp" line="638"/>
         <source>|&lt;-</source>
         <translation>|&lt;-</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="596"/>
-        <location filename="../qjsoncontainer.cpp" line="597"/>
+        <location filename="../qjsoncontainer.cpp" line="640"/>
+        <location filename="../qjsoncontainer.cpp" line="641"/>
         <source>Go to Previous Diff</source>
         <translation>Йти до попередньої різниці</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1106"/>
+        <location filename="../qjsoncontainer.cpp" line="1182"/>
         <source>&lt;b&gt;&lt;font color=&apos;red&apos;&gt;JSON parse error:&lt;/font&gt;&lt;/b&gt; </source>
         <translation>&lt;b&gt;&lt;font color=&apos;red&apos;&gt;Помилка розбору JSON:&lt;/font&gt;&lt;/b&gt; </translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1862"/>
+        <location filename="../qjsoncontainer.cpp" line="1610"/>
+        <source>Configure HTTP request (headers, method, body).
+Custom request active: %1, %2 header(s)%3.</source>
+        <translation>Налаштуйте HTTP-запит (заголовки, метод, тіло).
+Спеціалізований запит: %1, %2 заголовки%3.</translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="1616"/>
+        <source>, body set</source>
+        <translation>, тіло встановлене</translation>
+    </message>
+    <message>
+        <location filename="../qjsoncontainer.cpp" line="2058"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Documents identical!&lt;/font&gt;&lt;/b&gt;</source>
         <translation>&lt;b&gt;&lt;font &quot;color&quot;=green&gt;Документи ідентичні!&lt;/font&gt;&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1867"/>
+        <location filename="../qjsoncontainer.cpp" line="2063"/>
         <source>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Start Comparison!&lt;/font&gt;&lt;/b&gt;</source>
         <translation>&lt;b&gt;&lt;font &quot;color&quot;=yellow&gt;Запустіть порівняння!&lt;/font&gt;&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="135"/>
+        <location filename="../qjsoncontainer.cpp" line="136"/>
         <source>Sort objects inside array
 It can be helpful for comparison when order does not relevant</source>
         <translation>Сортувати об&apos;єкти всередині масиву. Це може бути корисним для порівняння і коли порядок не має значення</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="140"/>
+        <location filename="../qjsoncontainer.cpp" line="141"/>
         <source>Switch View</source>
         <translation>Перемкнути режим перегляду</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="141"/>
+        <location filename="../qjsoncontainer.cpp" line="142"/>
         <source>Switch between tree/text view</source>
         <translation>Перемкнутись між дерево/текст режимами</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="156"/>
+        <location filename="../qjsoncontainer.cpp" line="176"/>
         <source>&gt;&gt;</source>
         <translation>&gt;&gt;</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="157"/>
+        <location filename="../qjsoncontainer.cpp" line="177"/>
         <source>Search Next</source>
         <translation>Шукати наступний</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="161"/>
+        <location filename="../qjsoncontainer.cpp" line="181"/>
         <source>&lt;&lt;</source>
         <translation>&lt;&lt;</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="167"/>
+        <location filename="../qjsoncontainer.cpp" line="187"/>
         <source>Search case sensetive</source>
         <translation>Пошук чутливий до регістру</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="1221"/>
+        <location filename="../qjsoncontainer.cpp" line="1297"/>
         <source>Collapse</source>
         <translation>Згорнути</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="162"/>
+        <location filename="../qjsoncontainer.cpp" line="182"/>
         <source>Search Previous</source>
         <translation>Шукати попередній</translation>
     </message>
     <message>
-        <location filename="../qjsoncontainer.cpp" line="600"/>
+        <location filename="../qjsoncontainer.cpp" line="644"/>
         <source>Amount of Differences (without root objects/arrays, means values only)</source>
         <translation>Кількість відмінностей (без кореневих об&apos;єктів/масивів, тобто тільки значення)</translation>
     </message>

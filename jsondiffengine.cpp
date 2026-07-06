@@ -1,8 +1,8 @@
 /* Author: Yuriy Kuzin
  * Description: implementation of JsonDiffEngine.
  *   Ports the original QJsonDiff comparison algorithm onto DiffNode
- *   trees. Behavior is preserved exactly — including a couple of
- *   harmless-by-accident expressions in the original — so the existing
+ *   trees. Behavior is preserved exactly - including a couple of
+ *   harmless-by-accident expressions in the original - so the existing
  *   widget tests stay green through this refactor.
  *
  *   Phase 3 polish:
@@ -10,7 +10,7 @@
  *       (so the dialog moves smoothly through huge inputs)
  *     - cancel check rolled into the same tick (per-node, not per-phase)
  *     - QHash<QString,int> lookup in FullPath matching replaces the
- *       original O(N²) QStringList::indexOf — large compares are now
+ *       original O(N²) QStringList::indexOf - large compares are now
  *       linear in the tree size
  */
 #include "jsondiffengine.h"
@@ -28,7 +28,7 @@ namespace
 {
 
 // -----------------------------------------------------------------------
-// ProgressTracker — single object threaded through the algorithm.
+// ProgressTracker - single object threaded through the algorithm.
 // tick() increments a work counter, returns false if cancel was set.
 // Emits the on-progress callback only when the integer percentage
 // changes (so at most ~100 emits per compare regardless of work size).
@@ -139,7 +139,7 @@ QString canonicalValueString(const DiffNode &node)
         {
             // Sort children by canonical form so array hash is
             // order-independent. Same content in different order gives
-            // the same fingerprint — the whole point of using weight
+            // the same fingerprint - the whole point of using weight
             // as an alignment identity is content, not position.
             QStringList childs;
             childs.reserve(node.children.size());
@@ -167,7 +167,7 @@ QString canonicalValueString(const DiffNode &node)
 }
 
 // Content fingerprint used for identity matching in alignment. Must
-// be collision-resistant across strings a user might feed us —
+// be collision-resistant across strings a user might feed us -
 // especially permutation ids like "7571927"/"7571918" that a naive
 // sum-of-chars hash conflates. qHash uses SipHash, which is fine here.
 qint64 weightOfString(const QString &s)
@@ -198,7 +198,7 @@ void snapshotChildren(QJsonModel *model, const QModelIndex &parent, DiffNode &de
 }
 
 // -----------------------------------------------------------------------
-// Path utilities — preserve the original QJsonModel::jsonPath() format
+// Path utilities - preserve the original QJsonModel::jsonPath() format
 // so full-path matching is bit-for-bit identical to the old algorithm.
 // -----------------------------------------------------------------------
 
@@ -579,7 +579,7 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
                     const QModelIndex &parent, QJsonModel *otherModel)
 {
     // Container with an alignment (arrayAlignment is populated on both
-    // Arrays AND Objects — name kept for source compat; semantic is
+    // Arrays AND Objects - name kept for source compat; semantic is
     // "children pairing"). Bipartite pairs (myIdx, peerIdx). Two apply
     // strategies:
     //   - Merge-sequence (LCS-style): when matched pairs sort in the
@@ -644,7 +644,7 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
         auto insertPhantom = [&](int row, int peerIdx)
         {
             // Go through the model so beginInsertRows / endInsertRows
-            // fire — QTreeView needs the structural signal to remap
+            // fire - QTreeView needs the structural signal to remap
             // its persistent-index-based expansion/selection state
             // around the shifted rows. Direct QJsonTreeItem mutation
             // would leave the view guessing and collapse everything
@@ -661,7 +661,7 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
 
         if (matched.isEmpty())
         {
-            // No anchors — phantoms wouldn't align anything. Just apply
+            // No anchors - phantoms wouldn't align anything. Just apply
             // real items at their positions; skip peer-phantom
             // insertion when both sides have orphans (avoids
             // double-ghost rows on both trees).
@@ -754,7 +754,7 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
 
     // Same repaint hint as the phantom-branch above. Emitted after
     // recursion so descendants have already picked up their colors,
-    // but this signal covers the direct children — QTreeView repaints
+    // but this signal covers the direct children - QTreeView repaints
     // them without a layoutChanged (which would nuke expansion state).
     if (!snap.children.empty())
     {
@@ -778,7 +778,7 @@ void JsonDiffEngine::apply(const DiffNode &snap, QJsonModel *model, QJsonModel *
     // No layoutChanged: it invalidates every persistent QModelIndex,
     // and QTreeView tracks expansion/selection through those. On big
     // trees the user sees every expanded node collapse after each
-    // Compare — worst when Smart Array inserts phantoms. Instead
+    // Compare - worst when Smart Array inserts phantoms. Instead
     // phantom inserts use proper begin/endInsertRows (via
     // QJsonModel::insertPhantomRow) and applyRecursive emits
     // per-parent dataChanged for the color updates.
@@ -837,7 +837,7 @@ namespace
 // weight-LCS of their children. Left side stores (leftIdx, rightIdx);
 // peer side stores the swap so each direction reads "my index first."
 // Recursively force a DiffNode subtree to the given color and clear
-// cross-links. Used for orphaned subtrees after alignment — no peer,
+// cross-links. Used for orphaned subtrees after alignment - no peer,
 // no meaningful colors from compare's positional matching to keep.
 void forceDiffNodeSubtreeColor(DiffNode &n, DiffColorType color)
 {
@@ -848,7 +848,7 @@ void forceDiffNodeSubtreeColor(DiffNode &n, DiffColorType color)
 }
 
 // Forward decls: defined in the Phase-A anonymous namespace block
-// further down. Same TU, same unnamed namespace — the compiler merges
+// further down. Same TU, same unnamed namespace - the compiler merges
 // both blocks, so declaring here and defining below is well-formed.
 // The overlay post-pass reuses these navigators to walk to peers and
 // re-settle ancestor colors after LCS shifts an array's own color.
@@ -865,7 +865,7 @@ void alignObjectPair(DiffNode &lc, DiffNode &rc, const QString &matchKey);
 // Align the two children lists of a paired Array/Array pair.
 // Preconditions: lc.type == rc.type == Array. lc.relationPath and
 // rc.relationPath are already the peer's structural path (either set
-// by the caller — compareContentFirst — or preserved from the mode's
+// by the caller - compareContentFirst - or preserved from the mode's
 // walker under the overlay post-pass).
 //
 // Populates arrayAlignment on both sides, forces NotPresent on the
@@ -977,14 +977,14 @@ void compareContentFirst(DiffNode &lc, DiffNode &rc,
 }
 
 // Align the two children lists of a paired Object/Object pair.
-// Object children are matched by key rather than by weight — key
+// Object children are matched by key rather than by weight - key
 // carries the semantic identity for objects. The output alignment
 // shape is identical to alignArrayPair: (myIdx, peerIdx) with -1 on
 // either side signaling orphan. Populates arrayAlignment (name kept
 // for compatibility; semantic is "children pairing," object or array).
 // applyRecursive reads it the same way for both container types, so
 // object children with a missing peer become phantom rows at the
-// aligned source-order position — same UX as arrays.
+// aligned source-order position - same UX as arrays.
 void alignObjectPair(DiffNode &lc, DiffNode &rc, const QString &matchKey)
 {
     Q_ASSERT(lc.type == QJsonValue::Object && rc.type == QJsonValue::Object);
@@ -997,7 +997,7 @@ void alignObjectPair(DiffNode &lc, DiffNode &rc, const QString &matchKey)
         rightByKey[rc.children[i].key] = i;
 
     // Walk left in source order; matched pairs and left-orphan slots
-    // preserve that order. Right orphans append after — their source
+    // preserve that order. Right orphans append after - their source
     // position isn't meaningful for lining up rows on the left side.
     QList<QPair<int, int>> align;
     align.reserve(lc.children.size() + rc.children.size());
@@ -1082,7 +1082,7 @@ bool alignPairedContainersPostPass(DiffNode &leftRoot, DiffNode &rightRoot,
                               || node.type == QJsonValue::Object);
     // Root is always implicitly paired to the other root, but its
     // relationPath is empty (the correct "peer is at empty structural
-    // path = the other root" value) — indistinguishable from "not
+    // path = the other root" value) - indistinguishable from "not
     // paired." Detect it via myPath.isEmpty() and treat it as paired.
     const bool isRoot = myPath.isEmpty();
     const bool paired = isRoot || !node.relationPath.isEmpty();
@@ -1204,7 +1204,7 @@ JsonDiffEngine::JsonDiffEngine(QObject *parent) :
     qRegisterMetaType<DiffNode>("DiffNode");
     qRegisterMetaType<QSharedPointer<DiffNode>>("QSharedPointer<DiffNode>");
     // Q_ENUM alone does not register the enum for queued-call argument
-    // marshalling on every Qt version — CI hits "Unable to handle
+    // marshalling on every Qt version - CI hits "Unable to handle
     // unregistered datatype 'JsonDiffEngine::Mode'" otherwise.
     qRegisterMetaType<JsonDiffEngine::Mode>("JsonDiffEngine::Mode");
     qRegisterMetaType<JsonDiffEngine::Phase>("JsonDiffEngine::Phase");
@@ -1220,7 +1220,7 @@ void JsonDiffEngine::compare(DiffNode &left, DiffNode &right, Mode mode,
 }
 
 // -----------------------------------------------------------------------
-// Phase A — targeted edit-and-recompare
+// Phase A - targeted edit-and-recompare
 // -----------------------------------------------------------------------
 
 namespace
@@ -1243,7 +1243,7 @@ DiffNode *navigateTo(DiffNode &root, const QList<int> &path)
 
 // True if a single matched pair (one node per side, already known to
 // reference each other) is "the same" from the algorithm's point of
-// view — mirrors the value/childcount checks compareValueOneWay and
+// view - mirrors the value/childcount checks compareValueOneWay and
 // findInRight use, so a recomputed color matches what a full compare
 // would produce for the same pair.
 bool pairLooksIdentical(const DiffNode &L, const DiffNode &R)
@@ -1279,7 +1279,7 @@ void refreshAncestorColors(DiffNode &root, const QList<int> &leafPath)
         ancestors.append(cur);
     }
 
-    // Walk from deepest ancestor up — each level's decision depends on
+    // Walk from deepest ancestor up - each level's decision depends on
     // the level below having already settled.
     for (int i = ancestors.size() - 1; i >= 0; --i)
     {
@@ -1330,7 +1330,7 @@ JsonDiffEngine::alignByWeightWithKey(const QList<DiffNode> &left,
     // Two-bucket identity. Items that resolve one of the requested
     // keys use that field's weight directly. Items that don't (Object
     // with no key found, or non-Object entries) fall back to the
-    // full-node weight XOR a fixed mask — same-content items in that
+    // full-node weight XOR a fixed mask - same-content items in that
     // bucket still pair with each other, but they can't cross-pair
     // with items that DID resolve a key (which would be the "stupid
     // key-weight vs full-node-weight comparison" the user objected
@@ -1361,7 +1361,7 @@ JsonDiffEngine::alignByWeight(const QList<qint64> &left,
 {
     // Unordered bipartite matching by weight. Group items on each side
     // by weight, then pair k-th occurrence with k-th occurrence. Items
-    // that have a matching weight on the other side always pair —
+    // that have a matching weight on the other side always pair -
     // position (order) is ignored. Items with no weight peer become
     // orphans. Used so "same JSON, arrays sorted differently" pairs
     // 100% of items instead of collapsing under LCS's order rule.
@@ -1372,7 +1372,7 @@ JsonDiffEngine::alignByWeight(const QList<qint64> &left,
     //   3. right orphans (-1, rightIdx) in rightIdx order
     //
     // Consumers of arrayAlignment must NOT interpret the sequence as a
-    // positional merge — real matches live at their original leftIdx,
+    // positional merge - real matches live at their original leftIdx,
     // and phantoms are appended at the end of the model.
     QHash<qint64, QList<int>> leftByWeight, rightByWeight;
     for (int i = 0; i < left.size(); ++i)  leftByWeight[left[i]].append(i);
@@ -1433,7 +1433,7 @@ QJsonValue JsonDiffEngine::toJsonValue(const DiffNode &node)
         case QJsonValue::Bool:
         {
             // Bool snapshots are stringified by QJsonModel as "true" /
-            // "false". Anything else means the snapshot is malformed —
+            // "false". Anything else means the snapshot is malformed -
             // warn so we don't silently coerce garbage to false.
             const bool isTrue  = node.value.compare(QStringLiteral("true"),
                                                     Qt::CaseInsensitive) == 0;
@@ -1442,7 +1442,7 @@ QJsonValue JsonDiffEngine::toJsonValue(const DiffNode &node)
             if (!isTrue && !isFalse)
                 qWarning() << "JsonDiffEngine::toJsonValue: Bool node has "
                               "non-canonical value" << node.value
-                           << "— treating as false";
+                           << "- treating as false";
             return QJsonValue(isTrue);
         }
         case QJsonValue::Null:
@@ -1452,14 +1452,14 @@ QJsonValue JsonDiffEngine::toJsonValue(const DiffNode &node)
             // Undefined should never reach here from a well-formed
             // snapshot; warn rather than silently substituting Null.
             qWarning() << "JsonDiffEngine::toJsonValue: unexpected type"
-                       << int(node.type) << "— writing Null";
+                       << int(node.type) << "- writing Null";
             return QJsonValue(QJsonValue::Null);
     }
 }
 
 void JsonDiffEngine::copyPeer(DiffNode &target, const DiffNode &source)
 {
-    // Preserve target.key — it identifies position in target's parent.
+    // Preserve target.key - it identifies position in target's parent.
     // color/relationPath are deliberately untouched; recomparePair()
     // is the next step the caller will run and it will set them.
     target.type     = source.type;
@@ -1487,7 +1487,7 @@ void JsonDiffEngine::recomparePair(DiffNode &leftRoot,  const QList<int> &leftPa
 }
 
 // -----------------------------------------------------------------------
-// Phase B — append / remove for NotPresent rows
+// Phase B - append / remove for NotPresent rows
 // -----------------------------------------------------------------------
 
 namespace
@@ -1496,7 +1496,7 @@ namespace
 // Walk two same-shape subtrees in parallel, marking each pair Identical
 // and mirroring relationPath. Used right after insertPeer's deep-copy
 // so apply() can light up idxRelation across the whole inserted subtree
-// — not just its root.
+// - not just its root.
 void linkSubtreesRecursively(DiffNode &a, const QList<int> &aPath,
                              DiffNode &b, const QList<int> &bPath)
 {
@@ -1504,7 +1504,7 @@ void linkSubtreesRecursively(DiffNode &a, const QList<int> &aPath,
     b.color = DiffColorType::Identical;
     a.relationPath = bPath;
     b.relationPath = aPath;
-    // copy preserves shape — children sizes match. qMin guards in case
+    // copy preserves shape - children sizes match. qMin guards in case
     // the caller hands us trees that drifted apart somehow.
     const int n = qMin(a.children.size(), b.children.size());
     for (int i = 0; i < n; ++i)
@@ -1528,7 +1528,7 @@ void fixupRelationPathsAfterRemoval(DiffNode &otherRoot,
 {
     // Track the current path through otherRoot so we can record each
     // orphan's actual position. removePeer needs those paths to walk
-    // the right ancestor chains on the other side — using the src-side
+    // the right ancestor chains on the other side - using the src-side
     // parentPath was only accurate when the trees lined up index-for-
     // index, which Phase-B's paired compares can't assume.
     QList<int> current;
@@ -1624,7 +1624,7 @@ QList<int> JsonDiffEngine::insertPeer(DiffNode &srcRoot,
     linkSubtreesRecursively(*src, srcPath,
                             dstParent->children.last(), dstPath);
 
-    // Refresh both sides' ancestor colors — src's chain may now be
+    // Refresh both sides' ancestor colors - src's chain may now be
     // back to Identical (its row went from NotPresent to Identical),
     // dst's chain may have lost its last diff descendant.
     refreshAncestorColors(srcRoot, srcPath);
@@ -1653,7 +1653,7 @@ bool JsonDiffEngine::resnapshotSubtree(DiffNode &myRoot,
     me->children.clear();
     snapshotChildren(myModel, idx, *me);
 
-    // New children have no peers on the other side — mark the whole
+    // New children have no peers on the other side - mark the whole
     // re-snapshotted subtree NotPresent so apply() paints them as
     // "missing on the other side" until the user re-runs Compare.
     std::function<void(DiffNode&)> markAllNotPresent = [&](DiffNode &n)
@@ -1666,7 +1666,7 @@ bool JsonDiffEngine::resnapshotSubtree(DiffNode &myRoot,
 
     // Orphan any peer pointer that referenced something INSIDE the
     // old subtree. The peer of `me` itself (relationPath == myPath)
-    // is left intact — recomparePair will re-evaluate that pair's
+    // is left intact - recomparePair will re-evaluate that pair's
     // color after the call returns.
     std::function<void(DiffNode&)> orphanDescendantPeers = [&](DiffNode &n)
     {
@@ -1734,7 +1734,7 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
     QList<int> parentPath = srcPath;
     parentPath.removeLast();
 
-    // Remove the child. We don't track per-node peer cleanup here —
+    // Remove the child. We don't track per-node peer cleanup here -
     // fixupRelationPathsAfterRemoval does that across the whole other
     // tree in one walk.
     parent->children.removeAt(idx);
@@ -1761,7 +1761,7 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
     // Re-apply the original compareValue rule: paired Object/Array
     // containers with mismatched child counts BOTH go Huge (matches
     // main-branch semantics on the next Compare). This is the
-    // edit-time replay of that rule — without it, an Object that
+    // edit-time replay of that rule - without it, an Object that
     // just lost a child while its peer kept everything looked
     // Identical or Moderate, which the user reads as "no diff" even
     // though one object is structurally a subset of the other.
@@ -1792,7 +1792,7 @@ bool JsonDiffEngine::removePeer(DiffNode &srcRoot, const QList<int> &srcPath,
     refreshAncestorColors(srcRoot, srcPath);
     if (sizesDiffer)
     {
-        // dstParent just changed to Huge — refresh its ancestors
+        // dstParent just changed to Huge - refresh its ancestors
         // explicitly so they promote to Moderate. refreshAncestorColors
         // skips Huge nodes themselves, so passing dstParentPath as the
         // leafPath visits dstParent's ancestors without touching it.
@@ -1822,7 +1822,7 @@ void JsonDiffEngine::compareAsync(QSharedPointer<DiffNode> left,
                                   QSharedPointer<DiffNode> right,
                                   Mode mode)
 {
-    // Cancel state is NOT reset here — caller (orchestrator on the main
+    // Cancel state is NOT reset here - caller (orchestrator on the main
     // thread) controls that via resetCancel(). Pre-set cancel aborts at
     // the first tick().
 
@@ -1835,8 +1835,8 @@ void JsonDiffEngine::compareAsync(QSharedPointer<DiffNode> left,
     // Estimate total work. FullPath ticks each side 4×: buildPath,
     // comparePath, compareValue, fixColors. ParentChild ticks left twice
     // (compareModels + fixColors) and right once (fixColors). These are
-    // approximate — actual costs vary, especially ParentChild where
-    // findInRight is unbounded — but they make the dialog move at all.
+    // approximate - actual costs vary, especially ParentChild where
+    // findInRight is unbounded - but they make the dialog move at all.
     // Overlay adds one extra walk of the left tree at the end.
     const int leftSize  = treeSize(*left);
     const int rightSize = treeSize(*right);
