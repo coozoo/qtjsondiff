@@ -953,6 +953,32 @@ private slots:
         QCOMPARE(R->itemFromIndex(resolvePath(R, {"keep"}))->idxRelation(),
                  resolvePath(L, {"keep"}));
     }
+
+    // Locks in that JsonDiffEngine::apply's inline-collected
+    // diffIndices() list matches what QJsonContainer::fillGotoList
+    // would produce - so QJsonContainer::on_model_dataUpdated can
+    // hydrate its gotoIndexes_list from the model without triggering
+    // the O(N) post-apply walk that used to freeze the UI.
+    void diffIndicesEqualsFillGotoList()
+    {
+        loadAndCompare(
+            R"({"a":1,"b":2,"c":{"x":1,"y":2},"d":[1,2,3]})",
+            R"({"a":1,"b":9,"c":{"x":1,"y":9},"d":[1,2,9,4]})",
+            true);
+
+        QJsonModel* L = diff->getLeftJsonModel();
+        QJsonModel* R = diff->getRightJsonModel();
+
+        QCOMPARE(L->diffIndices(),
+                 diff->left_cont->fillGotoList(L, QModelIndex()));
+        QCOMPARE(R->diffIndices(),
+                 diff->right_cont->fillGotoList(R, QModelIndex()));
+        // Sanity: the compare above produces at least one diff on
+        // each side, otherwise the equality above would be vacuously
+        // trivial (two empty lists).
+        QVERIFY(L->diffIndices().size() > 0);
+        QVERIFY(R->diffIndices().size() > 0);
+    }
 };
 
 int main(int argc, char* argv[])

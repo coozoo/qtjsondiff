@@ -1086,3 +1086,13 @@ bool QJsonModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     QModelIndex newIdx = insertChildFromJson(parent, row, key, payload);
     return newIdx.isValid();
 }
+
+void QJsonModel::resetDiffIndices()
+{
+    mDiffIndices.clear();
+}
+
+void QJsonModel::appendDiffIndex(const QModelIndex &idx)
+{
+    mDiffIndices.append(idx);
+}

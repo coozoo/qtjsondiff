@@ -111,10 +111,18 @@ int QJsonTreeItem::childCount() const
 
 int QJsonTreeItem::row() const
 {
-    if (mParent)
-        return mParent->mChilds.indexOf(const_cast<QJsonTreeItem*>(this));
-
-    return 0;
+    if (!mParent)
+        return 0;
+    // Fast path: cache is fresh when parent still holds `this` at
+    // the remembered slot. Any insert/remove/reorder above us
+    // invalidates the slot check and we fall through to a one-time
+    // indexOf, refreshing the cache for subsequent reads.
+    if (mCachedRow >= 0
+        && mCachedRow < mParent->mChilds.size()
+        && mParent->mChilds.at(mCachedRow) == this)
+        return mCachedRow;
+    mCachedRow = mParent->mChilds.indexOf(const_cast<QJsonTreeItem*>(this));
+    return mCachedRow;
 }
 
 void QJsonTreeItem::setKey(const QString &key)

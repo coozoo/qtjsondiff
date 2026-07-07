@@ -678,7 +678,12 @@ void QJsonDiff::onCompareFinished(QSharedPointer<DiffNode> left,
     updateRightPushAction();
     const qint64 tUpdateActions = et.elapsed();
 
-    qDebug().nospace()
+    // qInfo (not qDebug) so this survives QT_NO_DEBUG_OUTPUT in
+    // release. Users diagnosing large-JSON compares can launch from
+    // a terminal and see the full breakdown; those launching by
+    // double-click still get the per-tree timing from the status
+    // label under each tree (see QJsonContainer applyTimings hook).
+    qInfo().nospace()
         << "[compare-finish] applyLeft=" << tApplyLeft << "ms"
         << " applyRight=" << tApplyRight << "ms"
         << " gotoLeft=" << tGotoLeft << "ms"
@@ -1426,8 +1431,85 @@ void QJsonDiff::recomputeAfterRowsInserted(const QModelIndex &parent,
                                           mLastMode);
     }
 
-    JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
-    JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
+    // Targeted apply for row inserts. The old code ran full apply()
+    // on both sides (95k+ nodes each) for a single-row edit, showing
+    // the progress bar for seconds even though only the ancestor
+    // chain and the new subtree actually needed touching. Instead:
+    //   1. Colour the newly-inserted subtree NotPresent (no peer)
+    //      and record its scalar leaves in the model's diff-nav list
+    //      so the "N diffs" counter and Ctrl-G navigation see them.
+    //   2. Clear stale arrayAlignment on the mutated parent (and its
+    //      peer if paired) so any future full apply falls to the
+    //      safe non-phantom branch instead of misleadingly indexing
+    //      into positions that no longer line up.
+    //   3. Refresh the ancestor colour cascade via applyPath on both
+    //      sides. applyPath emits per-cell dataChanged + one final
+    //      dataUpdated, no progress-bar signals.
+    // Skips the ~95k node walk entirely.
+    const int lastCol = myModel->columnCount() - 1;
+    // Non-container, non-phantom, non-Identical / None filter matches
+    // JsonDiffEngine::applyRecursive lines 675 and 796. Every leaf
+    // that qualifies goes into the diff-nav list.
+    std::function<void(QJsonTreeItem *, QModelIndex)> paintAndCollect =
+        [&](QJsonTreeItem *item, QModelIndex idx)
+    {
+        if (!item) return;
+        item->setColorType(DiffColorType::NotPresent);
+        item->setIdxRelation(QModelIndex());
+        if (!item->isPhantom()
+            && item->type() != QJsonValue::Object
+            && item->type() != QJsonValue::Array)
+        {
+            myModel->appendDiffIndex(idx);
+        }
+        for (int i = 0; i < item->childCount(); ++i)
+        {
+            QModelIndex childInner = myModel->index(i, 0, idx);
+            paintAndCollect(item->child(i), childInner);
+        }
+    };
+    for (int row = first; row <= last; ++row)
+    {
+        QModelIndex childIdx = myModel->index(row, 0, parent);
+        if (!childIdx.isValid()) continue;
+        paintAndCollect(myModel->itemFromIndex(childIdx), childIdx);
+        emit myModel->dataChanged(
+            childIdx,
+            myModel->index(row, lastCol, parent),
+            {Qt::BackgroundRole, Qt::DecorationRole, Qt::DisplayRole});
+    }
+    // Stale alignment: positions in arrayAlignment now index into
+    // shifted rows. Empty is safe (fallback branch of apply walks
+    // in order and inserts no phantoms). If a later full compare
+    // runs it will rebuild alignment from scratch.
+    parentSnap->arrayAlignment.clear();
+    if (!parentSnap->relationPath.isEmpty())
+    {
+        DiffNode *peerParent = peerSnap;
+        for (int step : parentSnap->relationPath)
+        {
+            if (step < 0 || step >= peerParent->children.size())
+            {
+                peerParent = nullptr;
+                break;
+            }
+            peerParent = &peerParent->children[step];
+        }
+        if (peerParent) peerParent->arrayAlignment.clear();
+    }
+    // Ancestor colour refresh. applyPath returns early on empty
+    // path so root-level inserts skip the walk (no ancestors to
+    // fix); we still emit dataUpdated ourselves so the container's
+    // "N diffs" counter picks up the appended leaves.
+    if (parentPath.isEmpty())
+        emit myModel->dataUpdated();
+    else
+        JsonDiffEngine::applyPath(*mySnap, myModel, parentPath, peerModel);
+    if (!parentSnap->relationPath.isEmpty())
+        JsonDiffEngine::applyPath(*peerSnap, peerModel,
+                                  parentSnap->relationPath, myModel);
+    else
+        emit peerModel->dataUpdated();
 }
 
 void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)

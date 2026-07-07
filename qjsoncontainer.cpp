@@ -254,7 +254,40 @@ QJsonContainer::QJsonContainer(QWidget *parent):
 
     //treeview_layout->addWidget(expandAll_Checkbox,0,Qt::AlignLeft);
     treeview_layout->addLayout(tools_layout);
-    treeview_layout->addWidget(treeview);
+    // Wrap treeview + status label + a thin progress bar so both
+    // hug the tree's bottom edge (mirrors the search-progress
+    // pattern under find_lineEdit). Both are hidden at rest;
+    // JsonDiffEngine::apply shows/updates/hides them via
+    // QJsonModel::apply* signals. Status label narrates what the
+    // walk is doing right now so it's obvious it isn't wedged.
+    mApplyStatus = new QLabel();
+    mApplyStatus->setTextFormat(Qt::PlainText);
+    mApplyStatus->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    mApplyStatus->hide();
+    mApplyProgress = new QProgressBar();
+    mApplyProgress->setMaximumHeight(3);
+    mApplyProgress->setTextVisible(false);
+    mApplyProgress->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    mApplyProgress->hide();
+    // Single-shot hide for the timing breakdown displayed after apply
+    // completes. Restart-able so a second apply (right side after
+    // left) refreshes both the text and the countdown.
+    mApplyStatusHideTimer = new QTimer(this);
+    mApplyStatusHideTimer->setSingleShot(true);
+    mApplyStatusHideTimer->setInterval(5000);
+    connect(mApplyStatusHideTimer, &QTimer::timeout, this, [this]()
+    {
+        mApplyStatus->hide();
+        mApplyProgress->hide();
+    });
+    auto *treeWrapper = new QWidget();
+    auto *treeWrapperLayout = new QVBoxLayout(treeWrapper);
+    treeWrapperLayout->setContentsMargins(0, 0, 0, 0);
+    treeWrapperLayout->setSpacing(0);
+    treeWrapperLayout->addWidget(treeview);
+    treeWrapperLayout->addWidget(mApplyStatus);
+    treeWrapperLayout->addWidget(mApplyProgress);
+    treeview_layout->addWidget(treeWrapper);
     treeview_layout->addWidget(viewjson_plaintext);
     treeview_layout->addWidget(showjson_pushbutton);
 
@@ -356,6 +389,82 @@ QJsonContainer::QJsonContainer(QWidget *parent):
     connect(findCaseSensitivity_toolbutton, &QAction::triggered, this, &QJsonContainer::on_findCaseSensitivity_toolbutton_clicked);
     connect(model, SIGNAL(dataUpdated()), this, SLOT(on_model_dataUpdated()));
     connect(model, &QJsonModel::modelChanged, this, &QJsonContainer::on_model_changed);
+
+    // Apply-progress bar + status label wiring. The engine emits
+    // these three from apply() on the main thread; slot bodies just
+    // poke the widgets. Status label narrates: "Colouring nodes
+    // N/M · P mismatch rows inserted", so the user sees that the
+    // walk is progressing (and what it's doing) rather than a bar
+    // that mysteriously advances for 30s.
+    connect(model, &QJsonModel::applyStarted, this, [this](int total)
+    {
+        mApplyProgress->setRange(0, total);
+        mApplyProgress->setValue(0);
+        mApplyStatus->setText(tr("Applying diff to tree: 0 / %1 nodes")
+                              .arg(total));
+        mApplyStatus->show();
+        mApplyProgress->show();
+    });
+    connect(model, &QJsonModel::applyProgress, this,
+            [this](int done, int phantoms)
+    {
+        mApplyProgress->setValue(done);
+        // Two branches only to spare the tr() lookup in the common
+        // case where the walk hasn't had to insert any placeholder
+        // rows yet - keeps the label short until it needs to grow.
+        if (phantoms > 0)
+        {
+            mApplyStatus->setText(tr("Applying diff to tree: %1 / %2 nodes "
+                                     "· %3 mismatch rows inserted")
+                                  .arg(done)
+                                  .arg(mApplyProgress->maximum())
+                                  .arg(phantoms));
+        }
+        else
+        {
+            mApplyStatus->setText(tr("Applying diff to tree: %1 / %2 nodes")
+                                  .arg(done)
+                                  .arg(mApplyProgress->maximum()));
+        }
+        // Cheap incremental feedback: schedule a viewport repaint so
+        // the colouring applied to the visible rows shows up between
+        // chunks. Qt coalesces update() into a single paint event, so
+        // ~185 update()s over the walk cost nothing compared to the
+        // ~30k dataChanged emits we used to fire per container.
+        treeview->viewport()->update();
+    });
+    connect(model, &QJsonModel::applyFinished, this, [this]()
+    {
+        // Final repaint covering the tail of the walk (nodes past the
+        // last progress chunk boundary). Same cheap update() call.
+        // Bar + status label stay visible - they hide via the
+        // applyTimings handler below, which formats the timing
+        // breakdown and starts a 5s countdown.
+        treeview->viewport()->update();
+    });
+    // Diagnostic: replace the "Applying ..." progress text with the
+    // wall-clock breakdown so the user can see where the just-ended
+    // apply spent its time (walk vs. yields vs. slot fan-out). The
+    // 5s countdown from mApplyStatusHideTimer takes it away.
+    connect(model, &QJsonModel::applyTimings, this,
+            [this](int walkMs, int yieldsMs, int finishedMs, int dataUpdatedMs)
+    {
+        // Compact "0.05s" style for small values, "27.4s" for big ones.
+        auto fmt = [](int ms) -> QString
+        {
+            if (ms < 1000) return QString::number(ms) + QStringLiteral(" ms");
+            return QString::number(ms / 1000.0, 'f', 1) + QStringLiteral(" s");
+        };
+        mApplyStatus->setText(tr("Applied: walk %1 · yields %2 · "
+                                 "finished %3 · dataUpdated %4")
+                              .arg(fmt(walkMs))
+                              .arg(fmt(yieldsMs))
+                              .arg(fmt(finishedMs))
+                              .arg(fmt(dataUpdatedMs)));
+        mApplyStatus->show();
+        mApplyProgress->show();
+        mApplyStatusHideTimer->start();
+    });
 
     connect(copyRow, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
     connect(copyRows, &QAction::triggered, this, &QJsonContainer::onActionTriggered);
@@ -1825,6 +1934,14 @@ void QJsonContainer::on_model_dataUpdated()
     qDebug() << "model has been changed";
     resetCurrentFind();
     resetGoto();
+    // Take the fresh diff-nav list JsonDiffEngine::apply built inline
+    // as it walked. QList is COW so this is a cheap shallow copy.
+    // Skips the O(N) fillGotoList walk that used to run from
+    // gotoIndexHandler(true) right after every Compare.
+    if (model)
+        {
+            gotoIndexes_list = model->diffIndices();
+        }
     if (diffAmount_lineEdit)
         {
             diffAmountUpdate();
