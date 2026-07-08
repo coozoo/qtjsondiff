@@ -22,6 +22,9 @@
 #include <QHash>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <functional>
 
 namespace
@@ -575,9 +578,44 @@ QModelIndex resolveIndex(QJsonModel *model, const QList<int> &path)
     return idx;
 }
 
-void applyRecursive(const DiffNode &snap, QJsonModel *model,
-                    const QModelIndex &parent, QJsonModel *otherModel)
+// Chunk size for the yield-and-emit boundary inside applyRecursive.
+// Every this-many DiffNode visits, we emit applyProgress and pump the
+// event loop (user input excluded) so the tree view can repaint the
+// area coloured so far and the progress bar advances.
+static constexpr int kApplyChunkNodes = 512;
+
+// Count total nodes in a DiffNode tree so applyStarted can hand a
+// concrete range to the progress bar. Cheap - no allocations, one
+// walk of a tree that already lives in memory.
+static int countDiffNodes(const DiffNode &n)
 {
+    int total = 1;
+    for (const DiffNode &c : n.children) total += countDiffNodes(c);
+    return total;
+}
+
+void applyRecursive(const DiffNode &snap, QJsonModel *model,
+                    const QModelIndex &parent, QJsonModel *otherModel,
+                    int &done, int &phantoms, qint64 &yieldsNs)
+{
+    // Progress + yield boundary at the top of each call. Yields
+    // ExcludeUserInputEvents so clicks/keys can't re-enter apply
+    // while paint/timer events still deliver. Bit-mask test on the
+    // counter is cheaper than a modulo.
+    // `yieldsNs` accumulates the cumulative time spent inside
+    // processEvents so apply() can report walk-vs-yields split back
+    // to the UI (helps diagnose whether the wall-clock tail is
+    // dominated by our own work or by the queued paint drain).
+    ++done;
+    if ((done & (kApplyChunkNodes - 1)) == 0)
+    {
+        emit model->applyProgress(done, phantoms);
+        QElapsedTimer yieldTimer;
+        yieldTimer.start();
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        yieldsNs += yieldTimer.nsecsElapsed();
+    }
+
     // Container with an alignment (arrayAlignment is populated on both
     // Arrays AND Objects - name kept for source compat; semantic is
     // "children pairing"). Bipartite pairs (myIdx, peerIdx). Two apply
@@ -639,7 +677,18 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
             else
                 item->setIdxRelation(resolveIndex(otherModel,
                                                   snapChild.relationPath));
-            applyRecursive(snapChild, model, idx, otherModel);
+            // Collect for the goto / "N diffs" list. Filter mirrors
+            // QJsonContainer::fillGotoList so the container doesn't
+            // have to re-walk the tree after apply.
+            if (!item->isPhantom()
+                && snapChild.color != DiffColorType::None
+                && snapChild.color != DiffColorType::Identical
+                && item->type() != QJsonValue::Object
+                && item->type() != QJsonValue::Array)
+            {
+                model->appendDiffIndex(idx);
+            }
+            applyRecursive(snapChild, model, idx, otherModel, done, phantoms, yieldsNs);
         };
         auto insertPhantom = [&](int row, int peerIdx)
         {
@@ -651,6 +700,7 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
             // when apply() later emits its (now removed) layoutChanged.
             QJsonTreeItem *ph = model->insertPhantomRow(parent, row);
             if (!ph) return;
+            ++phantoms;
             if (peerIdx != -1 && otherModel && !peerArrayPath.isEmpty())
             {
                 QList<int> phPeer = peerArrayPath;
@@ -719,19 +769,12 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
                 applyRealAt(myIdx, myIdx);
             }
         }
-        // Repaint hint for the phantom-branch parent: color updates
-        // (setColorType) don't emit dataChanged themselves; emit one
-        // range signal spanning all rows so QTreeView repaints them
-        // without invalidating persistent indices (i.e. without
-        // collapsing expanded descendants).
-        const int nRows = model->rowCount(parent);
-        if (nRows > 0)
-        {
-            emit model->dataChanged(
-                model->index(0, 0, parent),
-                model->index(nRows - 1, model->columnCount() - 1, parent),
-                {Qt::BackgroundRole, Qt::DecorationRole, Qt::DisplayRole});
-        }
+        // Repaint is deferred to the container's viewport update
+        // driven by applyProgress / applyFinished. Firing dataChanged
+        // per container here (once for every internal node of the
+        // JSON) was the hot spot: ~30k emits × per-emit slot fan-out
+        // in QTreeView added up to seconds on 2MB inputs even in
+        // release builds, dominating the actual work.
         return;
     }
 
@@ -749,24 +792,25 @@ void applyRecursive(const DiffNode &snap, QJsonModel *model,
         else
             item->setIdxRelation(resolveIndex(otherModel, snapChild.relationPath));
 
-        applyRecursive(snapChild, model, idx, otherModel);
+        // Same collection filter as applyRealAt above. Same preorder
+        // as fillGotoList - self first, then descendants via the
+        // recursive call below.
+        if (!item->isPhantom()
+            && snapChild.color != DiffColorType::None
+            && snapChild.color != DiffColorType::Identical
+            && item->type() != QJsonValue::Object
+            && item->type() != QJsonValue::Array)
+        {
+            model->appendDiffIndex(idx);
+        }
+
+        applyRecursive(snapChild, model, idx, otherModel, done, phantoms, yieldsNs);
     }
 
-    // Same repaint hint as the phantom-branch above. Emitted after
-    // recursion so descendants have already picked up their colors,
-    // but this signal covers the direct children - QTreeView repaints
-    // them without a layoutChanged (which would nuke expansion state).
-    if (!snap.children.empty())
-    {
-        const int nRows = model->rowCount(parent);
-        if (nRows > 0)
-        {
-            emit model->dataChanged(
-                model->index(0, 0, parent),
-                model->index(nRows - 1, model->columnCount() - 1, parent),
-                {Qt::BackgroundRole, Qt::DecorationRole, Qt::DisplayRole});
-        }
-    }
+    // Same rationale as the phantom-branch return above: per-container
+    // dataChanged is the hot spot on huge trees. Repaint is driven
+    // instead by the container's applyProgress hook (viewport update
+    // between chunks) and by applyFinished (final full repaint).
 }
 
 } // anonymous namespace
@@ -782,10 +826,52 @@ void JsonDiffEngine::apply(const DiffNode &snap, QJsonModel *model, QJsonModel *
     // phantom inserts use proper begin/endInsertRows (via
     // QJsonModel::insertPhantomRow) and applyRecursive emits
     // per-parent dataChanged for the color updates.
-    applyRecursive(snap, model, QModelIndex(), otherModel);
+    //
+    // Yield-and-progress: on huge JSONs the walk itself can take
+    // seconds. applyRecursive emits applyProgress and yields to the
+    // event loop every kApplyChunkNodes visits so the tree view can
+    // paint the coloured-so-far region and the thin progress bar
+    // under the tree view can advance. User input is excluded from
+    // the pump so re-entry is impossible.
+    const int total = countDiffNodes(snap);
+    emit model->applyStarted(total);
+    // Fresh diff-nav list. applyRecursive populates it inline so the
+    // container doesn't need the post-apply fillGotoList walk.
+    model->resetDiffIndices();
+    int done = 0;
+    int phantoms = 0;
+    // Sub-phase timers so the container can display where the tail
+    // wall-clock time is going ("walk" vs. "yields" vs. "finished
+    // slot fan-out" vs. "dataUpdated slot fan-out"). Nanosecond
+    // resolution because the finished / dataUpdated emits can be
+    // sub-millisecond and would round to zero otherwise.
+    QElapsedTimer walkTimer;
+    walkTimer.start();
+    qint64 yieldsNs = 0;
+    applyRecursive(snap, model, QModelIndex(), otherModel,
+                   done, phantoms, yieldsNs);
+    const qint64 walkNs = walkTimer.nsecsElapsed();
+    // Final progress tick so the label reflects the last chunk (the
+    // yield boundary inside applyRecursive is bit-masked, so the tail
+    // 0..kApplyChunkNodes-1 nodes wouldn't otherwise get emitted).
+    emit model->applyProgress(done, phantoms);
+    QElapsedTimer finishedTimer;
+    finishedTimer.start();
+    emit model->applyFinished();
+    const qint64 finishedNs = finishedTimer.nsecsElapsed();
     // Counter on the peer container listens for dataUpdated to refresh
     // its "N diffs" label.
+    QElapsedTimer dataUpdatedTimer;
+    dataUpdatedTimer.start();
     emit model->dataUpdated();
+    const qint64 dataUpdatedNs = dataUpdatedTimer.nsecsElapsed();
+    // "Walk" reported excluding yields so the two are directly
+    // additive and the user can tell them apart. Everything in ms.
+    emit model->applyTimings(
+        int((walkNs - yieldsNs) / 1'000'000),
+        int(yieldsNs / 1'000'000),
+        int(finishedNs / 1'000'000),
+        int(dataUpdatedNs / 1'000'000));
 }
 
 void JsonDiffEngine::applyPath(const DiffNode &snap, QJsonModel *model,
