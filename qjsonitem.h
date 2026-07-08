@@ -66,6 +66,12 @@ public:
     
     static QJsonValue::Type stringToType(const QString& typeName);
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);
+    // Format a double as the shortest round-trippable decimal so
+    // large integer-like values (e.g. epoch-ms 20240312114021934)
+    // do not degrade to "2.02403e+16" via default 6-digit '%g'.
+    // Used by load() and QJsonModel::replaceFromJson() to keep
+    // arrow-push and drag-drop identical.
+    static QString doubleToJsonString(double d);
 
 protected:
 

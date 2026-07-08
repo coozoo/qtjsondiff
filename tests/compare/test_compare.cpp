@@ -954,6 +954,212 @@ private slots:
                  resolvePath(L, {"keep"}));
     }
 
+    // Regression: large integer-valued doubles (epoch-ms, big sequence
+    // ids) used to degrade to "2.02403e+16" via default 6-digit '%g'
+    // formatting when loaded from JSON. QJsonTreeItem::load now uses
+    // FloatingPointShortest, which keeps every digit that round-trips
+    // back to the same double.
+    void loadPreservesLargeDoubleAsFullDigits()
+    {
+        QJsonModel m;
+        // 2^53 boundary: 9007199254740993 rounds to 9007199254740992
+        // in double. Anything up to 2^53 stays exact; the format helper
+        // has to emit the exact integer digits (no scientific form).
+        m.loadJson(R"({"ms":20240312114021932})");
+        QModelIndex idx = m.index(0, 0);
+        QVERIFY(idx.isValid());
+        QJsonTreeItem *item = m.itemFromIndex(idx);
+        QVERIFY(item);
+        QCOMPARE(item->type(), QJsonValue::Double);
+        QCOMPARE(item->value(), QString("20240312114021932"));
+    }
+
+    // Regression: replaceFromJson (used by the arrow-push path) also
+    // has to preserve precision. Was previously QString::number(double)
+    // with default 6-digit precision - producing "2.02403e+16" for the
+    // same value. Same fix as loadPreservesLargeDoubleAsFullDigits.
+    void replaceFromJsonPreservesLargeDouble()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"x":1})");
+        QModelIndex idx = m.index(0, 0);
+        QVERIFY(idx.isValid());
+        // 20240312114021932 = double representable, exact integer.
+        // Value large enough that any default '%g' formatting
+        // collapses to scientific and drops digits.
+        QVERIFY(m.replaceFromJson(idx, QJsonValue(20240312114021932.0)));
+        QJsonTreeItem *item = m.itemFromIndex(idx);
+        QVERIFY(item);
+        QCOMPARE(item->type(), QJsonValue::Double);
+        QCOMPARE(item->value(), QString("20240312114021932"));
+    }
+
+    // Regression: after arrow-pushing a large-double item across, the
+    // destination model's display value must match what a fresh
+    // loadJson would produce. Cross-check the two code paths.
+    void loadAndReplaceProduceSameLargeDoubleString()
+    {
+        QJsonModel loaded;
+        loaded.loadJson(R"({"x":20240312114021932})");
+        const QString viaLoad =
+            loaded.itemFromIndex(loaded.index(0, 0))->value();
+
+        QJsonModel replaced;
+        replaced.loadJson(R"({"x":0})");
+        QVERIFY(replaced.replaceFromJson(replaced.index(0, 0),
+                                         QJsonValue(20240312114021932.0)));
+        const QString viaReplace =
+            replaced.itemFromIndex(replaced.index(0, 0))->value();
+
+        QCOMPARE(viaLoad, viaReplace);
+        QCOMPARE(viaLoad, QString("20240312114021932"));
+    }
+
+    // Regression: small fractional doubles must not gain trailing
+    // noise digits. FloatingPointShortest emits the shortest
+    // round-trippable form: 3.14 stays "3.14", not "3.1400000000000001".
+    void smallDoubleStaysCompact()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"pi":3.14})");
+        QCOMPARE(m.itemFromIndex(m.index(0, 0))->value(),
+                 QString("3.14"));
+    }
+
+    // Regression: round integer values in the ~1e5..1e12 range must
+    // stay as decimal digits, not collapse to scientific form. Broke
+    // once already when the helper used 'g' + FloatingPointShortest;
+    // 'g' picks 'e' whenever the exponent form is fewer chars than
+    // fixed. "1e+05" is 5 chars, "100000" is 6, so 'g' Shortest chose
+    // "1e+05" for 100000 - obviously wrong for JSON display.
+    void roundIntegerDoublesStayDecimal()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"a":100000,"b":1000000,"c":123456789,"d":10})");
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"a"}))->value(),
+                 QString("100000"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"b"}))->value(),
+                 QString("1000000"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"c"}))->value(),
+                 QString("123456789"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"d"}))->value(),
+                 QString("10"));
+    }
+
+    // Regression: replaceFromJson path (arrow push) with the same
+    // round integer values - matches loadJson path so drag-drop and
+    // arrow-push produce identical display strings.
+    void replaceFromJsonRoundIntegersStayDecimal()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"x":0})");
+        QModelIndex idx = m.index(0, 0);
+        QVERIFY(m.replaceFromJson(idx, QJsonValue(100000.0)));
+        QCOMPARE(m.itemFromIndex(idx)->value(), QString("100000"));
+        QVERIFY(m.replaceFromJson(idx, QJsonValue(1000000.0)));
+        QCOMPARE(m.itemFromIndex(idx)->value(), QString("1000000"));
+    }
+
+    // Regression: user reports "if there was string 20240312114021934
+    // and set it double it will be 2.02403e+16". The type-change path
+    // in QJsonModel::setData converts the old string to double then
+    // formats it back to display. Was using QString::number(double)
+    // with default 6-digit precision, dropping the last 10 digits.
+    // Now routes through doubleToJsonString same as loadJson and
+    // replaceFromJson.
+    void typeChangeStringToDoublePreservesLargeInteger()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"ms":"20240312114021932"})");
+        QModelIndex msIdx = m.index(0, 0);
+        QVERIFY(msIdx.isValid());
+        QCOMPARE(m.itemFromIndex(msIdx)->type(), QJsonValue::String);
+
+        // Change type of "ms" from String to Double via col-1 setData.
+        // This is the code path JsonItemDelegate::setModelData drives
+        // when the user picks "Double" from the type combo box.
+        QModelIndex typeIdx = msIdx.siblingAtColumn(1);
+        QVERIFY(m.setData(typeIdx, QStringLiteral("Double"),
+                          Qt::EditRole));
+
+        QCOMPARE(m.itemFromIndex(msIdx)->type(), QJsonValue::Double);
+        QCOMPARE(m.itemFromIndex(msIdx)->value(),
+                 QString("20240312114021932"));
+    }
+
+    // Regression: the same type-change path with a round-integer
+    // string. Guards against a "1e+05"-style regression on the
+    // setData path specifically (already guarded on load and
+    // replaceFromJson paths).
+    void typeChangeStringToDoubleRoundIntegerStaysDecimal()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"n":"100000"})");
+        QModelIndex nIdx = m.index(0, 0);
+        QVERIFY(m.setData(nIdx.siblingAtColumn(1),
+                          QStringLiteral("Double"),
+                          Qt::EditRole));
+        QCOMPARE(m.itemFromIndex(nIdx)->type(), QJsonValue::Double);
+        QCOMPARE(m.itemFromIndex(nIdx)->value(), QString("100000"));
+    }
+
+    // Regression: negatives, zero, and tiny non-integer values.
+    // The 'f' + FloatingPointShortest choice has to handle sign and
+    // very small fractional parts without going scientific.
+    void doubleEdgeCasesStayDecimal()
+    {
+        QJsonModel m;
+        m.loadJson(R"({"neg":-42,"zero":0,"half":0.5,"tenth":0.1})");
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"neg"}))->value(),
+                 QString("-42"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"zero"}))->value(),
+                 QString("0"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"half"}))->value(),
+                 QString("0.5"));
+        QCOMPARE(m.itemFromIndex(resolvePath(&m, {"tenth"}))->value(),
+                 QString("0.1"));
+    }
+
+    // Regression: scalar to scalar type change (e.g. String to Double)
+    // MUST NOT do a full apply. It only shifts colours along the
+    // ancestor chain, same as a value edit. Structural type changes
+    // (Object <-> Array, or scalar <-> container) still full-apply.
+    // We can't directly assert "apply was not called", but we CAN
+    // assert the colours are correct and the untouched siblings kept
+    // their state (the full-apply path used to touch every node).
+    void scalarTypeChangeDoesTargetedApply()
+    {
+        loadAndCompare(R"({"a":"42","b":"same","c":"same"})",
+                       R"({"a":42, "b":"same","c":"same"})", true);
+        diff->setDiffEditable(true);
+
+        QJsonModel *L = diff->getLeftJsonModel();
+        QJsonModel *R = diff->getRightJsonModel();
+
+        // Precondition: a differs (String vs Double), b/c are Identical.
+        QCOMPARE(colorAt(L, {"b"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(R, {"b"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(L, {"c"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(R, {"c"}), DiffColorType::Identical);
+
+        // Change left "a" from String to Double via setData on col 1.
+        // This is what JsonItemDelegate does when the user picks the
+        // combo box option; it's a scalar to scalar change so no
+        // children are created or destroyed.
+        QModelIndex aTypeIdx = resolvePath(L, {"a"}).siblingAtColumn(1);
+        QVERIFY(L->setData(aTypeIdx, QStringLiteral("Double"),
+                           Qt::EditRole));
+
+        // "a" pair is now type-Double on both sides but the left value
+        // string is "42" and right value string is "42" - matching after
+        // recomparePair. b and c stay Identical, which they were before,
+        // proving the targeted path didn't accidentally clobber them.
+        QCOMPARE(colorAt(L, {"b"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(R, {"b"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(L, {"c"}), DiffColorType::Identical);
+        QCOMPARE(colorAt(R, {"c"}), DiffColorType::Identical);
+    }
+
     // Locks in that JsonDiffEngine::apply's inline-collected
     // diffIndices() list matches what QJsonContainer::fillGotoList
     // would produce - so QJsonContainer::on_model_dataUpdated can

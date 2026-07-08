@@ -1543,15 +1543,27 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
     const QJsonValue::Type modelType = item->type();
     const QString modelValue = item->value();
 
+    const QJsonValue::Type oldType = myNode->type;
     const bool keyChanged   = (myNode->key   != modelKey);
-    const bool typeChanged  = (myNode->type  != modelType);
+    const bool typeChanged  = (oldType       != modelType);
     const bool valueChanged = (myNode->value != modelValue);
     if (!keyChanged && !typeChanged && !valueChanged) return;  // engine path already in sync
 
+    // Only Object/Array involvement reshapes the children list. A
+    // scalar->scalar type change (String -> Double, Bool -> Null,
+    // etc.) leaves children empty on both sides of the flip, so the
+    // targeted applyPath path used for value edits is enough and we
+    // can skip both resnapshotSubtree and the ~95k-node full apply.
+    const bool structuralTypeChange = typeChanged
+        && (oldType == QJsonValue::Object || oldType == QJsonValue::Array
+            || modelType == QJsonValue::Object
+            || modelType == QJsonValue::Array);
+
     // Sync snapshot scalar fields to model. Children get re-walked
-    // below if the type changed - Object↔Array conversion paths
-    // restructure the model's children list and the snapshot has to
-    // catch up so future incremental edits keep working.
+    // below if the type change is structural - Object <-> Array
+    // conversion paths restructure the model's children list and the
+    // snapshot has to catch up so future incremental edits keep
+    // working.
     myNode->key   = modelKey;
     myNode->type  = modelType;
     myNode->value = modelValue;
@@ -1572,16 +1584,17 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
     }
     else
     {
-        if (typeChanged)
+        if (structuralTypeChange)
         {
             // Children may have been added/removed by the model's
-            // type-conversion code. Re-walk so the snapshot subtree
+            // type-conversion code (Object <-> Array, or scalar
+            // becoming a container). Re-walk so the snapshot subtree
             // matches the model; any peer cross-link pointing INTO
             // the old subtree gets orphaned.
             JsonDiffEngine::resnapshotSubtree(*mySnap, myPath, myModel,
                                               *peerSnap);
         }
-        // Type or value drift: same identity, different content →
+        // Type or value drift: same identity, different content.
         // recomparePair lights up Huge on the pair and refreshes
         // ancestor Moderate state on both sides.
         if (!peerPathAtEdit.isEmpty())
@@ -1597,12 +1610,13 @@ void QJsonDiff::recomputeAfterUserEdit(const QModelIndex &idx, bool onLeft)
         }
     }
 
-    // Type change restructured the subtree - the full apply is needed
-    // so views pick up the new/removed child rows. Value edits and key
-    // renames only shift color+idxRelation along the edited path and
-    // its ancestors, so the targeted applyPath saves the layoutChanged
-    // cost that was making per-edit repaints hitch on ~10k-node trees.
-    if (typeChanged)
+    // Structural type change (Object <-> Array, or scalar <-> container)
+    // restructures children in the model; the full apply is needed so
+    // views pick up the new/removed child rows. Scalar-to-scalar type
+    // changes (String -> Double, Bool -> Null, etc.) leave children
+    // empty on both sides and behave like a value edit, so applyPath on
+    // the ancestor chain is sufficient and skips the ~95k-node walk.
+    if (structuralTypeChange)
     {
         JsonDiffEngine::apply(*mySnap,   myModel,   peerModel);
         JsonDiffEngine::apply(*peerSnap, peerModel, myModel);
