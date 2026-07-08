@@ -25,6 +25,7 @@
 
 #include "qjsonitem.h"
 #include "preferences/preferences.h"
+#include <QLocale>
 
 
 QJsonTreeItem::QJsonTreeItem(QJsonTreeItem *parent)
@@ -111,10 +112,18 @@ int QJsonTreeItem::childCount() const
 
 int QJsonTreeItem::row() const
 {
-    if (mParent)
-        return mParent->mChilds.indexOf(const_cast<QJsonTreeItem*>(this));
-
-    return 0;
+    if (!mParent)
+        return 0;
+    // Fast path: cache is fresh when parent still holds `this` at
+    // the remembered slot. Any insert/remove/reorder above us
+    // invalidates the slot check and we fall through to a one-time
+    // indexOf, refreshing the cache for subsequent reads.
+    if (mCachedRow >= 0
+        && mCachedRow < mParent->mChilds.size()
+        && mParent->mChilds.at(mCachedRow) == this)
+        return mCachedRow;
+    mCachedRow = mParent->mChilds.indexOf(const_cast<QJsonTreeItem*>(this));
+    return mCachedRow;
 }
 
 void QJsonTreeItem::setKey(const QString &key)
@@ -247,6 +256,27 @@ QJsonValue::Type QJsonTreeItem::stringToType(const QString& typeName)
 }
 
 
+QString QJsonTreeItem::doubleToJsonString(double d)
+{
+    // 'f' format (fixed decimal, never scientific) with
+    // FloatingPointShortest precision (fewest digits that
+    // round-trip back to the same double). Rationale:
+    //   - 100000              -> "100000"  (NOT "1e+05" - Shortest
+    //                            with 'g' picks scientific because
+    //                            5 chars < 6, which is wrong for JSON
+    //                            display)
+    //   - 3.14                -> "3.14"    (no trailing noise like
+    //                            "3.1400000000000001" that 'g' 17
+    //                            would produce)
+    //   - 20240312114021932   -> "20240312114021932" (survives, was
+    //                            "2.02403e+16" via default '%g' 6)
+    //   - very-small 1e-15    -> "0.000000000000001" (long but
+    //                            decimal; edge case, JSON rarely
+    //                            carries such values as tree scalars)
+    return QLocale::c().toString(d, 'f',
+                                 QLocale::FloatingPointShortest);
+}
+
 QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* parent)
 {
     QJsonTreeItem * rootItem = new QJsonTreeItem(parent);
@@ -282,7 +312,14 @@ QJsonTreeItem* QJsonTreeItem::load(const QJsonValue& value, QJsonTreeItem* paren
     }
     else
     {
-        rootItem->setValue(value.toVariant().toString());
+        // Doubles need the shortest-round-trip helper so large
+        // integer-like values (epoch-ms, sequence ids) survive
+        // load(). All other scalars go through QVariant which
+        // handles String / Bool / Null correctly.
+        if (value.isDouble())
+            rootItem->setValue(doubleToJsonString(value.toDouble()));
+        else
+            rootItem->setValue(value.toVariant().toString());
         rootItem->setType(value.type());
     }
 

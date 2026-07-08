@@ -34,6 +34,7 @@
 
 #include <QWidgetAction>
 #include <QProgressBar>
+#include <QTimer>
 
 #include "httprequestconfig.h"
 
@@ -147,6 +148,20 @@ private:
     // Live counter used by findModelText to feed mSearchProgress. Zeroed
     // before the walk, incremented on each visited node.
     int mSearchProgressCounter = 0;
+    // Thin progress bar under the tree view that lights up during
+    // JsonDiffEngine::apply. On huge JSONs the colouring walk +
+    // phantom-row inserts can take seconds; the bar advances via
+    // QJsonModel::applyStarted / applyProgress / applyFinished
+    // signals emitted from the engine. mApplyStatus (above the bar)
+    // narrates what the walk is doing right now - "Colouring nodes
+    // N/M · P mismatch rows inserted" - so the user can see it isn't
+    // wedged.
+    QProgressBar *mApplyProgress = nullptr;
+    QLabel       *mApplyStatus   = nullptr;
+    // Delayed-hide for the status label so the timing breakdown
+    // ("Applied: walk 27.4s ...") stays on screen long enough for
+    // the user to read it. Both bar and label hide when this fires.
+    QTimer       *mApplyStatusHideTimer = nullptr;
     // Count every visitable node under `parent` (recursive rowCount sum).
     // Used to size mSearchProgress before findModelText starts.
     int countTreeNodes(QJsonModel *model, const QModelIndex &parent) const;

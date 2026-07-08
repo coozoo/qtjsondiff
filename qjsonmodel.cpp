@@ -256,7 +256,7 @@ bool QJsonModel::setData(const QModelIndex &index, const QVariant &value, int ro
                     } else if (item->value().toLower() == "false") {
                         newValue = "0";
                     } else {
-                        newValue = QString::number(item->value().toDouble());
+                        newValue = QJsonTreeItem::doubleToJsonString(item->value().toDouble());
                     }
                 } else {
                     newValue = QString::number(item->value().toDouble());
@@ -689,7 +689,7 @@ bool QJsonModel::replaceFromJson(const QModelIndex &target, const QJsonValue &so
     if (source.isString())
         item->setValue(source.toString());
     else if (source.isDouble())
-        item->setValue(QString::number(source.toDouble()));
+        item->setValue(QJsonTreeItem::doubleToJsonString(source.toDouble()));
     else if (source.isBool())
         item->setValue(source.toBool() ? QStringLiteral("true") : QStringLiteral("false"));
     else
@@ -1085,4 +1085,14 @@ bool QJsonModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
 
     QModelIndex newIdx = insertChildFromJson(parent, row, key, payload);
     return newIdx.isValid();
+}
+
+void QJsonModel::resetDiffIndices()
+{
+    mDiffIndices.clear();
+}
+
+void QJsonModel::appendDiffIndex(const QModelIndex &idx)
+{
+    mDiffIndices.append(idx);
 }

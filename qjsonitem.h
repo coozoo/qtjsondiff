@@ -66,6 +66,12 @@ public:
     
     static QJsonValue::Type stringToType(const QString& typeName);
     static QJsonTreeItem* load(const QJsonValue& value, QJsonTreeItem * parent = nullptr);
+    // Format a double as the shortest round-trippable decimal so
+    // large integer-like values (e.g. epoch-ms 20240312114021934)
+    // do not degrade to "2.02403e+16" via default 6-digit '%g'.
+    // Used by load() and QJsonModel::replaceFromJson() to keep
+    // arrow-push and drag-drop identical.
+    static QString doubleToJsonString(double d);
 
 protected:
 
@@ -82,6 +88,16 @@ private:
 
     QList<QJsonTreeItem*> mChilds;
     QJsonTreeItem * mParent;
+    // Self-healing row cache. Read by row(): fast path returns
+    // mCachedRow when the parent still holds `this` at that slot;
+    // any shift (insert/remove above us) makes the slot check fail,
+    // and row() falls back to indexOf() while refreshing the cache
+    // for subsequent lookups. mutable so row() can stay const.
+    // Kills the O(N indexOf) that used to bite whenever Qt or user
+    // code called .parent() on many indices under a big container
+    // (Ctrl+A on a 5000-child array, drag-and-drop, filter-proxy,
+    // etc). See project_apply_datachanged_hotspot.md.
+    mutable int mCachedRow = -1;
 
 
 };

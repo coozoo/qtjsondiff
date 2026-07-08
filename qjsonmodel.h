@@ -128,6 +128,17 @@ public:
 
     static const QString kItemMimeType;
 
+    // Diff-navigation index list. JsonDiffEngine::apply resets this
+    // at the top of its run and appends every index that qualifies
+    // as a "reportable diff row" (non-phantom scalar with color !=
+    // None/Identical) as applyRecursive walks the DiffNode tree.
+    // QJsonContainer hydrates its gotoIndexes_list from here on
+    // dataUpdated, so the container no longer needs the full-tree
+    // fillGotoList walk after every Compare.
+    void resetDiffIndices();
+    void appendDiffIndex(const QModelIndex &idx);
+    const QList<QModelIndex> &diffIndices() const { return mDiffIndices; }
+
 private:
     QJsonTreeItem * mRootItem;
     QStringList mHeaders;
@@ -136,6 +147,7 @@ private:
     QString mLastErrorMessage;
     int mLastErrorOffset = 0;
     bool mIsEditable = false;
+    QList<QModelIndex> mDiffIndices;
 
     void setParseError(bool hasError, const QString& msg, int offset);
     void generateJson(QJsonTreeItem *item, QJsonValue &value) const;
@@ -145,6 +157,28 @@ signals:
    void dataUpdated();
    void parseErrorChanged();
    void modelChanged();
+
+   // Progress hooks for JsonDiffEngine::apply. On huge JSONs the
+   // per-item colour/idxRelation walk + phantom-row inserts can
+   // take seconds; the container hooks a thin bar under the tree
+   // view onto these so the UI stays responsive (apply yields to
+   // the event loop between chunks) and the user sees progress.
+   // `phantoms` = number of alignment-placeholder rows inserted so
+   // far, exposed so the status label under the tree can tell the
+   // user *why* the walk is spending time (colouring vs. filling
+   // gaps for missing peer rows).
+   void applyStarted(int totalNodes);
+   void applyProgress(int done, int phantoms);
+   void applyFinished();
+   // Sub-phase timing for the just-completed apply(). Fired after
+   // applyFinished + dataUpdated so it carries every emit-side cost.
+   // Four ints (all milliseconds) keeps MOC happy without needing
+   // Q_DECLARE_METATYPE on a struct.
+   //   walkMs        - applyRecursive body, yield time excluded
+   //   yieldsMs      - cumulative processEvents drain time
+   //   finishedMs    - applyFinished slot fan-out (bar hide, viewport update, etc.)
+   //   dataUpdatedMs - dataUpdated slot fan-out (on_model_dataUpdated + anyone else)
+   void applyTimings(int walkMs, int yieldsMs, int finishedMs, int dataUpdatedMs);
 
 
 };
