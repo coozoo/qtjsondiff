@@ -155,6 +155,19 @@ void MainWindow::differRightFileLoaded(const QString &path)
 
 void MainWindow::loadLastPaths()
 {
+    // Apply the persisted per-container cURL config BEFORE loadJsonFile
+    // so a URL fetch on startup carries the user's method / headers /
+    // body from the previous session - same ordering rule the CLI path
+    // uses in setDisplayMode. noHttpDefaults=true here: what we saved
+    // is exactly what the container last had (toCurlText), no need to
+    // re-merge factory GET headers.
+    applyCliConfigToContainer(differ->left_cont,
+                              PREF_INST->differLeftCurl,  true);
+    applyCliConfigToContainer(differ->right_cont,
+                              PREF_INST->differRightCurl, true);
+    applyCliConfigToContainer(messageJsonCont,
+                              PREF_INST->jsonContainerCurl, true);
+
     differ->loadLeftJsonFile(PREF_INST->differLeftPath);
     differ->loadRightJsonFile(PREF_INST->differRightPath);
     messageJsonCont->loadJsonFile(PREF_INST->jsonContainerPath);
@@ -175,6 +188,24 @@ void MainWindow::closeEvent(QCloseEvent *event)
     PREF_INST->activeTabIndex = ui->tabWidget->currentIndex();
     PREF_INST->mainWindowGeometry = saveGeometry();
     PREF_INST->mainWindowState = saveState();
+
+    // Snapshot each container's current HTTP request config as cURL
+    // text. Default GETs serialize to a bare "curl -X GET" - fine to
+    // save; loadLastPaths re-parses it back to defaults() shape.
+    // Rides on save() below, gated by the same "Restore on start"
+    // toggle at load time.
+    if (messageJsonCont)
+        PREF_INST->jsonContainerCurl =
+            messageJsonCont->requestConfig().toCurlText();
+    if (differ)
+        {
+            if (differ->left_cont)
+                PREF_INST->differLeftCurl =
+                    differ->left_cont->requestConfig().toCurlText();
+            if (differ->right_cont)
+                PREF_INST->differRightCurl =
+                    differ->right_cont->requestConfig().toCurlText();
+        }
 
     PREF_INST->save();
 

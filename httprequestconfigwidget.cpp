@@ -313,11 +313,10 @@ HttpRequestConfig HttpRequestConfigWidget::readFormConfig() const
             c.headers.append(qMakePair(name, row.valueEdit->text()));
         }
     c.body = mBodyEdit->toPlainText().toUtf8();
-    // URL is not editable on the form tab - it belongs to the
-    // container's own filePath_lineEdit. We preserve any URL that
-    // came in via setConfig (e.g. from a cURL paste) implicitly via
-    // populateForm not clearing it - but here we're reading back
-    // from the form, so we leave it empty.
+    // URL rides through on mFormUrl - not exposed as a form widget,
+    // but remembered from setConfig / cURL-tab edits so tab switches
+    // and OK don't silently drop it.
+    c.url = mFormUrl;
     return c;
 }
 
@@ -339,6 +338,10 @@ void HttpRequestConfigWidget::populateForm(const HttpRequestConfig &config)
     // Body
     QSignalBlocker bBlock(mBodyEdit);
     mBodyEdit->setPlainText(QString::fromUtf8(config.body));
+
+    // Remember the URL that came in - readFormConfig replays it, so
+    // switching to the cURL tab regenerates text WITH the URL in it.
+    mFormUrl = config.url;
 
     updateBodyEnabledState();
 }
@@ -402,6 +405,9 @@ void HttpRequestConfigWidget::onTabChanged(int index)
                     return;
                 }
             mCurlParseWarning->hide();
+            // populateForm updates mFormUrl from c.url, so a URL the
+            // user typed into the cURL tab survives the tab flip and
+            // will be handed back by readFormConfig / config().
             populateForm(c);
         }
     emit configChanged();
