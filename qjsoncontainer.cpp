@@ -1691,10 +1691,37 @@ void QJsonContainer::setRequestConfig(const HttpRequestConfig &config)
 void QJsonContainer::on_configureRequest_toolButton_clicked()
 {
     HttpRequestConfigDialog dlg(this);
-    dlg.setConfig(mRequestConfig);
+
+    // Seed the dialog's URL from the address field so the cURL tab
+    // shows the actual endpoint the request will hit. One-way sync:
+    // UI -> cURL only when the address is a URL. A local file path
+    // in filePath_lineEdit is intentionally NOT pushed into cURL -
+    // curl doesn't know what to do with a bare filesystem path and
+    // it would render nonsense output.
+    HttpRequestConfig initial = mRequestConfig;
+    const QString addr = filePath_lineEdit ? filePath_lineEdit->text() : QString();
+    if (initial.url.isEmpty()
+        && (addr.contains(QLatin1String("http://"), Qt::CaseInsensitive)
+            || addr.contains(QLatin1String("https://"), Qt::CaseInsensitive)))
+        {
+            initial.url = addr;
+        }
+    dlg.setConfig(initial);
+
     if (dlg.exec() == QDialog::Accepted)
         {
-            setRequestConfig(dlg.config());
+            HttpRequestConfig cfg = dlg.config();
+            setRequestConfig(cfg);
+            // cURL -> UI URL sync (the reverse direction). If the
+            // dialog produced a URL, mirror it into the address
+            // field so the very next refresh hits the right
+            // endpoint. Don't trigger a fetch - visual sync only.
+            if (!cfg.url.isEmpty()
+                && filePath_lineEdit
+                && filePath_lineEdit->text() != cfg.url)
+                {
+                    filePath_lineEdit->setText(cfg.url);
+                }
         }
 }
 

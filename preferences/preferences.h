@@ -50,6 +50,15 @@ public:
     QString differLeftPath;
     QString differRightPath;
 
+    // Per-container HTTP request config, serialized as cURL text.
+    // Written on app close from QJsonContainer::requestConfig(); read
+    // during loadLastPaths BEFORE loadJsonFile so URL fetches on
+    // startup carry the user's method/headers/body. Empty string
+    // means "no custom config" - container falls back to defaults().
+    QString jsonContainerCurl;
+    QString differLeftCurl;
+    QString differRightCurl;
+
     QColor identicalDiffColor;
     QColor moderateDiffColor;
     QColor hugeDiffColor;

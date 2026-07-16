@@ -98,6 +98,11 @@ bool QJsonModel::loadJson(const QByteArray &json)
     {
         setParseError(true, parseError.errorString(), parseError.offset);
         beginResetModel();
+        // Prior-compare diff indices point at items we're about to
+        // delete; drop them here or QJsonContainer::on_model_dataUpdated
+        // will republish stale QModelIndexes as gotoIndexes_list and
+        // Ctrl-G will dereference freed items (phantom nav / crash).
+        mDiffIndices.clear();
         delete mRootItem;
         mRootItem = QJsonTreeItem::load(QJsonValue(QJsonDocument::fromJson((QString(
                                                                             "{\"Error\":\"") + QString(parseError.errorString() +
@@ -114,6 +119,7 @@ bool QJsonModel::loadJson(const QByteArray &json)
     if(!doc.isNull())
     {
         beginResetModel();
+        mDiffIndices.clear();
         delete mRootItem;
         if(doc.isObject())
         {
