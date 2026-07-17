@@ -22,11 +22,14 @@ HttpRequestConfig HttpRequestConfig::defaults()
 
 bool HttpRequestConfig::isDefault() const
 {
+    // url is a display concern (which endpoint the request targets),
+    // not part of the request-shape identity. A default GET with a
+    // URL is still a default GET; the badge on the toolbar button
+    // reflects the request configuration, not the address.
     const HttpRequestConfig d = defaults();
     return method == d.method
            && headers == d.headers
-           && body == d.body
-           && url.isEmpty();
+           && body == d.body;
 }
 
 void HttpRequestConfig::applyTo(QNetworkRequest &request) const

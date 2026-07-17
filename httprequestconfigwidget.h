@@ -90,6 +90,13 @@ private:
     QPlainTextEdit *mCurlEdit = nullptr;
     QLabel *mCurlParseWarning = nullptr;
 
+    // URL is not editable on the form tab (it belongs to the
+    // container's own filePath_lineEdit), but the cURL tab both shows
+    // and parses it. Remember whatever URL came in via setConfig / a
+    // cURL-tab edit so switching tabs Form -> cURL -> Form -> cURL
+    // doesn't silently wipe it out of readFormConfig().
+    QString mFormUrl;
+
     // Shared buttons
     QPushButton *mResetButton = nullptr;
     QPushButton *mSaveButton = nullptr;

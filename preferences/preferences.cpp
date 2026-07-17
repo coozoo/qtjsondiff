@@ -55,6 +55,10 @@ void Preferences::load()
     differLeftPath = s.value("Saved_Paths/differ_left_path").toString();
     differRightPath = s.value("Saved_Paths/differ_right_path").toString();
 
+    jsonContainerCurl = s.value("Saved_Paths/json_container_curl").toString();
+    differLeftCurl    = s.value("Saved_Paths/differ_left_curl").toString();
+    differRightCurl   = s.value("Saved_Paths/differ_right_curl").toString();
+
     identicalDiffColor = s.value("identical_diff_color",DEF_IDENTICAL_DIFF_COLOR).value<QColor>();
     moderateDiffColor = s.value("moderate_diff_color", DEF_MODERATE_DIFF_COLOR).value<QColor>();
     hugeDiffColor = s.value("huge_diff_color", DEF_HUGE_DIFF_COLOR).value<QColor>();
@@ -104,6 +108,10 @@ void Preferences::save()
     s.setValue("Saved_Paths/json_container_path", jsonContainerPath);
     s.setValue("Saved_Paths/differ_left_path", differLeftPath);
     s.setValue("Saved_Paths/differ_right_path", differRightPath);
+
+    s.setValue("Saved_Paths/json_container_curl", jsonContainerCurl);
+    s.setValue("Saved_Paths/differ_left_curl",    differLeftCurl);
+    s.setValue("Saved_Paths/differ_right_curl",   differRightCurl);
 
     s.setValue("identical_diff_color", identicalDiffColor);
     s.setValue("moderate_diff_color", moderateDiffColor);
