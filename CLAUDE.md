@@ -211,6 +211,10 @@ practical, raise it before introducing the dependency.
 
 No tag → all platforms build.
 
+Branch off `slave` and open PRs against `slave`, never `main`: the
+release build only runs for PRs into `slave`, and `main` only takes
+merges from `slave`. Full rules: `README.md` → "Contributing".
+
 ## File map (quick)
 
 - `qjsonitem.{h,cpp}` — tree node
