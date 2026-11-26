@@ -2,18 +2,27 @@ name: Release_Version
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - slave
   pull_request:
     branches: [ slave ]
 
-#  pull_request:
-#    branches: [ slave ]
-#    tags:
-#      - "v*"
+# Creating a release and uploading its files needs a token that may write.
+# This repository still defaults to a read-write token; asked for explicitly
+# so a change of that default does not break releases.
+permissions:
+  contents: write
 
-# run-name: "${{ github.ref_name }} - ${{ github.event.head_commit.message }}"
+# Same scheme as qtrfpowermeter / trackrideviz:
+#   * push to main          -> build everything, create a GitHub release, upload assets
+#   * push to slave / PR    -> build only, results are kept as workflow artifacts
+#   * [skip ci] in the commit message skips the run
+#   * [build linux] [build win] [build mac] [build mac dmg] [build mac zip]
+#     in the commit message (or PR title/body) limit the non-main build to those targets
+#
+# main uploads the source package to ppa:coozoo/qtjsondiff, signed with the
+# LAUNCHPAD_GPG_KEY / LAUNCHPAD_GPG_KEY_ID / LAUNCHPAD_SSH_KEY secrets
 
 jobs:
   check-skip:
@@ -29,6 +38,7 @@ jobs:
           fi
   create_release:
     name: Create release
+    needs: check-skip
     runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -66,15 +76,15 @@ jobs:
       - name: Create release
         if: github.ref == 'refs/heads/main'
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           body_path: release_notes.md
           tag_name: ${{ steps.build.outputs.VER_TAG_NAME }}_${{ github.ref }}
           name: Release CI ${{ steps.build.outputs.VER_TAG_NAME }} ${{ github.ref }}
+          # published at once: the other jobs upload their files into it afterwards
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set build flags from PR tags or commit message
         id: set_flags
         env:
@@ -124,36 +134,55 @@ jobs:
           - os: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
+
+      # ---------------------------------------------------------------- Linux
       - name: get app version
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: build
-      - name: add qt repo to linux
+      # The packages downloaded are kept between runs, as setup-msys2 keeps Windows': still
+      # installed every time, only not fetched again. Kept for one image of the runner, which
+      # brings newer versions; a new one starts from the last.
+      - name: runner image
+        if: matrix.config.os != 'windows-latest'
+        id: image
+        shell: bash
+        run: echo "version=${ImageVersion:-none}" >> $GITHUB_OUTPUT
+      - name: apt downloads (kept between runs)
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
-        run: |
-          sudo apt-get update -qq
-#         sudo add-apt-repository ppa:beineri/opt-qt-5.15.4-focal -y
+        uses: actions/cache@v6
+        with:
+          path: ~/apt-cache
+          key: apt-ubuntu-22.04-${{ steps.image.outputs.version }}-${{ hashFiles('.github/workflows/build_all.yml') }}
+          restore-keys: apt-ubuntu-22.04-
       - name: install qt into linux
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
-        run:  sudo apt-get -y install debhelper dput devscripts qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev libqt6charts6-dev libqt6serialport6-dev libssl-dev zlib1g-dev libfuse2  qt6-image-formats-plugins
-      - name: Set up GPG
+        run: |
+          mkdir -p ~/apt-cache/partial
+          echo "Dir::Cache::Archives \"$HOME/apt-cache\";" | sudo tee /etc/apt/apt.conf.d/99downloads-kept
+          sudo apt-get update -qq
+          sudo apt-get -y install debhelper dput devscripts fakeroot qt6-base-dev libqt6opengl6-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools libgl1-mesa-dev libssl-dev zlib1g-dev libfuse2 qt6-image-formats-plugins
+          # versions no longer on the mirror go; the rest readable for the cache to be saved
+          sudo apt-get autoclean -qq
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-cache
+      - name: Update changelog
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
+        run: bash debian/update-changelog.sh
+      - name: Set up GPG
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         run: |
           echo "${{ secrets.LAUNCHPAD_GPG_KEY }}" | gpg --batch --import
           echo "${{ secrets.LAUNCHPAD_GPG_KEY_ID }}:6:" | gpg --import-ownertrust
       - name: Setup SSH for Launchpad
-        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
+        if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.LAUNCHPAD_SSH_KEY }}" > ~/.ssh/launchpad-ci_id_rsa
           chmod 600 ~/.ssh/launchpad-ci_id_rsa
           ssh-keyscan -t rsa git.launchpad.net >> ~/.ssh/known_hosts
-      - name: Update changelog
-        if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
-        run: bash debian/update-changelog.sh
       - name: Prep launchpad
         if: matrix.config.os == 'ubuntu-22.04' && github.ref == 'refs/heads/main'
         env:
@@ -170,19 +199,19 @@ jobs:
         if: matrix.config.os == 'ubuntu-22.04' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_lin == '1')
         id: buildlinux
         run: |
-          # source /opt/qt*/bin/qt*-env.sh || true
-          dpkg-buildpackage -us -uc
+          # the package's own steps rather than dpkg-buildpackage: no .buildinfo and no debug
+          # symbols package, as neither is uploaded
+          DEB_BUILD_OPTIONS=noddebs debian/rules build
+          DEB_BUILD_OPTIONS=noddebs fakeroot debian/rules binary
           cp ../*.deb ./
           echo "DEB_PACK_NAME=$(ls *.deb|head -1|xargs -n 1 basename)" >> $GITHUB_OUTPUT
-          echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
-          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
+          # the AppImage is built again from clean, with the release config
           qmake6 CONFIG+=release PREFIX=/usr
+          make clean
           make -j$(nproc)
-          # lrelease $(ls *.pro)
           LRELEASE_BIN=$(dpkg -L qt6-l10n-tools | grep '/lrelease$' | head -n1)
-          "$LRELEASE_BIN"  $(ls *.pro)
+          "$LRELEASE_BIN" $(ls *.pro)
           mkdir -p appdir/usr/bin
-          ls -lR
           cp translations/*.qm appdir/usr/bin/
           cp ${{ steps.build.outputs.APP_NAME }} appdir/usr/bin/${{ steps.build.outputs.APP_NAME }}
           mkdir -p appdir/usr/share/icons/
@@ -192,7 +221,6 @@ jobs:
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -qmake=$(command -v qmake6)
-          ls -l
           cp ./Qt_JSON_diff*.AppImage ./Qt_JSON_diff-x86_64.AppImage
           ls -l
       - name: Upload Release Asset Linux AppImage
@@ -217,27 +245,39 @@ jobs:
           asset_path: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_name: ${{ steps.buildlinux.outputs.DEB_PACK_NAME }}
           asset_content_type: application/octet-stream
-      - name: Archive code coverage results
+      - name: Archive Linux AppImage
         if: matrix.config.os == 'ubuntu-22.04' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_lin == '1'
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7
         with:
           name: Qt_JSON_diff-x86_64.AppImage
           path: ./Qt_JSON_diff-x86_64.AppImage
           overwrite: true
+
+      # ---------------------------------------------------------------- macOS
       - name: get app version
         if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')" >> $GITHUB_OUTPUT
           echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         id: buildosx
+      - name: Homebrew downloads (kept between runs)
+        if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ steps.image.outputs.version }}-${{ hashFiles('.github/workflows/build_all.yml') }}
+          restore-keys: brew-${{ steps.image.outputs.version }}-
       - name: install qt OSX
         if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
+        # Homebrew as the runner image has it: updating itself first, and cleaning up after,
+        # take minutes and are not needed on a machine used once
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: brew install qt
       - name: buid OSX
         if: matrix.config.os == 'macos-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_mac_dmg == '1' || needs.create_release.outputs.build_mac_zip == '1')
         run: |
-          echo 'export PATH="$(brew --prefix qt)/bin:$PATH"' >> /Users/runner/.zshrc
-          echo 'export PATH="/Users/runner/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
           chmod 777 MAC_build_RELEASE.sh
           ./MAC_build_RELEASE.sh
           ls -l
@@ -255,7 +295,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} 
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: ./${{ steps.bundleosx.outputs.MAC_DMG_NAME }}
           asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
           asset_content_type: application/octet-stream
@@ -270,56 +310,44 @@ jobs:
           asset_path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
           asset_name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           asset_content_type: application/zip
-      - name: Archive code coverage results zip
+      - name: Archive macOS zip
         if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_mac_zip == '1'
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.zip
           path: ./${{ steps.bundleosx.outputs.MAC_ZIP_NAME }}
           overwrite: true
-      - name: Archive code coverage results dmg
+      - name: Archive macOS dmg
         if: matrix.config.os == 'macos-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_mac_dmg == '1'
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.buildosx.outputs.APP_NAME }}_${{ steps.buildosx.outputs.VER_TAG_NAME }}.dmg
           path: ./${{ steps.bundleosx.outputs.MAC_DMG_NAME }}
           overwrite: true
+
+      # -------------------------------------------------------------- Windows
       - name: Setup MSYS2 env
         if: matrix.config.os == 'windows-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_win == '1')
         uses: msys2/setup-msys2@v2
         with:
-          # Variant of the environment to set by default: MSYS, MINGW32 or MINGW64
           msystem: MSYS
-          # Default value for MSYS2_PATH_TYPE environment variable: strict, inherit or minimal
-          #path-type: # optional, default is minimal
-          # Retrieve and extract base installation from upstream GitHub Releases
-          #release: # optional, default is true
-          # Update MSYS2 installation through pacman
-          #update: # optional
-          # Install packages after installation through pacman
           install: >-
             mingw-w64-x86_64-toolchain
             base-devel
             git
             p7zip
-            ruby
-            mingw-w64-x86_64-qt6
             mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-imageformats
+            mingw-w64-x86_64-qt6-translations
             mingw-w64-x86_64-qt6-tools
-            mingw-w64-i686-toolchain
-            mingw-w64-x86_64-qwt-qt6
             mingw-w64-x86_64-zlib
-            mingw-w64-i686-zlib
-            zlib-devel
             mingw-w64-x86_64-openssl
-            mingw-w64-i686-openssl
-            openssl-devel
             tar
       - name: get app version
         if: matrix.config.os == 'windows-latest' && (github.ref == 'refs/heads/main' || needs.create_release.outputs.build_win == '1')
         run: |
           echo "VER_TAG_NAME=$(cat main.cpp |grep 'const QString APP'|awk -F\" '{print $2;}')-$(date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
-          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT          
+          echo "APP_NAME=$(cat *.pro |grep 'TARGET ='|awk -F\= '{print $2;}'| tr -d ' ')" >> $GITHUB_OUTPUT
         shell: msys2 {0}
         id: buildwin
       - name: make 64 win app
@@ -336,11 +364,24 @@ jobs:
           make -j$(nproc)
           rm -f release/*.o; rm -f release/*.cpp; rm -f release/*.h
           windeployqt6.exe release/${{ steps.buildwin.outputs.APP_NAME }}.exe
-          ls -l $ROOTMSYS/bin
-          cp $ROOTMSYS/bin/zlib*.dll release/; cp $ROOTMSYS/bin/libgcc*.dll release/; cp $ROOTMSYS/bin/libwinpthread*.dll release/; cp $ROOTMSYS/bin/libstdc*.dll release/; cp $ROOTMSYS/bin/libdouble*.dll release/; cp $ROOTMSYS/bin/libicuin*.dll release/; cp $ROOTMSYS/bin/libicuuc*.dll release/; cp $ROOTMSYS/bin/libicudt*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libzstd*.dll release/; cp $ROOTMSYS/bin/libharfbuzz*.dll release/; cp $ROOTMSYS/bin/libgraphite*.dll release/; cp $ROOTMSYS/bin/libfreetype*.dll release/; cp $ROOTMSYS/bin/libbrotlidec*.dll release/; cp $ROOTMSYS/bin/libbrotlicommon*.dll release/; cp $ROOTMSYS/bin/libbz*.dll release/; cp $ROOTMSYS/bin/libpng*.dll release/; cp $ROOTMSYS/bin/libglib*.dll release/; cp $ROOTMSYS/bin/libintl*.dll release/; cp $ROOTMSYS/bin/libiconv*.dll release/; cp $ROOTMSYS/bin/libpcre*.dll release/; cp $ROOTMSYS/bin/libb*.dll release/; cp $ROOTMSYS/bin/libdouble-conversion.dll release/; cp $ROOTMSYS/bin/libgcc_s_seh*.dll release/
-          cp $ROOTMSYS/bin/libcrypto*.dll release/; cp $ROOTMSYS/bin/libssl*.dll release/; cp $ROOTMSYS/bin/libmd4c.dll release/
+          # windeployqt brings Qt alone; the MinGW DLLs Qt and its plugins load are named here.
+          # libcrypto and libssl: URLs are fetched over https
+          shopt -s nullglob
+          DLL_PATTERNS=(
+            "zlib*.dll" "libz-1*.dll" "libgcc*.dll" "libwinpthread*.dll" "libstdc*.dll"
+            "libdouble*.dll" "libicuin*.dll" "libicuuc*.dll" "libicudt*.dll"
+            "libpcre*.dll" "libzstd*.dll" "libharfbuzz*.dll" "libgraphite*.dll"
+            "libfreetype*.dll" "libb*.dll" "libpng*.dll" "libglib*.dll" "libintl*.dll"
+            "libiconv*.dll" "libcrypto*.dll" "libssl*.dll" "libmd4c*.dll"
+          )
+          for pattern in "${DLL_PATTERNS[@]}"; do
+            files=("$ROOTMSYS/bin"/$pattern)
+            if [ ${#files[@]} -gt 0 ]; then
+              cp -u "${files[@]}" release/
+            fi
+          done
+          shopt -u nullglob
           mv release ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64; 7z -tzip a ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64/
-          make clean
           ls -l
         shell: msys2 {0}
       - name: Upload Release Asset Win64
@@ -354,11 +395,10 @@ jobs:
           asset_path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           asset_content_type: application/zip
-      - name: Archive code coverage results
+      - name: Archive Win64 zip
         if: matrix.config.os == 'windows-latest' && github.ref != 'refs/heads/main' && needs.create_release.outputs.build_win == '1'
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           path: ./${{ steps.buildwin.outputs.APP_NAME }}_${{ steps.buildwin.outputs.VER_TAG_NAME }}_WIN64.zip
           overwrite: true
-
