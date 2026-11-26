@@ -127,11 +127,11 @@ int main(int argc, char *argv[])
         {
             return 0;
         }
-    // Restore last-loaded paths for all three containers first, so
-    // switching tabs still shows the previous session's content on
-    // whichever side the CLI didn't override. setDisplayMode then
-    // replaces just the CLI-targeted container(s).
-    w.loadLastPathsIfEnabled();
+    // CLI paths replace the session restore instead of layering on top
+    // of it: restoring first would leave the old URL fetch in flight
+    // (its reply can land after the CLI one and win) and would leak the
+    // previous session's request config into a CLI URL given without
+    // --config.
     if (appMode == Tree || appMode == Diff)
         {
             w.setDisplayMode(cliParser.files(),
@@ -139,6 +139,10 @@ int main(int argc, char *argv[])
                              cliParser.leftConfigCurl(),
                              cliParser.rightConfigCurl(),
                              cliParser.noHttpDefaults());
+        }
+    else
+        {
+            w.loadLastPathsIfEnabled();
         }
 
     w.setWindowTitle(a.property("appname").toString() + " " + a.property("appversion").toString());

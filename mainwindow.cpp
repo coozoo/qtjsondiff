@@ -90,11 +90,8 @@ MainWindow::MainWindow(QWidget *parent) :
             this, &MainWindow::actionPreferences_triggered);
 
     // loadLastPaths is NOT called here anymore. main.cpp calls it
-    // BEFORE setDisplayMode: all three containers get their prev-
-    // session paths restored, then setDisplayMode overrides only
-    // the CLI-targeted container(s). So `qtjsondiff URL` shows
-    // your URL on the single-tree tab, and switching to the diff
-    // tab still shows what you had there last time.
+    // only when the CLI gave no files, so `qtjsondiff URL` loads
+    // just that URL and no previous-session fetches race with it.
 
     restoreGeometry(PREF_INST->mainWindowGeometry);
     restoreState(PREF_INST->mainWindowState);
